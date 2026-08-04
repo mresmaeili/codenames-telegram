@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      TELEGRAM_BOT_TOKEN: test-token
+      MONGODB_URI: mongodb://127.0.0.1:27017/codenames-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run build --workspace shared && npm run typecheck --workspace server && npm run typecheck --workspace client
+
+      - name: Test
+        run: npm run test
+
+      - name: Build production assets
+        run: npm run build

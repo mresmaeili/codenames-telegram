@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/services/auth.service.test.ts src/services/game.service.test.ts src/services/hint.service.test.ts src/services/reveal.service.test.ts src/services/selection.service.test.ts src/services/turn.service.test.ts src/services/win-condition.service.test.ts src/services/room.service.test.ts src/services/room.socket.test.ts src/routes/room.route.test.ts",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mongoose": "^9.9.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^26.1.2",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.3"
+  }
+}
