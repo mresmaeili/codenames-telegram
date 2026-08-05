@@ -55,13 +55,30 @@ async function authenticateWithServer(
     initDataLength: initData.length,
   });
 
-  const response = await fetch(url, {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  console.debug("[Auth] request details", {
+    url,
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ initData }),
+    headers,
+    initDataExists: !!initData,
+    initDataLength: initData.length,
   });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ initData }),
+    });
+    console.debug("[Auth] request sent", { url, status: response.status });
+  } catch (e) {
+    console.debug("[Auth] request failed to send", e);
+    throw new Error("Authentication request failed to send.");
+  }
 
   if (!response.ok) {
     throw new Error("Authentication failed.");

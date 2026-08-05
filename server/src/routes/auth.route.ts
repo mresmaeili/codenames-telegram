@@ -10,8 +10,13 @@ interface TelegramAuthRequestBody {
 export const authRouter = Router();
 
 authRouter.post("/telegram", async (request, response, next) => {
+  console.debug("[Auth Route] Enter /auth/telegram", {
+    method: request.method,
+    url: request.originalUrl,
+  });
   try {
     const body = request.body as TelegramAuthRequestBody;
+    console.debug("[Auth Route] Request body keys", Object.keys(body || {}));
     // Debug: log a SHA256 of the received initData and its length so we can
     // compare client vs server without printing the raw initData.
     if (typeof body.initData === "string") {
@@ -30,6 +35,15 @@ authRouter.post("/telegram", async (request, response, next) => {
       } catch (e) {
         console.debug("[Auth Debug] Failed to hash initData.", e);
       }
+    }
+
+    if (typeof body.initData === "string") {
+      console.debug(
+        "[Auth Route] initData present, length",
+        body.initData.length,
+      );
+    } else {
+      console.debug("[Auth Route] initData missing or not a string");
     }
 
     if (typeof body.initData !== "string" || !body.initData.trim()) {

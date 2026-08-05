@@ -51,37 +51,76 @@ function verifyTelegramInitData(
   const authHash = params.get("hash");
   const authDate = params.get("auth_date");
 
+  console.debug(
+    "[Auth Verify] Parsed initData keys",
+    Array.from(params.keys()),
+  );
+
   if (!authHash || !authDate) {
+    console.debug("[Auth Verify] Missing hash or auth_date", {
+      hasHash: !!authHash,
+      hasAuthDate: !!authDate,
+    });
     throw new Error("Invalid telegram init data.");
   }
 
   const authDateValue = Number(authDate);
   if (!Number.isInteger(authDateValue)) {
+    console.debug("[Auth Verify] auth_date is not an integer", { authDate });
     throw new Error("Invalid telegram auth date.");
   }
 
   const currentTimestamp = Math.floor(Date.now() / 1000);
-  if (currentTimestamp - authDateValue > TELEGRAM_AUTH_TTL_SECONDS) {
+  const age = currentTimestamp - authDateValue;
+  console.debug("[Auth Verify] auth_date check", {
+    authDateValue,
+    age,
+    ttl: TELEGRAM_AUTH_TTL_SECONDS,
+  });
+  if (age > TELEGRAM_AUTH_TTL_SECONDS) {
+    console.debug("[Auth Verify] initData expired", { age });
     throw new Error("Telegram init data has expired.");
   }
 
   const checkString = buildTelegramCheckString(initData);
-  const calculatedHash = crypto
-    .createHmac("sha256", hashSecret)
-    .update(checkString)
-    .digest("hex");
-
-  if (calculatedHash !== authHash) {
-    throw new Error("Telegram init data signature is invalid.");
+  // Calculate HMAC using the bot token as secret. Do NOT log the secret or
+  // the calculated HMAC. Only log whether the HMAC matched the provided
+  // `hash` value to avoid printing sensitive data.
+  try {
+    const calculatedHash = crypto
+      .createHmac("sha256", hashSecret)
+      .update(checkString)
+      .digest("hex");
+    const matches = calculatedHash === authHash;
+    console.debug("[Auth Verify] HMAC comparison result", { matches });
+    if (!matches) {
+      console.debug("[Auth Verify] HMAC mismatch");
+      throw new Error("Telegram init data signature is invalid.");
+    }
+  } catch (e) {
+    console.debug("[Auth Verify] HMAC computation failed", e);
+    throw e;
   }
 
   const rawUser = params.get("user");
   if (!rawUser) {
+    console.debug("[Auth Verify] user param missing in initData");
     throw new Error("Telegram user payload is missing.");
   }
 
-  const parsedUser = JSON.parse(rawUser) as TelegramInitDataPayload["user"];
+  let parsedUser: TelegramInitDataPayload["user"] | null = null;
+  try {
+    parsedUser = JSON.parse(rawUser) as TelegramInitDataPayload["user"];
+  } catch (e) {
+    console.debug("[Auth Verify] user JSON parse failed", e);
+    throw new Error("Telegram user payload is invalid JSON.");
+  }
+
   if (!parsedUser?.id || !parsedUser.first_name) {
+    console.debug("[Auth Verify] parsed user missing required fields", {
+      hasId: !!parsedUser?.id,
+      hasFirstName: !!parsedUser?.first_name,
+    });
     throw new Error("Telegram user payload is invalid.");
   }
 
