@@ -12,7 +12,11 @@ async function startServer() {
   try {
     await connectToDatabase();
 
-    server = app.listen(env.PORT, "0.0.0.0");
+    server = app.listen(env.PORT, "0.0.0.0", () => {
+      console.log(
+        `Server listening on http://0.0.0.0:${env.PORT} (env=${env.NODE_ENV})`,
+      );
+    });
 
     socketServer = createSocketServer(server, {
       corsOrigin: env.CORS_ORIGIN,
