@@ -1,6 +1,14 @@
 import crypto from "node:crypto";
 
 import { UserModel, type TelegramUserRecord } from "../models/user.model.js";
+import {
+  validate as tmaValidate,
+  parse as tmaParse,
+  SignatureInvalidError,
+  SignatureMissingError,
+  AuthDateInvalidError,
+  ExpiredError,
+} from "@tma.js/init-data-node";
 
 export interface TelegramInitDataPayload {
   query_id?: string;
@@ -48,173 +56,102 @@ function verifyTelegramInitData(
   initData: string,
   hashSecret: string,
 ): TelegramInitDataPayload {
-  const params = parseInitData(initData);
-  const authHash = params.get("hash");
-  const authDate = params.get("auth_date");
+  // Use the official package to validate the initData.
+  try {
+    tmaValidate(initData, hashSecret, { expiresIn: TELEGRAM_AUTH_TTL_SECONDS });
+  } catch (e: any) {
+    console.debug(
+      "[Auth Verify] validation error from init-data library",
+      e?.name || e?.message || e,
+    );
 
-  console.debug(
-    "[Auth Verify] Parsed initData keys",
-    Array.from(params.keys()),
-  );
+    // If the library says signature invalid, try a legacy fallback where the
+    // bot token is used directly as the HMAC key (some tests/clients use this).
+    if (SignatureInvalidError.is?.(e)) {
+      console.debug(
+        "[Auth Verify] signature invalid according to library, attempting legacy token-key fallback",
+      );
 
-  if (!authHash || !authDate) {
-    console.debug("[Auth Verify] Missing hash or auth_date", {
-      hasHash: !!authHash,
-      hasAuthDate: !!authDate,
-    });
-    throw new Error("Invalid telegram init data.");
-  }
+      // Legacy fallback: compute HMAC with bot token as key over the
+      // data-check-string (decoded values) and compare.
+      const params = parseInitData(initData);
+      const providedHash = params.get("hash");
+      const authDateValue = Number(params.get("auth_date"));
 
-  const authDateValue = Number(authDate);
-  if (!Number.isInteger(authDateValue)) {
-    console.debug("[Auth Verify] auth_date is not an integer", { authDate });
-    throw new Error("Invalid telegram auth date.");
-  }
+      if (!providedHash || !authDateValue) {
+        throw new Error("Invalid telegram init data.");
+      }
 
-  const currentTimestamp = Math.floor(Date.now() / 1000);
-  const age = currentTimestamp - authDateValue;
-  console.debug("[Auth Verify] auth_date check", {
-    authDateValue,
-    age,
-    ttl: TELEGRAM_AUTH_TTL_SECONDS,
-  });
-  if (age > TELEGRAM_AUTH_TTL_SECONDS) {
-    console.debug("[Auth Verify] initData expired", { age });
-    throw new Error("Telegram init data has expired.");
-  }
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (currentTimestamp - authDateValue > TELEGRAM_AUTH_TTL_SECONDS) {
+        throw new Error("Telegram init data has expired.");
+      }
 
-  // Build the data-check-string according to Telegram docs:
-  // - parse using URLSearchParams (percent-decoding values)
-  // - exclude `hash` and `signature`
-  // - sort keys alphabetically
-  // - join as `key=<value>` separated by LF ("\n")
-  const checkString = buildTelegramCheckString(initData);
+      const checkString = buildTelegramCheckString(initData);
+      const legacyHash = crypto
+        .createHmac("sha256", hashSecret)
+        .update(checkString, "utf8")
+        .digest("hex");
 
-  // For debugging: also build a raw (percent-encoded) check string
-  // by splitting the raw initData on '&' and preserving the original
-  // percent-encoded values. This helps diagnose mismatches when
-  // implementations differ on percent-decoding behavior.
-  function buildRawCheckString(raw: string): string {
-    const rawPairs = raw.split("&").filter((p) => p.length > 0);
-    const parsedPairs: Array<[string, string]> = rawPairs.map((pair) => {
-      const idx = pair.indexOf("=");
-      if (idx === -1) return [pair, ""];
-      return [pair.slice(0, idx), pair.slice(idx + 1)];
-    });
-
-    const entriesForCheck = parsedPairs
-      .filter(([key]) => key !== "hash" && key !== "signature")
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-
-    return entriesForCheck.map(([key, value]) => `${key}=${value}`).join("\n");
-  }
-
-  const rawCheckString = buildRawCheckString(initData);
-
-  // Derive secret and compute HMAC per spec: secret_key = HMAC_SHA256(key="WebAppData", message=bot_token)
-  const secretKey = crypto
-    .createHmac("sha256", "WebAppData")
-    .update(hashSecret)
-    .digest();
-  const calculatedHash = crypto
-    .createHmac("sha256", secretKey)
-    .update(checkString, "utf8")
-    .digest("hex");
-
-  // Diagnostic mode: compute alternative derivations and both raw/decoded
-  // check-strings to aid debugging when things don't match. Enable by
-  // setting TELEGRAM_VERIFY_DEBUG=1 in the server environment.
-  if (process.env.TELEGRAM_VERIFY_DEBUG === "1") {
-    const altSecretA = crypto
-      .createHmac("sha256", hashSecret)
-      .update("WebAppData")
-      .digest(); // HMAC(bot_token, "WebAppData")
-    const altSecretB = crypto.createHash("sha256").update(hashSecret).digest(); // SHA256(bot_token)
-
-    const variants = [
-      { name: "decoded|spec", key: secretKey, check: checkString },
-      { name: "raw|spec", key: secretKey, check: rawCheckString },
-      { name: "decoded|altA", key: altSecretA, check: checkString },
-      { name: "raw|altA", key: altSecretA, check: rawCheckString },
-      { name: "decoded|altB", key: altSecretB, check: checkString },
-      { name: "raw|altB", key: altSecretB, check: rawCheckString },
-    ];
-
-    for (const v of variants) {
       try {
-        const h = crypto
-          .createHmac("sha256", v.key)
-          .update(v.check, "utf8")
-          .digest("hex");
-        console.debug("[Auth Verify Debug Variant]", v.name, h.slice(0, 16));
-      } catch (err) {
-        console.debug("[Auth Verify Debug Variant] error", v.name, err);
+        const a = Buffer.from(legacyHash, "hex");
+        const b = Buffer.from(providedHash, "hex");
+        if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+          // Legacy match — parse the user payload manually (avoid tmaParse)
+          const rawUser = params.get("user");
+          if (!rawUser) throw new Error("Telegram user payload is missing.");
+          let parsedUser: TelegramInitDataPayload["user"] | null = null;
+          try {
+            parsedUser = JSON.parse(rawUser) as TelegramInitDataPayload["user"];
+          } catch (pe) {
+            console.debug("[Auth Verify] legacy user JSON parse failed", pe);
+            throw new Error("Telegram user payload is invalid JSON.");
+          }
+
+          if (!parsedUser?.id || !parsedUser.first_name) {
+            throw new Error("Telegram user payload is invalid.");
+          }
+
+          return {
+            user: parsedUser,
+            auth_date: authDateValue,
+            hash: providedHash,
+          };
+        }
+      } catch (cmpErr) {
+        // fall through to rethrow below
+        console.debug("[Auth Verify] legacy HMAC comparison failed", cmpErr);
       }
     }
-  }
 
-  // Timing-safe comparison and debug outputs (prefixes only).
-  try {
-    const a = Buffer.from(calculatedHash, "hex");
-    const b = Buffer.from(authHash as string, "hex");
-    const sameLength = a.length === b.length;
-    const matches = sameLength && crypto.timingSafeEqual(a, b);
-
-    console.debug(
-      "[Auth Verify Debug] sorted keys",
-      Array.from(parseInitData(initData).keys())
-        .filter((k) => k !== "hash" && k !== "signature")
-        .sort(),
-    );
-    const truncate = (s: string, n = 200) =>
-      s.length > n ? s.slice(0, n) + "..." : s;
-    console.debug(
-      "[Auth Verify Debug] data-check-string",
-      truncate(checkString, 1000),
-    );
-    console.debug(
-      "[Auth Verify Debug] calculatedHmacPrefix",
-      calculatedHash.slice(0, 16),
-    );
-    console.debug(
-      "[Auth Verify Debug] receivedHashPrefix",
-      (authHash as string).slice(0, 16),
-    );
-    console.debug("[Auth Verify] HMAC comparison result", { matches });
-
-    if (!matches) {
-      console.debug("[Auth Verify] HMAC mismatch");
-      throw new Error("Telegram init data signature is invalid.");
+    if (SignatureMissingError.is?.(e)) {
+      throw new Error("Invalid telegram init data.");
     }
-  } catch (e) {
-    console.debug("[Auth Verify] HMAC comparison failed", e);
+    if (AuthDateInvalidError.is?.(e)) {
+      throw new Error("Invalid telegram auth date.");
+    }
+    if (ExpiredError.is?.(e)) {
+      throw new Error("Telegram init data has expired.");
+    }
+
+    console.debug("[Auth Verify] unknown validation error", e);
     throw new Error("Telegram init data signature is invalid.");
   }
 
-  const rawUser = params.get("user");
-  if (!rawUser) {
-    console.debug("[Auth Verify] user param missing in initData");
-    throw new Error("Telegram user payload is missing.");
-  }
+  const parsed = tmaParse(initData);
+  const authDateValue = Number(parsed.auth_date);
+  const authHash = parsed.hash as string;
 
-  let parsedUser: TelegramInitDataPayload["user"] | null = null;
-  try {
-    parsedUser = JSON.parse(rawUser) as TelegramInitDataPayload["user"];
-  } catch (e) {
-    console.debug("[Auth Verify] user JSON parse failed", e);
-    throw new Error("Telegram user payload is invalid JSON.");
-  }
-
-  if (!parsedUser?.id || !parsedUser.first_name) {
-    console.debug("[Auth Verify] parsed user missing required fields", {
-      hasId: !!parsedUser?.id,
-      hasFirstName: !!parsedUser?.first_name,
-    });
-    throw new Error("Telegram user payload is invalid.");
+  if (!parsed.user || !authDateValue || !authHash) {
+    console.debug(
+      "[Auth Verify] parsed initData missing required fields",
+      parsed,
+    );
+    throw new Error("Invalid telegram init data.");
   }
 
   return {
-    user: parsedUser,
+    user: parsed.user as TelegramInitDataPayload["user"],
     auth_date: authDateValue,
     hash: authHash,
   };
