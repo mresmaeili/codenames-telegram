@@ -1,12 +1,12 @@
-import { init, miniApp, postEvent, themeParams } from "@tma.js/sdk";
-
-interface TelegramWindow extends Window {
-  Telegram?: {
-    WebApp?: {
-      initData?: string;
-    };
-  };
-}
+import {
+  init,
+  isTMA,
+  miniApp,
+  postEvent,
+  retrieveLaunchParams,
+  retrieveRawInitData,
+  themeParams,
+} from "@tma.js/sdk";
 
 let miniAppInstance: typeof miniApp | null = null;
 
@@ -15,8 +15,12 @@ function isTelegramEnvironment() {
     return false;
   }
 
-  const telegramWindow = window as TelegramWindow;
-  return Boolean(telegramWindow.Telegram?.WebApp);
+  try {
+    return isTMA();
+  } catch (error) {
+    console.debug("[Telegram] isTMA() check failed.", error);
+    return false;
+  }
 }
 
 export function waitForTelegramMiniApp(timeoutMs = 1500) {
@@ -51,12 +55,7 @@ export function initializeTelegramMiniApp() {
   }
 
   if (!isTelegramEnvironment()) {
-    console.debug("[Telegram] WebApp environment not available yet.", {
-      telegram:
-        typeof window !== "undefined"
-          ? (window as TelegramWindow).Telegram
-          : undefined,
-    });
+    console.debug("[Telegram] TMA environment not available yet.");
     miniAppInstance = null;
     return miniAppInstance;
   }
@@ -87,16 +86,32 @@ export function isTelegramMiniAppAvailable() {
   return isTelegramEnvironment();
 }
 
-export function getTelegramInitData() {
+export async function getTelegramInitData() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const telegramWindow = window as TelegramWindow;
-  const initData = telegramWindow.Telegram?.WebApp?.initData ?? null;
-  console.debug("[Telegram] initData read", {
-    initData,
-    telegram: telegramWindow.Telegram,
-  });
-  return initData;
+  try {
+    const initData = await retrieveRawInitData();
+    console.debug("[Telegram] retrieveRawInitData result", { initData });
+    return initData ?? null;
+  } catch (error) {
+    console.debug("[Telegram] retrieveRawInitData failed.", error);
+    return null;
+  }
+}
+
+export async function getTelegramLaunchParams() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const launchParams = await retrieveLaunchParams();
+    console.debug("[Telegram] retrieveLaunchParams result", { launchParams });
+    return launchParams;
+  } catch (error) {
+    console.debug("[Telegram] retrieveLaunchParams failed.", error);
+    return null;
+  }
 }

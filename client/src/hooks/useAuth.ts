@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { env } from "@/config/env";
 import {
   getTelegramInitData,
+  getTelegramLaunchParams,
   initializeTelegramMiniApp,
   isTelegramMiniAppAvailable,
   waitForTelegramMiniApp,
@@ -90,7 +91,10 @@ export function useAuth() {
 
       initializeTelegramMiniApp();
 
-      const initData = getTelegramInitData() ?? "";
+      const launchParams = await getTelegramLaunchParams();
+      console.debug("[Auth] launch parameters", { launchParams });
+
+      const initData = (await getTelegramInitData()) ?? "";
 
       if (!initData) {
         setAuthState({
