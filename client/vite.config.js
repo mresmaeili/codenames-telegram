@@ -6,6 +6,11 @@ import { defineConfig } from "vite";
 var appRoot = fileURLToPath(new URL("..", import.meta.url));
 export default defineConfig({
     envDir: path.resolve(appRoot),
+    server: {
+        host: "0.0.0.0",
+        port: 5173,
+        allowedHosts: ["app.radwebstudio.ir"],
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
         alias: {

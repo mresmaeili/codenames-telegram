@@ -8,7 +8,6 @@ interface TelegramWindow extends Window {
   };
 }
 
-let initialized = false;
 let miniAppInstance: typeof miniApp | null = null;
 
 function isTelegramEnvironment() {
@@ -20,14 +19,44 @@ function isTelegramEnvironment() {
   return Boolean(telegramWindow.Telegram?.WebApp);
 }
 
+export function waitForTelegramMiniApp(timeoutMs = 1500) {
+  if (typeof window === "undefined") {
+    return Promise.resolve(false);
+  }
+
+  if (isTelegramEnvironment()) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const intervalMs = 50;
+    const interval = window.setInterval(() => {
+      if (isTelegramEnvironment()) {
+        window.clearInterval(interval);
+        window.clearTimeout(timeout);
+        resolve(true);
+      }
+    }, intervalMs);
+
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(interval);
+      resolve(false);
+    }, timeoutMs);
+  });
+}
+
 export function initializeTelegramMiniApp() {
-  if (initialized) {
+  if (miniAppInstance) {
     return miniAppInstance;
   }
 
-  initialized = true;
-
   if (!isTelegramEnvironment()) {
+    console.debug("[Telegram] WebApp environment not available yet.", {
+      telegram:
+        typeof window !== "undefined"
+          ? (window as TelegramWindow).Telegram
+          : undefined,
+    });
     miniAppInstance = null;
     return miniAppInstance;
   }
@@ -41,6 +70,7 @@ export function initializeTelegramMiniApp() {
     miniApp.ready();
     postEvent("web_app_expand");
     miniAppInstance = miniApp;
+    console.debug("[Telegram] Mini App initialized successfully.");
   } catch (error) {
     console.warn("Telegram Mini App initialization failed.", error);
     miniAppInstance = null;
@@ -63,5 +93,10 @@ export function getTelegramInitData() {
   }
 
   const telegramWindow = window as TelegramWindow;
-  return telegramWindow.Telegram?.WebApp?.initData ?? null;
+  const initData = telegramWindow.Telegram?.WebApp?.initData ?? null;
+  console.debug("[Telegram] initData read", {
+    initData,
+    telegram: telegramWindow.Telegram,
+  });
+  return initData;
 }

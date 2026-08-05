@@ -1,5 +1,7 @@
+import cors from "cors";
 import express from "express";
 
+import { env } from "./config/env.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -13,6 +15,13 @@ export function createApp() {
   const app = express();
 
   app.use(express.json());
+  app.use(
+    cors({
+      origin: env.CORS_ORIGIN,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    }),
+  );
   app.use("/health", healthRouter);
   app.use("/auth", authRouter);
   app.use("/api/rooms", roomRouter);

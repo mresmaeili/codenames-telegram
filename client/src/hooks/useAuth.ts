@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 
+import { env } from "@/config/env";
+import {
+  getTelegramInitData,
+  initializeTelegramMiniApp,
+  isTelegramMiniAppAvailable,
+  waitForTelegramMiniApp,
+} from "@/lib/telegram";
+
 function getFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -7,11 +15,6 @@ function getFriendlyErrorMessage(error: unknown): string {
 
   return "Authentication failed. Please try again.";
 }
-
-import {
-  getTelegramInitData,
-  isTelegramMiniAppAvailable,
-} from "@/lib/telegram";
 
 interface AuthenticatedUser {
   telegramId: number;
@@ -36,7 +39,13 @@ let authRequestPromise: Promise<AuthenticatedUser | null> | null = null;
 async function authenticateWithServer(
   initData: string,
 ): Promise<AuthenticatedUser | null> {
-  const response = await fetch("http://localhost:3001/auth/telegram", {
+  const url = `${env.API_BASE_URL.replace(/\/$/, "")}/auth/telegram`;
+  console.debug("[Auth] authenticating with server", {
+    url,
+    initDataLength: initData.length,
+  });
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -61,7 +70,15 @@ export function useAuth() {
 
   useEffect(() => {
     async function runAuthentication() {
-      if (!isTelegramMiniAppAvailable()) {
+      const telegramAvailable = await waitForTelegramMiniApp(2000);
+
+      console.debug("[Auth] Telegram availability check", {
+        telegramAvailable,
+        telegram:
+          typeof window !== "undefined" ? (window as any).Telegram : undefined,
+      });
+
+      if (!telegramAvailable || !isTelegramMiniAppAvailable()) {
         setAuthState({
           user: null,
           loading: false,
@@ -70,6 +87,8 @@ export function useAuth() {
         });
         return;
       }
+
+      initializeTelegramMiniApp();
 
       const initData = getTelegramInitData() ?? "";
 
