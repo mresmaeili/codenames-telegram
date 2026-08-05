@@ -15,4 +15,7 @@ export const env = {
   SOCKET_URL:
     importMetaEnv.VITE_SOCKET_URL ??
     (isProduction ? window.location.origin : "http://localhost:3001"),
+  // Opt-in debug flag to compute and log a SHA256 of the Telegram initData
+  // on the client for safe comparison with server-side hashes.
+  DEBUG_AUTH_HASH: (importMetaEnv as any).VITE_DEBUG_AUTH_HASH === "true",
 };

@@ -105,6 +105,34 @@ export function useAuth() {
 
       const initData = (await getTelegramInitData()) ?? "";
 
+      // If enabled, compute and log a client-side SHA256 of the initData so
+      // it can be compared with the server-side hash without sharing raw
+      // initData. This helps detect proxies or body modifications.
+      async function computeClientSha256(input: string) {
+        try {
+          const enc = new TextEncoder();
+          const data = enc.encode(input);
+          const hashBuffer = await (
+            window.crypto.subtle as SubtleCrypto
+          ).digest("SHA-256", data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        } catch (e) {
+          console.debug("[Auth Debug] computeClientSha256 failed", e);
+          return null;
+        }
+      }
+
+      if (env.DEBUG_AUTH_HASH && initData) {
+        const clientHash = await computeClientSha256(initData);
+        console.debug(
+          "[Auth Debug] Client initData SHA256:",
+          clientHash,
+          "len:",
+          initData.length,
+        );
+      }
+
       if (!initData) {
         setAuthState({
           user: null,
