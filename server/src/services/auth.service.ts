@@ -83,11 +83,20 @@ function verifyTelegramInitData(
     throw new Error("Telegram init data has expired.");
   }
 
-  // Build the data-check string from the same entries used above so the
-  // logged `sorted keys` and the string are consistent.
-  const entriesForCheck = Array.from(params.entries())
+  // Build the data-check string using the raw initData string WITHOUT
+  // percent-decoding values. Telegram's verification requires the original
+  // received bytes (percent-encoded where applicable) to be used when
+  // composing the data-check string.
+  const rawPairs = initData.split("&").filter((p) => p.length > 0);
+  const parsedPairs: Array<[string, string]> = rawPairs.map((pair) => {
+    const idx = pair.indexOf("=");
+    if (idx === -1) return [pair, ""];
+    return [pair.slice(0, idx), pair.slice(idx + 1)];
+  });
+
+  const entriesForCheck = parsedPairs
     .filter(([key]) => key !== "hash" && key !== "signature")
-    .sort(([left], [right]) => left.localeCompare(right));
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
   const checkString = entriesForCheck
     .map(([key, value]) => `${key}=${value}`)
