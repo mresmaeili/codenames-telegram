@@ -17,13 +17,24 @@ function isTelegramEnvironment() {
   }
 
   const telegramWindow = window as TelegramWindow;
-  return Boolean(telegramWindow.Telegram?.WebApp);
+  const available = Boolean(telegramWindow.Telegram?.WebApp);
+  console.debug("isTelegramEnvironment", {
+    telegram: telegramWindow.Telegram,
+    telegramWebApp: telegramWindow.Telegram?.WebApp,
+    available,
+  });
+  return available;
 }
 
 export function initializeTelegramMiniApp() {
   if (initialized) {
     return miniAppInstance;
   }
+
+  console.debug("initializeTelegramMiniApp start", {
+    telegram: (window as any).Telegram,
+    telegramWebApp: (window as any).Telegram?.WebApp,
+  });
 
   initialized = true;
 
@@ -34,11 +45,23 @@ export function initializeTelegramMiniApp() {
 
   try {
     init();
+    console.debug("initializeTelegramMiniApp after init", {
+      telegram: (window as any).Telegram,
+      telegramWebApp: (window as any).Telegram?.WebApp,
+    });
     themeParams.mount();
     themeParams.bindCssVars();
     miniApp.mount();
+    console.debug("initializeTelegramMiniApp after miniApp.mount", {
+      telegram: (window as any).Telegram,
+      telegramWebApp: (window as any).Telegram?.WebApp,
+    });
     miniApp.bindCssVars();
     miniApp.ready();
+    console.debug("initializeTelegramMiniApp after miniApp.ready", {
+      telegram: (window as any).Telegram,
+      telegramWebApp: (window as any).Telegram?.WebApp,
+    });
     postEvent("web_app_expand");
     miniAppInstance = miniApp;
   } catch (error) {

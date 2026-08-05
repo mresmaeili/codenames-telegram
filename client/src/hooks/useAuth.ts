@@ -61,7 +61,24 @@ export function useAuth() {
 
   useEffect(() => {
     async function runAuthentication() {
-      if (!isTelegramMiniAppAvailable()) {
+      const available = isTelegramMiniAppAvailable();
+      const initData = getTelegramInitData() ?? "";
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+
+      console.debug("useAuth runAuthentication start", {
+        available,
+        initData,
+        location: window.location.href,
+        userAgent: navigator.userAgent,
+        telegram: (window as any).Telegram,
+        telegramWebApp,
+        webAppVersion: telegramWebApp?.version,
+        webAppPlatform: telegramWebApp?.platform,
+        initDataLength: typeof initData === "string" ? initData.length : null,
+        initDataUnsafe: telegramWebApp?.initDataUnsafe,
+      });
+
+      if (!available) {
         setAuthState({
           user: null,
           loading: false,
@@ -71,7 +88,15 @@ export function useAuth() {
         return;
       }
 
-      const initData = getTelegramInitData() ?? "";
+      if (!initData) {
+        setAuthState({
+          user: null,
+          loading: false,
+          error:
+            "Unable to read your Telegram session. Please reopen the Mini App.",
+        });
+        return;
+      }
 
       if (!initData) {
         setAuthState({

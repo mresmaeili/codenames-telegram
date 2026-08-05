@@ -7,6 +7,12 @@ import { initializeTelegramMiniApp } from "@/lib/telegram";
 import { createSocketClient } from "@/socket/client";
 import "@/styles/index.css";
 
+console.debug("main.tsx start", {
+  readyState: document.readyState,
+  telegram: (window as any).Telegram,
+  telegramWebApp: (window as any).Telegram?.WebApp,
+});
+
 initializeTelegramMiniApp();
 createSocketClient({ endpoint: env.SOCKET_URL });
 
