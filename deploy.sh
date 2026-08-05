@@ -102,13 +102,48 @@ else
   info "No backend build script found; skipping build step."
 fi
 
-# 7. Restart only the backend with PM2
-info "Restarting backend process 'codenames-server' with pm2..."
-pm exec --yes pm2 restart codenames-server || {
-  error "pm2 restart failed. Ensure a PM2 process named 'codenames-server' exists.";
+# 7. Restart only the backend with PM2 (verify pm2 exists and process state)
+info "Ensuring PM2 is available on the system..."
+if ! command -v pm2 >/dev/null 2>&1; then
+  error "pm2 is not installed or not on PATH. Install PM2 and ensure it's available.";
   exit 4;
-}
-success "Backend process restarted via PM2."
+fi
+
+info "Checking if PM2 process 'codenames-server' is already registered..."
+if pm2 describe codenames-server >/dev/null 2>&1; then
+  info "PM2 process found; restarting 'codenames-server'..."
+  if ! pm2 restart codenames-server; then
+    error "Failed to restart 'codenames-server' via pm2.";
+    exit 5;
+  fi
+  success "PM2 process 'codenames-server' restarted."
+else
+  info "PM2 process 'codenames-server' not found. Attempting to start it using project's start command..."
+
+  # Prefer using package.json 'start' script if present
+  HAS_START_SCRIPT=$(node -e "const pkg=require('./package.json'); console.log(Boolean(pkg.scripts && pkg.scripts.start))")
+  if [[ "${HAS_START_SCRIPT}" == "true" ]]; then
+    info "Using 'npm run start' under PM2 to launch the process."
+    if ! pm2 start npm --name codenames-server -- run start; then
+      error "Failed to start 'codenames-server' via 'pm2 start npm -- run start'.";
+      exit 6;
+    fi
+    success "PM2 started 'codenames-server' via npm start."
+  else
+    # Fallback: try to start built JS file if present
+    if [[ -f "dist/server/src/server.js" ]]; then
+      info "Found built server file; starting via PM2: 'dist/server/src/server.js'"
+      if ! pm2 start dist/server/src/server.js --name codenames-server; then
+        error "Failed to start 'codenames-server' via PM2 using the built server file.";
+        exit 7;
+      fi
+      success "PM2 started 'codenames-server' using built server file."
+    else
+      error "No 'start' script in package.json and built server file not found. Please start 'codenames-server' manually or add a start script.";
+      exit 8;
+    fi
+  fi
+fi
 
 # 8. Verify backend health
 info "Waiting briefly for backend to become healthy..."
