@@ -90,8 +90,28 @@ function verifyTelegramInitData(
   // - join as `key=<value>` separated by LF ("\n")
   const checkString = buildTelegramCheckString(initData);
 
-  // Derive secret_key = HMAC_SHA256(key = "WebAppData", message = bot_token)
-  // then compute HMAC-SHA-256 over the data-check-string using that secret_key.
+  // For debugging: also build a raw (percent-encoded) check string
+  // by splitting the raw initData on '&' and preserving the original
+  // percent-encoded values. This helps diagnose mismatches when
+  // implementations differ on percent-decoding behavior.
+  function buildRawCheckString(raw: string): string {
+    const rawPairs = raw.split("&").filter((p) => p.length > 0);
+    const parsedPairs: Array<[string, string]> = rawPairs.map((pair) => {
+      const idx = pair.indexOf("=");
+      if (idx === -1) return [pair, ""];
+      return [pair.slice(0, idx), pair.slice(idx + 1)];
+    });
+
+    const entriesForCheck = parsedPairs
+      .filter(([key]) => key !== "hash" && key !== "signature")
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+    return entriesForCheck.map(([key, value]) => `${key}=${value}`).join("\n");
+  }
+
+  const rawCheckString = buildRawCheckString(initData);
+
+  // Derive secret and compute HMAC per spec: secret_key = HMAC_SHA256(key="WebAppData", message=bot_token)
   const secretKey = crypto
     .createHmac("sha256", "WebAppData")
     .update(hashSecret)
@@ -100,6 +120,38 @@ function verifyTelegramInitData(
     .createHmac("sha256", secretKey)
     .update(checkString, "utf8")
     .digest("hex");
+
+  // Diagnostic mode: compute alternative derivations and both raw/decoded
+  // check-strings to aid debugging when things don't match. Enable by
+  // setting TELEGRAM_VERIFY_DEBUG=1 in the server environment.
+  if (process.env.TELEGRAM_VERIFY_DEBUG === "1") {
+    const altSecretA = crypto
+      .createHmac("sha256", hashSecret)
+      .update("WebAppData")
+      .digest(); // HMAC(bot_token, "WebAppData")
+    const altSecretB = crypto.createHash("sha256").update(hashSecret).digest(); // SHA256(bot_token)
+
+    const variants = [
+      { name: "decoded|spec", key: secretKey, check: checkString },
+      { name: "raw|spec", key: secretKey, check: rawCheckString },
+      { name: "decoded|altA", key: altSecretA, check: checkString },
+      { name: "raw|altA", key: altSecretA, check: rawCheckString },
+      { name: "decoded|altB", key: altSecretB, check: checkString },
+      { name: "raw|altB", key: altSecretB, check: rawCheckString },
+    ];
+
+    for (const v of variants) {
+      try {
+        const h = crypto
+          .createHmac("sha256", v.key)
+          .update(v.check, "utf8")
+          .digest("hex");
+        console.debug("[Auth Verify Debug Variant]", v.name, h.slice(0, 16));
+      } catch (err) {
+        console.debug("[Auth Verify Debug Variant] error", v.name, err);
+      }
+    }
+  }
 
   // Timing-safe comparison and debug outputs (prefixes only).
   try {
