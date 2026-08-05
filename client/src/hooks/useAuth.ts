@@ -61,24 +61,7 @@ export function useAuth() {
 
   useEffect(() => {
     async function runAuthentication() {
-      const available = isTelegramMiniAppAvailable();
-      const initData = getTelegramInitData() ?? "";
-      const telegramWebApp = (window as any).Telegram?.WebApp;
-
-      console.debug("useAuth runAuthentication start", {
-        available,
-        initData,
-        location: window.location.href,
-        userAgent: navigator.userAgent,
-        telegram: (window as any).Telegram,
-        telegramWebApp,
-        webAppVersion: telegramWebApp?.version,
-        webAppPlatform: telegramWebApp?.platform,
-        initDataLength: typeof initData === "string" ? initData.length : null,
-        initDataUnsafe: telegramWebApp?.initDataUnsafe,
-      });
-
-      if (!available) {
+      if (!isTelegramMiniAppAvailable()) {
         setAuthState({
           user: null,
           loading: false,
@@ -87,6 +70,8 @@ export function useAuth() {
         });
         return;
       }
+
+      const initData = getTelegramInitData() ?? "";
 
       if (!initData) {
         setAuthState({
