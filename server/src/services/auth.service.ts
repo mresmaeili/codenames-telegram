@@ -37,7 +37,8 @@ function parseInitData(initData: string): URLSearchParams {
 function buildTelegramCheckString(initData: string): string {
   const params = new URLSearchParams(initData);
   const entries = Array.from(params.entries())
-    .filter(([key]) => key !== "hash")
+    // Exclude fields that should not be part of the data-check string.
+    .filter(([key]) => key !== "hash" && key !== "signature")
     .sort(([left], [right]) => left.localeCompare(right));
 
   return entries.map(([key, value]) => `${key}=${value}`).join("\n");
@@ -82,24 +83,59 @@ function verifyTelegramInitData(
     throw new Error("Telegram init data has expired.");
   }
 
-  const checkString = buildTelegramCheckString(initData);
-  // Calculate HMAC using the bot token as secret. Do NOT log the secret or
-  // the calculated HMAC. Only log whether the HMAC matched the provided
-  // `hash` value to avoid printing sensitive data.
+  // Build the data-check string from the same entries used above so the
+  // logged `sorted keys` and the string are consistent.
+  const entriesForCheck = Array.from(params.entries())
+    .filter(([key]) => key !== "hash" && key !== "signature")
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  const checkString = entriesForCheck
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
+
+  // Derive the HMAC key as SHA-256(bot_token) (binary) per Telegram's
+  // verification specification, then compute HMAC-SHA256 over the
+  // data-check string using that derived key.
+  const derivedKey = crypto.createHash("sha256").update(hashSecret).digest();
+  const calculatedHash = crypto
+    .createHmac("sha256", derivedKey)
+    .update(checkString, "utf8")
+    .digest("hex");
+
+  // Timing-safe comparison and debug outputs (prefixes only).
   try {
-    const calculatedHash = crypto
-      .createHmac("sha256", hashSecret)
-      .update(checkString)
-      .digest("hex");
-    const matches = calculatedHash === authHash;
+    const a = Buffer.from(calculatedHash, "hex");
+    const b = Buffer.from(authHash as string, "hex");
+    const sameLength = a.length === b.length;
+    const matches = sameLength && crypto.timingSafeEqual(a, b);
+
+    console.debug(
+      "[Auth Verify Debug] sorted keys",
+      entriesForCheck.map((e) => e[0]),
+    );
+    const truncate = (s: string, n = 200) =>
+      s.length > n ? s.slice(0, n) + "..." : s;
+    console.debug(
+      "[Auth Verify Debug] data-check-string",
+      truncate(checkString, 1000),
+    );
+    console.debug(
+      "[Auth Verify Debug] calculatedHmacPrefix",
+      calculatedHash.slice(0, 16),
+    );
+    console.debug(
+      "[Auth Verify Debug] receivedHashPrefix",
+      (authHash as string).slice(0, 16),
+    );
     console.debug("[Auth Verify] HMAC comparison result", { matches });
+
     if (!matches) {
       console.debug("[Auth Verify] HMAC mismatch");
       throw new Error("Telegram init data signature is invalid.");
     }
   } catch (e) {
-    console.debug("[Auth Verify] HMAC computation failed", e);
-    throw e;
+    console.debug("[Auth Verify] HMAC comparison failed", e);
+    throw new Error("Telegram init data signature is invalid.");
   }
 
   const rawUser = params.get("user");
