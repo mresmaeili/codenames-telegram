@@ -83,31 +83,21 @@ function verifyTelegramInitData(
     throw new Error("Telegram init data has expired.");
   }
 
-  // Build the data-check string using the raw initData string WITHOUT
-  // percent-decoding values. Telegram's verification requires the original
-  // received bytes (percent-encoded where applicable) to be used when
-  // composing the data-check string.
-  const rawPairs = initData.split("&").filter((p) => p.length > 0);
-  const parsedPairs: Array<[string, string]> = rawPairs.map((pair) => {
-    const idx = pair.indexOf("=");
-    if (idx === -1) return [pair, ""];
-    return [pair.slice(0, idx), pair.slice(idx + 1)];
-  });
+  // Build the data-check-string according to Telegram docs:
+  // - parse using URLSearchParams (percent-decoding values)
+  // - exclude `hash` and `signature`
+  // - sort keys alphabetically
+  // - join as `key=<value>` separated by LF ("\n")
+  const checkString = buildTelegramCheckString(initData);
 
-  const entriesForCheck = parsedPairs
-    .filter(([key]) => key !== "hash" && key !== "signature")
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-
-  const checkString = entriesForCheck
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
-
-  // Derive the HMAC key as SHA-256(bot_token) (binary) per Telegram's
-  // verification specification, then compute HMAC-SHA256 over the
-  // data-check string using that derived key.
-  const derivedKey = crypto.createHash("sha256").update(hashSecret).digest();
+  // Derive secret_key = HMAC_SHA256(key = "WebAppData", message = bot_token)
+  // then compute HMAC-SHA-256 over the data-check-string using that secret_key.
+  const secretKey = crypto
+    .createHmac("sha256", "WebAppData")
+    .update(hashSecret)
+    .digest();
   const calculatedHash = crypto
-    .createHmac("sha256", derivedKey)
+    .createHmac("sha256", secretKey)
     .update(checkString, "utf8")
     .digest("hex");
 
@@ -120,7 +110,9 @@ function verifyTelegramInitData(
 
     console.debug(
       "[Auth Verify Debug] sorted keys",
-      entriesForCheck.map((e) => e[0]),
+      Array.from(parseInitData(initData).keys())
+        .filter((k) => k !== "hash" && k !== "signature")
+        .sort(),
     );
     const truncate = (s: string, n = 200) =>
       s.length > n ? s.slice(0, n) + "..." : s;
