@@ -145,15 +145,41 @@ else
   fi
 fi
 
-# 8. Verify backend health
-info "Waiting briefly for backend to become healthy..."
-sleep 2
-info "Checking backend health at http://localhost:3001/health"
-if ! curl -fsS --max-time 5 http://localhost:3001/health -o /dev/null; then
-  error "Health check failed for http://localhost:3001/health"
-  exit 5
-fi
-success "Backend health check passed."
+# 8. Verify backend health (poll until healthy, up to timeout)
+info "Waiting for backend to become healthy at http://localhost:3001/health"
+START_TIME=$(date +%s)
+TIMEOUT=30
+INTERVAL=1
+HEALTH_URL="http://localhost:3001/health"
+
+while true; do
+  if curl -fsS --max-time 5 "${HEALTH_URL}" -o /dev/null; then
+    END_TIME=$(date +%s)
+    ELAPSED=$((END_TIME - START_TIME))
+    success "Backend health check passed after ${ELAPSED}s."
+    break
+  fi
+
+  sleep ${INTERVAL}
+
+  NOW=$(date +%s)
+  ELAPSED=$((NOW - START_TIME))
+  if [[ ${ELAPSED} -ge ${TIMEOUT} ]]; then
+    error "Backend did not become healthy within ${TIMEOUT}s (checked ${HEALTH_URL})."
+    info "Printing last PM2 logs for 'codenames-server' to help diagnose the issue..."
+    # Print recent PM2 logs to aid debugging
+    if command -v pm2 >/dev/null 2>&1; then
+      pm2 logs codenames-server --lines 200 || true
+    else
+      error "pm2 is not available to print logs."
+    fi
+    exit 5
+  fi
+done
+
+# Report elapsed startup time
+TOTAL_ELAPSED=$ELAPSED
+info "Backend startup elapsed time: ${TOTAL_ELAPSED}s"
 
 # 9. Test Nginx configuration
 info "Testing Nginx configuration (sudo nginx -t)..."
