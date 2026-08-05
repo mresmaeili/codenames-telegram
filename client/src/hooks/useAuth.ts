@@ -40,7 +40,16 @@ let authRequestPromise: Promise<AuthenticatedUser | null> | null = null;
 async function authenticateWithServer(
   initData: string,
 ): Promise<AuthenticatedUser | null> {
-  const url = `${env.API_BASE_URL.replace(/\/$/, "")}/auth/telegram`;
+  // In production we serve the frontend from the same origin and Nginx
+  // typically proxies /api/* to the backend. Use the relative /api path
+  // when the configured API base equals the current origin. In dev we
+  // keep the explicit backend URL (eg. http://localhost:3001).
+  const isSameOrigin =
+    typeof window !== "undefined" &&
+    env.API_BASE_URL === window.location.origin;
+  const url = isSameOrigin
+    ? "/api/auth/telegram"
+    : `${env.API_BASE_URL.replace(/\/$/, "")}/auth/telegram`;
   console.debug("[Auth] authenticating with server", {
     url,
     initDataLength: initData.length,

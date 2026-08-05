@@ -23,7 +23,10 @@ export function createApp() {
     }),
   );
   app.use("/health", healthRouter);
+  // Mount auth router at both /auth and /api/auth to support different
+  // proxying setups (some deployments proxy only /api/* to the backend).
   app.use("/auth", authRouter);
+  app.use("/api/auth", authRouter);
   app.use("/api/rooms", roomRouter);
   app.use("/api/games", gameRouter);
 
