@@ -1250,7 +1250,9 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         disabled={hostActionPending}
                         className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-(--app-text) disabled:opacity-60"
                       >
-                        {hostActionPending ? "Applying..." : "Apply host setting"}
+                        {hostActionPending
+                          ? "Applying..."
+                          : "Apply host setting"}
                       </button>
                     </SettingsPopup>
                   </>

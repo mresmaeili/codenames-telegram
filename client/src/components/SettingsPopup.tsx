@@ -9,7 +9,13 @@ interface SettingsPopupProps {
   playerCount?: number;
 }
 
-export function SettingsPopup({ open, title, onClose, children, playerCount }: SettingsPopupProps) {
+export function SettingsPopup({
+  open,
+  title,
+  onClose,
+  children,
+  playerCount,
+}: SettingsPopupProps) {
   if (!open) return null;
 
   return (

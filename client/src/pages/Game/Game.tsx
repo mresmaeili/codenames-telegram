@@ -717,7 +717,9 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-(--app-muted)">Only the room owner can change settings.</div>
+            <div className="text-sm text-(--app-muted)">
+              Only the room owner can change settings.
+            </div>
           )}
         </SettingsPopup>
 

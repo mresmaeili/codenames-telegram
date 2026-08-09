@@ -15,20 +15,34 @@ interface GameHeaderProps {
   title?: string;
 }
 
-export function GameHeader({ room, game, playerCount, compact = false, title }: GameHeaderProps) {
+export function GameHeader({
+  room,
+  game,
+  playerCount,
+  compact = false,
+  title,
+}: GameHeaderProps) {
   return (
-    <div className={`rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm ${compact ? "max-w-md mx-auto" : "sm:p-6"}`}>
+    <div
+      className={`rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm ${compact ? "max-w-md mx-auto" : "sm:p-6"}`}
+    >
       {compact ? (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-(--app-text)">{title ?? "Settings"}</h3>
-            <div className="text-xs text-(--app-muted)">{playerCount ? `${playerCount} players` : null}</div>
+            <h3 className="text-sm font-semibold text-(--app-text)">
+              {title ?? "Settings"}
+            </h3>
+            <div className="text-xs text-(--app-muted)">
+              {playerCount ? `${playerCount} players` : null}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold text-white">
               {game?.currentTurn ?? "-"}
             </span>
-            <span className="rounded-full bg-(--app-border)/10 px-2 py-1 text-xs text-(--app-muted)">Starts: {game?.startingTeam ?? "-"}</span>
+            <span className="rounded-full bg-(--app-border)/10 px-2 py-1 text-xs text-(--app-muted)">
+              Starts: {game?.startingTeam ?? "-"}
+            </span>
           </div>
         </div>
       ) : (
@@ -80,7 +94,9 @@ export function GameHeader({ room, game, playerCount, compact = false, title }: 
                   placeholder="Enter hint and number"
                   aria-label="Hint input"
                 />
-                <button className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-semibold text-white">Give</button>
+                <button className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-semibold text-white">
+                  Give
+                </button>
               </div>
             </form>
           </div>
