@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --app-bg: var(--tg-bg-color, #020617);
-  --app-surface: var(--tg-secondary-bg-color, #0f172a);
+  --app-bg: var(--tg-bg-color, #051428);
+  --app-surface: var(--tg-secondary-bg-color, #0b1f3f);
   --app-text: var(--tg-text-color, #f8fafc);
-  --app-muted: var(--tg-hint-color, #94a3b8);
-  --app-border: var(--tg-section-separator-color, rgba(148, 163, 184, 0.18));
+  --app-muted: var(--tg-hint-color, #a5b4fc);
+  --app-border: var(--tg-section-separator-color, rgba(148, 163, 184, 0.22));
+  --app-accent: #22c55e;
   font-family:
     Inter,
     system-ui,

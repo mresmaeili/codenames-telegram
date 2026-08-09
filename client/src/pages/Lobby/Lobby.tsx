@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
-import { SettingsPopup } from "@/components/SettingsPopup";
 import { useAuthContext } from "@/context/AuthContext";
+import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { isDevModeEnabled } from "@/lib/dev";
@@ -102,6 +102,7 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
+  const { registerPopup, openPopup } = useHeaderPopup();
   const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -334,6 +335,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     setActiveHostAction(action);
     toast.info(`${labelMap[action]} settings opened.`);
+    openPopup();
   }
 
   function handleHostDraftApply() {
@@ -430,6 +432,222 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     setSettingsForm((current) => ({ ...current, [field]: value }));
   }
 
+  const currentPlayer = room?.players.find(
+    (player) => player.telegramId === user?.telegramId,
+  );
+  const ownerPlayers =
+    room?.players.filter((player) => room.ownerIds?.includes(player.userId)) ??
+    [];
+  const ownerPlayer = ownerPlayers[0] ?? null;
+  const isOwner = Boolean(
+    room && room.ownerIds?.includes(currentPlayer?.userId ?? ""),
+  );
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    registerPopup(
+      <div className="space-y-5">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+            Game settings
+          </p>
+          <div className="mt-4 space-y-4 rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
+            <label
+              className="block text-sm font-medium text-[color:var(--app-text)]"
+              htmlFor="maxPlayers"
+            >
+              Maximum players
+            </label>
+            <input
+              id="maxPlayers"
+              type="number"
+              min={ROOM_MIN_PLAYERS}
+              max={ROOM_MAX_PLAYERS}
+              value={settingsForm.maxPlayers}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                if (Number.isNaN(nextValue)) {
+                  return;
+                }
+                handleSettingsChange("maxPlayers", nextValue);
+              }}
+              disabled={!isOwner}
+              className="mt-2 w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] px-3 py-2 text-[color:var(--app-text)]"
+            />
+            <div className="flex items-center justify-between gap-4 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4">
+              <span className="text-sm text-[color:var(--app-text)]">
+                Allow spectators
+              </span>
+              <label className="inline-flex items-center gap-2 text-sm text-[color:var(--app-muted)]">
+                <input
+                  type="checkbox"
+                  checked={settingsForm.allowSpectators}
+                  disabled={!isOwner}
+                  onChange={(event) =>
+                    handleSettingsChange(
+                      "allowSpectators",
+                      event.target.checked,
+                    )
+                  }
+                  className="h-4 w-4 rounded border border-[color:var(--app-border)] bg-[var(--app-background)] text-[color:var(--app-text)]"
+                />
+                {settingsForm.allowSpectators ? "On" : "Off"}
+              </label>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4">
+              <span className="text-sm text-[color:var(--app-text)]">
+                Private room
+              </span>
+              <label className="inline-flex items-center gap-2 text-sm text-[color:var(--app-muted)]">
+                <input
+                  type="checkbox"
+                  checked={settingsForm.privateRoom}
+                  disabled={!isOwner}
+                  onChange={(event) =>
+                    handleSettingsChange("privateRoom", event.target.checked)
+                  }
+                  className="h-4 w-4 rounded border border-[color:var(--app-border)] bg-[var(--app-background)] text-[color:var(--app-text)]"
+                />
+                {settingsForm.privateRoom ? "Yes" : "No"}
+              </label>
+            </div>
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={handleSettingsSave}
+                disabled={hostActionPending}
+                className="w-full rounded-full border border-[color:var(--app-border)] bg-[var(--app-background)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60"
+              >
+                {hostActionPending ? "Saving..." : "Save settings"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+            Host controls
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                Game mode
+              </span>
+              <select
+                value={hostControlDraft.gameMode}
+                onChange={(event) =>
+                  setHostControlDraft((current) => ({
+                    ...current,
+                    gameMode: event.target.value as "standard" | "rush",
+                  }))
+                }
+                className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+              >
+                <option value="standard">Standard</option>
+                <option value="rush">Rush</option>
+              </select>
+            </label>
+            <label className="block rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                Timer
+              </span>
+              <select
+                value={hostControlDraft.timer}
+                onChange={(event) =>
+                  setHostControlDraft((current) => ({
+                    ...current,
+                    timer: event.target.value as "none" | "30" | "60" | "90",
+                  }))
+                }
+                className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+              >
+                <option value="none">No timer</option>
+                <option value="30">30 seconds</option>
+                <option value="60">60 seconds</option>
+                <option value="90">90 seconds</option>
+              </select>
+            </label>
+            <label className="block rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                Language
+              </span>
+              <select
+                value={hostControlDraft.language}
+                onChange={(event) =>
+                  setHostControlDraft((current) => ({
+                    ...current,
+                    language: event.target.value as "en" | "es" | "he",
+                  }))
+                }
+                className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+              >
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="he">Hebrew</option>
+              </select>
+            </label>
+            <label className="block rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                Word pack
+              </span>
+              <select
+                value={hostControlDraft.wordPack}
+                onChange={(event) =>
+                  setHostControlDraft((current) => ({
+                    ...current,
+                    wordPack: event.target.value as "classic" | "party",
+                  }))
+                }
+                className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+              >
+                <option value="classic">Classic</option>
+                <option value="party">Party</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleHostControl("shuffle")}
+              className="w-full rounded-full border border-[color:var(--app-border)] px-4 py-3 text-sm font-semibold text-[color:var(--app-text)]"
+            >
+              Shuffle teams
+            </button>
+            <button
+              type="button"
+              onClick={() => handleHostControl("reset")}
+              className="w-full rounded-full border border-[color:var(--app-border)] px-4 py-3 text-sm font-semibold text-[color:var(--app-text)]"
+            >
+              Reset teams
+            </button>
+          </div>
+          {isOwner ? (
+            <button
+              type="button"
+              onClick={handleHostDraftApply}
+              disabled={hostActionPending}
+              className="mt-4 w-full rounded-full border border-[color:var(--app-border)] bg-[var(--app-background)] px-4 py-3 text-sm font-semibold text-[color:var(--app-text)] disabled:opacity-60"
+            >
+              {hostActionPending ? "Applying..." : "Apply host settings"}
+            </button>
+          ) : null}
+        </div>
+      </div>,
+      "Room settings",
+    );
+  }, [
+    registerPopup,
+    room,
+    settingsForm,
+    hostControlDraft,
+    isOwner,
+    hostActionPending,
+    activeHostAction,
+  ]);
+
   function handleStartGame() {
     if (!socket || !room || !user) {
       toast.error("Socket connection is unavailable.");
@@ -455,16 +673,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast.info("Adding bot to the room...");
   }
 
-  const currentPlayer = room?.players.find(
-    (player) => player.telegramId === user?.telegramId,
-  );
-  const ownerPlayers =
-    room?.players.filter((player) => room.ownerIds?.includes(player.userId)) ??
-    [];
-  const ownerPlayer = ownerPlayers[0] ?? null;
-  const isOwner = Boolean(
-    room && room.ownerIds?.includes(currentPlayer?.userId ?? ""),
-  );
   const readinessIssues = getReadinessIssues(room);
   const isReady = readinessIssues.length === 0;
   const devMode = isDevModeEnabled();
@@ -541,16 +749,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-7xl space-y-6 px-2 pb-8">
-        <div className="rounded-4xl border border-(--app-border) bg-(--app-surface) p-6 shadow-2xl">
+        <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-6 shadow-2xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-(--app-muted)">
+              <p className="text-xs uppercase tracking-[0.28em] text-[color:var(--app-muted)]">
                 Lobby
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-(--app-text)">
+              <h1 className="mt-2 text-3xl font-semibold text-[color:var(--app-text)]">
                 Room {room?.roomCode ?? roomCode}
               </h1>
-              <p className="mt-2 text-sm text-(--app-muted)">
+              <p className="mt-2 text-sm text-[color:var(--app-muted)]">
                 Host:{" "}
                 {ownerPlayers.map((player) => player.displayName).join(", ") ||
                   "Unknown"}{" "}
@@ -559,19 +767,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+              <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+                <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                   Room code
                 </p>
-                <p className="mt-3 text-2xl font-semibold tracking-[0.22em] text-(--app-text)">
+                <p className="mt-3 text-2xl font-semibold tracking-[0.22em] text-[color:var(--app-text)]">
                   {room?.roomCode ?? roomCode}
                 </p>
               </div>
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+              <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-sm text-[color:var(--app-text)]">
+                <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                   Players
                 </p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-(--app-text)">
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-[color:var(--app-text)]">
                   {room?.players.length ?? 0}/{settingsForm.maxPlayers}
                 </p>
               </div>
@@ -579,7 +787,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 type="button"
                 aria-label="Copy room code"
                 onClick={handleCopyRoomCode}
-                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                className="min-h-12 rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
               >
                 Copy code
               </button>
@@ -588,7 +796,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 aria-label="Share room invite"
                 onClick={handleShareInvite}
                 disabled={!navigator.share}
-                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                className="min-h-12 rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
               >
                 Share
               </button>
@@ -625,13 +833,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         ) : room ? (
           <>
             <div className="grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_minmax(32rem,1.4fr)_minmax(18rem,1fr)]">
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+              <section className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-5">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Blue Team
                     </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                    <h2 className="mt-2 text-2xl font-semibold text-[color:var(--app-text)]">
                       {bluePlayers.length} player
                       {bluePlayers.length === 1 ? "" : "s"}
                     </h2>
@@ -679,14 +887,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   {bluePlayers.map((player) => (
                     <div
                       key={player.userId}
-                      className="rounded-3xl border border-(--app-border) p-4"
+                      className="rounded-3xl border border-[color:var(--app-border)] p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-(--app-text)">
+                        <p className="font-semibold text-[color:var(--app-text)]">
                           {player.displayName}
                         </p>
                         {room.ownerIds?.includes(player.userId) ? (
-                          <span className="text-xs text-(--app-muted)">
+                          <span className="text-xs text-[color:var(--app-muted)]">
                             Host
                           </span>
                         ) : null}
@@ -695,7 +903,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-700">
                           Blue
                         </span>
-                        <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
+                        <span className="rounded-full border border-[color:var(--app-border)] px-2 py-1 text-[color:var(--app-muted)]">
                           {player.role === "spymaster"
                             ? "Spymaster"
                             : "Operative"}
@@ -704,7 +912,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           className={`rounded-full px-2 py-1 ${
                             isPlayerReady(player)
                               ? "bg-emerald-500/10 text-emerald-700"
-                              : "border border-(--app-border) text-(--app-muted)"
+                              : "border border-[color:var(--app-border)] text-[color:var(--app-muted)]"
                           }`}
                         >
                           {getPlayerReadinessLabel(player)}
@@ -716,7 +924,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           onClick={() =>
                             handleTransferOwnership(player.telegramId)
                           }
-                          className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
+                          className="mt-4 w-full rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-[color:var(--app-text)]"
                         >
                           Promote to host
                         </button>
@@ -726,15 +934,15 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </div>
               </section>
 
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+              <section className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-5">
                 <div className="mb-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                     Room overview
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                  <h2 className="mt-2 text-2xl font-semibold text-[color:var(--app-text)]">
                     Ready for game night
                   </h2>
-                  <p className="mt-2 text-sm text-(--app-muted)">
+                  <p className="mt-2 text-sm text-[color:var(--app-muted)]">
                     Share the room, confirm the teams, and start once everything
                     is set.
                   </p>
@@ -745,7 +953,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     type="button"
                     aria-label="Copy room code"
                     onClick={handleCopyRoomCode}
-                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                    className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
                   >
                     Copy code
                   </button>
@@ -753,7 +961,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     type="button"
                     aria-label="Copy invite link"
                     onClick={handleCopyInvite}
-                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                    className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
                   >
                     Copy invite
                   </button>
@@ -762,42 +970,42 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     aria-label="Share invite"
                     onClick={handleShareInvite}
                     disabled={!navigator.share}
-                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                    className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
                   >
                     Share
                   </button>
                 </div>
 
-                <div className="mt-5 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                <div className="mt-5 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    <span className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Invite link
                     </span>
-                    <span className="text-xs text-(--app-muted)">
+                    <span className="text-xs text-[color:var(--app-muted)]">
                       Players {room.players.length}/{settingsForm.maxPlayers}
                     </span>
                   </div>
-                  <p className="mt-3 rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm text-(--app-text) break-all">
+                  <p className="mt-3 rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] px-4 py-3 text-sm text-[color:var(--app-text)] break-all">
                     {inviteUrl}
                   </p>
                 </div>
 
-                <div className="mt-5 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                <div className="mt-5 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    <span className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Status
                     </span>
-                    <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
+                    <span className="rounded-full bg-[color:var(--app-border)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--app-text)]">
                       {isReady ? "Ready" : "Pending"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm text-(--app-text)">
+                  <p className="mt-3 text-sm text-[color:var(--app-text)]">
                     {isReady
                       ? "All required team assignments are complete."
                       : "Adjust teams, spymasters, or spectator settings before starting."}
                   </p>
                   {readinessIssues.length > 0 ? (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-(--app-muted)">
+                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[color:var(--app-muted)]">
                       {readinessIssues.map((issue) => (
                         <li key={issue}>{issue}</li>
                       ))}
@@ -814,7 +1022,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         room.players.length >= ROOM_MAX_PLAYERS ||
                         room.status !== "waiting"
                       }
-                      className="rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                      className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-background)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60"
                     >
                       Add Bot
                     </button>
@@ -824,18 +1032,18 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     onClick={handleStartGame}
                     disabled={!isOwner || !isReady || room.status !== "waiting"}
                     aria-label="Start game"
-                    className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                    className="rounded-full bg-[var(--app-accent)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
                   >
                     Start Game
                   </button>
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                     Spectators
                   </p>
                   {spectatorPlayers.length === 0 ? (
-                    <p className="mt-3 rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-4 text-sm text-(--app-muted)">
+                    <p className="mt-3 rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] px-4 py-4 text-sm text-[color:var(--app-muted)]">
                       No spectators yet.
                     </p>
                   ) : (
@@ -843,20 +1051,20 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       {spectatorPlayers.map((player) => (
                         <div
                           key={player.userId}
-                          className="rounded-3xl border border-(--app-border) p-4"
+                          className="rounded-3xl border border-[color:var(--app-border)] p-4"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <p className="font-medium text-(--app-text)">
+                            <p className="font-medium text-[color:var(--app-text)]">
                               {player.displayName}
                             </p>
                             {room.ownerIds?.includes(player.userId) ? (
-                              <span className="text-xs text-(--app-muted)">
+                              <span className="text-xs text-[color:var(--app-muted)]">
                                 Host
                               </span>
                             ) : null}
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                            <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
+                            <span className="rounded-full border border-[color:var(--app-border)] px-2 py-1 text-[color:var(--app-muted)]">
                               {player.role === "spymaster"
                                 ? "Spymaster"
                                 : "Operative"}
@@ -865,7 +1073,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                               className={`rounded-full px-2 py-1 ${
                                 isPlayerReady(player)
                                   ? "bg-emerald-500/10 text-emerald-700"
-                                  : "border border-(--app-border) text-(--app-muted)"
+                                  : "border border-[color:var(--app-border)] text-[color:var(--app-muted)]"
                               }`}
                             >
                               {getPlayerReadinessLabel(player)}
@@ -878,13 +1086,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </div>
               </section>
 
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+              <section className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-5">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Red Team
                     </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                    <h2 className="mt-2 text-2xl font-semibold text-[color:var(--app-text)]">
                       {redPlayers.length} player
                       {redPlayers.length === 1 ? "" : "s"}
                     </h2>
@@ -932,14 +1140,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   {redPlayers.map((player) => (
                     <div
                       key={player.userId}
-                      className="rounded-3xl border border-(--app-border) p-4"
+                      className="rounded-3xl border border-[color:var(--app-border)] p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-(--app-text)">
+                        <p className="font-semibold text-[color:var(--app-text)]">
                           {player.displayName}
                         </p>
                         {room.ownerIds?.includes(player.userId) ? (
-                          <span className="text-xs text-(--app-muted)">
+                          <span className="text-xs text-[color:var(--app-muted)]">
                             Host
                           </span>
                         ) : null}
@@ -948,7 +1156,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-700">
                           Red
                         </span>
-                        <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
+                        <span className="rounded-full border border-[color:var(--app-border)] px-2 py-1 text-[color:var(--app-muted)]">
                           {player.role === "spymaster"
                             ? "Spymaster"
                             : "Operative"}
@@ -957,7 +1165,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           className={`rounded-full px-2 py-1 ${
                             isPlayerReady(player)
                               ? "bg-emerald-500/10 text-emerald-700"
-                              : "border border-(--app-border) text-(--app-muted)"
+                              : "border border-[color:var(--app-border)] text-[color:var(--app-muted)]"
                           }`}
                         >
                           {getPlayerReadinessLabel(player)}
@@ -969,7 +1177,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           onClick={() =>
                             handleTransferOwnership(player.telegramId)
                           }
-                          className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
+                          className="mt-4 w-full rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-[color:var(--app-text)]"
                         >
                           Promote to host
                         </button>
@@ -981,20 +1189,20 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+              <section className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-5">
                 <div className="mb-4">
-                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                     Game settings
                   </p>
-                  <p className="mt-2 text-sm text-(--app-muted)">
+                  <p className="mt-2 text-sm text-[color:var(--app-muted)]">
                     Update the room settings before the match begins.
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                  <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
                     <label
-                      className="text-sm font-medium text-(--app-text)"
+                      className="text-sm font-medium text-[color:var(--app-text)]"
                       htmlFor="maxPlayers"
                     >
                       Maximum players
@@ -1013,16 +1221,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         handleSettingsChange("maxPlayers", nextValue);
                       }}
                       disabled={!isOwner}
-                      className="mt-3 w-full rounded-2xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
+                      className="mt-3 w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] px-3 py-2 text-[color:var(--app-text)]"
                     />
                   </div>
 
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                  <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-(--app-text)">
+                      <p className="text-sm font-medium text-[color:var(--app-text)]">
                         Allow spectators
                       </p>
-                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
+                      <label className="inline-flex items-center gap-2 text-sm text-[color:var(--app-muted)]">
                         <input
                           type="checkbox"
                           checked={settingsForm.allowSpectators}
@@ -1033,19 +1241,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                               event.target.checked,
                             )
                           }
-                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
+                          className="h-4 w-4 rounded border border-[color:var(--app-border)] bg-[var(--app-background)] text-[color:var(--app-text)]"
                         />
                         {settingsForm.allowSpectators ? "On" : "Off"}
                       </label>
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                  <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-(--app-text)">
+                      <p className="text-sm font-medium text-[color:var(--app-text)]">
                         Private room
                       </p>
-                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
+                      <label className="inline-flex items-center gap-2 text-sm text-[color:var(--app-muted)]">
                         <input
                           type="checkbox"
                           checked={settingsForm.privateRoom}
@@ -1056,7 +1264,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                               event.target.checked,
                             )
                           }
-                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
+                          className="h-4 w-4 rounded border border-[color:var(--app-border)] bg-[var(--app-background)] text-[color:var(--app-text)]"
                         />
                         {settingsForm.privateRoom ? "Yes" : "No"}
                       </label>
@@ -1068,7 +1276,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       type="button"
                       onClick={handleSettingsSave}
                       disabled={hostActionPending}
-                      className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                      className="w-full rounded-full border border-[color:var(--app-border)] px-4 py-3 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60"
                     >
                       {hostActionPending ? "Saving..." : "Save settings"}
                     </button>
@@ -1076,17 +1284,17 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </div>
               </section>
 
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+              <section className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Host controls
                     </p>
-                    <p className="mt-2 text-sm text-(--app-muted)">
+                    <p className="mt-2 text-sm text-[color:var(--app-muted)]">
                       Only the room owner can adjust these settings.
                     </p>
                   </div>
-                  <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
+                  <span className="rounded-full bg-[color:var(--app-border)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--app-text)]">
                     Host
                   </span>
                 </div>
@@ -1097,167 +1305,136 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       <button
                         type="button"
                         onClick={() => handleHostControl("game-mode")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Game mode
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("timer")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Timer
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("language")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Language
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("word-pack")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Word packs
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("shuffle")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Shuffle teams
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("reset")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-[color:var(--app-border)] px-3 py-3 text-sm font-medium text-[color:var(--app-text)]"
                       >
                         Reset teams
                       </button>
                     </div>
 
-                    <SettingsPopup
-                      open={Boolean(activeHostAction)}
-                      title={activeHostAction ?? "Settings"}
-                      onClose={() => setActiveHostAction(null)}
-                      playerCount={room?.players.length}
+                    {activeHostAction === "timer" ? (
+                      <label className="block text-xs text-[color:var(--app-muted)]">
+                        <span className="mb-1 block">Timer</span>
+                        <select
+                          value={hostControlDraft.timer}
+                          onChange={(event) =>
+                            setHostControlDraft((current) => ({
+                              ...current,
+                              timer: event.target.value as
+                                | "none"
+                                | "30"
+                                | "60"
+                                | "90",
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+                        >
+                          <option value="none">No timer</option>
+                          <option value="30">30 seconds</option>
+                          <option value="60">60 seconds</option>
+                          <option value="90">90 seconds</option>
+                        </select>
+                      </label>
+                    ) : null}
+
+                    {activeHostAction === "language" ? (
+                      <label className="block text-xs text-[color:var(--app-muted)]">
+                        <span className="mb-1 block">Language</span>
+                        <select
+                          value={hostControlDraft.language}
+                          onChange={(event) =>
+                            setHostControlDraft((current) => ({
+                              ...current,
+                              language: event.target.value as
+                                | "en"
+                                | "es"
+                                | "he",
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+                        >
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="he">Hebrew</option>
+                        </select>
+                      </label>
+                    ) : null}
+
+                    {activeHostAction === "word-pack" ? (
+                      <label className="block text-xs text-[color:var(--app-muted)]">
+                        <span className="mb-1 block">Word pack</span>
+                        <select
+                          value={hostControlDraft.wordPack}
+                          onChange={(event) =>
+                            setHostControlDraft((current) => ({
+                              ...current,
+                              wordPack: event.target.value as
+                                | "classic"
+                                | "party",
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-[color:var(--app-text)]"
+                        >
+                          <option value="classic">Classic</option>
+                          <option value="party">Party</option>
+                        </select>
+                      </label>
+                    ) : null}
+
+                    {activeHostAction === "shuffle" ||
+                    activeHostAction === "reset" ? (
+                      <p className="text-sm text-[color:var(--app-muted)]">
+                        {activeHostAction === "shuffle"
+                          ? "Shuffle teams will balance players and refresh the room assignment view."
+                          : "Reset teams returns the current lobby to standard team placements."}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={handleHostDraftApply}
+                      disabled={hostActionPending}
+                      className="w-full rounded-full border border-[color:var(--app-border)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-[color:var(--app-text)] disabled:opacity-60"
                     >
-                      {/* Render the same host action content inside the popup */}
-                      {activeHostAction === "game-mode" ? (
-                        <label className="block text-xs text-(--app-muted)">
-                          <span className="mb-1 block">Game mode</span>
-                          <select
-                            value={hostControlDraft.gameMode}
-                            onChange={(event) =>
-                              setHostControlDraft((current) => ({
-                                ...current,
-                                gameMode: event.target.value as
-                                  | "standard"
-                                  | "rush",
-                              }))
-                            }
-                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                          >
-                            <option value="standard">Standard</option>
-                            <option value="rush">Rush</option>
-                          </select>
-                        </label>
-                      ) : null}
-
-                      {activeHostAction === "timer" ? (
-                        <label className="block text-xs text-(--app-muted)">
-                          <span className="mb-1 block">Timer</span>
-                          <select
-                            value={hostControlDraft.timer}
-                            onChange={(event) =>
-                              setHostControlDraft((current) => ({
-                                ...current,
-                                timer: event.target.value as
-                                  | "none"
-                                  | "30"
-                                  | "60"
-                                  | "90",
-                              }))
-                            }
-                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                          >
-                            <option value="none">No timer</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60">60 seconds</option>
-                            <option value="90">90 seconds</option>
-                          </select>
-                        </label>
-                      ) : null}
-
-                      {activeHostAction === "language" ? (
-                        <label className="block text-xs text-(--app-muted)">
-                          <span className="mb-1 block">Language</span>
-                          <select
-                            value={hostControlDraft.language}
-                            onChange={(event) =>
-                              setHostControlDraft((current) => ({
-                                ...current,
-                                language: event.target.value as
-                                  | "en"
-                                  | "es"
-                                  | "he",
-                              }))
-                            }
-                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                          >
-                            <option value="en">English</option>
-                            <option value="es">Spanish</option>
-                            <option value="he">Hebrew</option>
-                          </select>
-                        </label>
-                      ) : null}
-
-                      {activeHostAction === "word-pack" ? (
-                        <label className="block text-xs text-(--app-muted)">
-                          <span className="mb-1 block">Word pack</span>
-                          <select
-                            value={hostControlDraft.wordPack}
-                            onChange={(event) =>
-                              setHostControlDraft((current) => ({
-                                ...current,
-                                wordPack: event.target.value as
-                                  | "classic"
-                                  | "party",
-                              }))
-                            }
-                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                          >
-                            <option value="classic">Classic</option>
-                            <option value="party">Party</option>
-                          </select>
-                        </label>
-                      ) : null}
-
-                      {activeHostAction === "shuffle" ||
-                      activeHostAction === "reset" ? (
-                        <p className="text-sm text-(--app-muted)">
-                          {activeHostAction === "shuffle"
-                            ? "Shuffle teams will balance players and refresh the room assignment view."
-                            : "Reset teams returns the current lobby to standard team placements."}
-                        </p>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        onClick={handleHostDraftApply}
-                        disabled={hostActionPending}
-                        className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-(--app-text) disabled:opacity-60"
-                      >
-                        {hostActionPending
-                          ? "Applying..."
-                          : "Apply host setting"}
-                      </button>
-                    </SettingsPopup>
+                      {hostActionPending ? "Applying..." : "Apply host setting"}
+                    </button>
                   </>
                 ) : (
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 text-sm text-(--app-muted)">
+                  <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4 text-sm text-[color:var(--app-muted)]">
                     Waiting for the host to adjust room settings and launch the
                     game.
                   </div>
@@ -1266,25 +1443,25 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
 
             {devMode ? (
-              <div className="rounded-4xl border border-(--app-border) bg-(--app-surface) p-5">
+              <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+                    <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
                       Dev inspector
                     </p>
-                    <p className="mt-1 text-sm text-(--app-muted)">
+                    <p className="mt-1 text-sm text-[color:var(--app-muted)]">
                       Raw room JSON and manual refresh for troubleshooting.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={refreshLobby}
-                    className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
+                    className="rounded-full border border-[color:var(--app-border)] px-4 py-2 text-sm font-medium text-[color:var(--app-text)]"
                   >
                     Refresh lobby
                   </button>
                 </div>
-                <pre className="mt-4 max-h-72 overflow-auto rounded-3xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
+                <pre className="mt-4 max-h-72 overflow-auto rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-3 text-xs text-[color:var(--app-text)]">
                   {JSON.stringify(room, null, 2)}
                 </pre>
               </div>

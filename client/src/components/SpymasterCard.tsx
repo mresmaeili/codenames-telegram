@@ -26,7 +26,7 @@ export function SpymasterCard({
       aria-label={`${word} (${color})`}
     >
       <div className="absolute inset-3 rounded-lg bg-white/95 flex items-center justify-center px-3 py-2">
-        <span className="px-2 text-center wrap-break-word whitespace-normal leading-tight sm:text-base text-sm font-extrabold text-(--app-text)">
+        <span className="px-2 text-center wrap-break-word whitespace-normal leading-tight sm:text-base text-sm font-extrabold text-[color:var(--app-text)]">
           {word}
         </span>
       </div>

@@ -40,14 +40,14 @@ export function BoardCard({
     >
       <div className="absolute inset-3 rounded-lg bg-white/95 flex items-center justify-center px-3 py-2">
         <span
-          className={`text-center font-extrabold tracking-wide text-sm sm:text-base text-(--app-text) ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`text-center font-extrabold tracking-wide text-sm sm:text-base text-[color:var(--app-text)] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>
       </div>
 
       {hiddenWord ? (
-        <span className="absolute inset-0 flex items-center justify-center text-xl text-(--app-muted)">
+        <span className="absolute inset-0 flex items-center justify-center text-xl text-[color:var(--app-muted)]">
           ••••
         </span>
       ) : null}
