@@ -6,12 +6,11 @@ interface SpymasterCardProps {
   revealed?: boolean;
 }
 
-const colorStyles: Record<CardColor, string> = {
-  red: "border-red-500 bg-red-500/15 text-red-700 dark:text-red-300",
-  blue: "border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300",
-  neutral:
-    "border-[color:var(--app-border)] bg-[color:var(--app-background)] text-[color:var(--app-text)]",
-  assassin: "border-black bg-black/80 text-white",
+const tileBgStyles: Record<CardColor, string> = {
+  red: "bg-red-500/95",
+  blue: "bg-blue-500/95",
+  neutral: "bg-[color:var(--app-surface)]/95",
+  assassin: "bg-black/95",
 };
 
 export function SpymasterCard({
@@ -19,15 +18,18 @@ export function SpymasterCard({
   color,
   revealed = false,
 }: SpymasterCardProps) {
+  const tileColor = tileBgStyles[color] ?? "bg-[color:var(--app-surface)]";
   return (
     <div
-      className={`flex aspect-square items-center justify-center rounded-3xl border px-3 py-4 text-center text-sm font-semibold shadow-sm transition duration-200 ease-out ${colorStyles[color]} ${revealed ? "opacity-80 scale-105" : ""}`}
+      className={`flex aspect-square items-center justify-center rounded-2xl ${tileColor} shadow-md transition duration-200 ease-out ${revealed ? "opacity-90 scale-105" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >
-      <span className="px-2 text-center wrap-break-word whitespace-normal leading-tight sm:text-base text-sm">
-        {word}
-      </span>
+      <div className="absolute inset-3 rounded-lg bg-white/95 flex items-center justify-center px-3 py-2">
+        <span className="px-2 text-center wrap-break-word whitespace-normal leading-tight sm:text-base text-sm font-extrabold text-(--app-text)">
+          {word}
+        </span>
+      </div>
     </div>
   );
 }

@@ -15,14 +15,14 @@ interface GameHeaderProps {
 
 export function GameHeader({ room, game, playerCount }: GameHeaderProps) {
   return (
-    <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-(--app-muted)">
             Game status
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-(--app-surface) px-3 py-2 text-sm font-semibold text-(--app-text)">
+            <span className="rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white">
               {game.currentTurn} team
             </span>
             <span className="rounded-full bg-(--app-border)/10 px-3 py-2 text-sm text-(--app-muted)">
@@ -31,7 +31,7 @@ export function GameHeader({ room, game, playerCount }: GameHeaderProps) {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-flow-col sm:auto-cols-max">
+        <div className="grid gap-3 sm:grid-flow-col sm:auto-cols-max items-center">
           <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text)">
             {playerCount} players
           </div>
@@ -53,6 +53,21 @@ export function GameHeader({ room, game, playerCount }: GameHeaderProps) {
             </div>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center">
+        <form className="w-full max-w-lg">
+          <div className="flex items-center gap-3">
+            <input
+              className="w-full rounded-full border border-(--app-border) px-4 py-3 text-lg font-semibold text-(--app-text) placeholder-(--app-muted) focus:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
+              placeholder="Enter hint and number"
+              aria-label="Hint input"
+            />
+            <button className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-semibold text-white">
+              Give
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
