@@ -1,74 +1,91 @@
 import type { Room } from "@/../shared/src/types/room";
 
 interface GameHeaderProps {
-  room: Room;
-  game: {
-    currentTurn: string;
-    startingTeam: string;
-    remainingGuesses: number;
-    status: string;
+  room?: Room;
+  game?: {
+    currentTurn?: string;
+    startingTeam?: string;
+    remainingGuesses?: number;
+    status?: string;
     winningTeam?: string | null;
     completionReason?: string | null;
   };
-  playerCount: number;
+  playerCount?: number;
+  compact?: boolean;
+  title?: string;
 }
 
-export function GameHeader({ room, game, playerCount }: GameHeaderProps) {
+export function GameHeader({ room, game, playerCount, compact = false, title }: GameHeaderProps) {
   return (
-    <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-(--app-muted)">
-            Game status
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white">
-              {game.currentTurn} team
+    <div className={`rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm ${compact ? "max-w-md mx-auto" : "sm:p-6"}`}>
+      {compact ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-(--app-text)">{title ?? "Settings"}</h3>
+            <div className="text-xs text-(--app-muted)">{playerCount ? `${playerCount} players` : null}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold text-white">
+              {game?.currentTurn ?? "-"}
             </span>
-            <span className="rounded-full bg-(--app-border)/10 px-3 py-2 text-sm text-(--app-muted)">
-              Starts: {game.startingTeam}
-            </span>
+            <span className="rounded-full bg-(--app-border)/10 px-2 py-1 text-xs text-(--app-muted)">Starts: {game?.startingTeam ?? "-"}</span>
           </div>
         </div>
-
-        <div className="grid gap-3 sm:grid-flow-col sm:auto-cols-max items-center">
-          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text)">
-            {playerCount} players
-          </div>
-          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text)">
-            {game.remainingGuesses} guesses
-          </div>
-          <div
-            className={`rounded-3xl px-3 py-2 text-sm ${
-              game.status === "finished"
-                ? "bg-emerald-500/10 text-emerald-300"
-                : "border border-(--app-border) bg-(--app-surface) text-(--app-muted)"
-            }`}
-          >
-            {game.status}
-          </div>
-          {game.winningTeam ? (
-            <div className="rounded-3xl bg-(--app-accent)/10 px-3 py-2 text-sm font-semibold text-(--app-text)">
-              Winner: {game.winningTeam}
+      ) : (
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-(--app-muted)">
+                Game status
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white">
+                  {game?.currentTurn} team
+                </span>
+                <span className="rounded-full bg-(--app-border)/10 px-3 py-2 text-sm text-(--app-muted)">
+                  Starts: {game?.startingTeam}
+                </span>
+              </div>
             </div>
-          ) : null}
-        </div>
-      </div>
 
-      <div className="mt-4 flex items-center justify-center">
-        <form className="w-full max-w-lg">
-          <div className="flex items-center gap-3">
-            <input
-              className="w-full rounded-full border border-(--app-border) px-4 py-3 text-lg font-semibold text-(--app-text) placeholder-(--app-muted) focus:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
-              placeholder="Enter hint and number"
-              aria-label="Hint input"
-            />
-            <button className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-semibold text-white">
-              Give
-            </button>
+            <div className="grid gap-3 sm:grid-flow-col sm:auto-cols-max items-center">
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text)">
+                {playerCount} players
+              </div>
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text)">
+                {game?.remainingGuesses} guesses
+              </div>
+              <div
+                className={`rounded-3xl px-3 py-2 text-sm ${
+                  game?.status === "finished"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : "border border-(--app-border) bg-(--app-surface) text-(--app-muted)"
+                }`}
+              >
+                {game?.status}
+              </div>
+              {game?.winningTeam ? (
+                <div className="rounded-3xl bg-(--app-accent)/10 px-3 py-2 text-sm font-semibold text-(--app-text)">
+                  Winner: {game?.winningTeam}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </form>
-      </div>
+
+          <div className="mt-4 flex items-center justify-center">
+            <form className="w-full max-w-lg">
+              <div className="flex items-center gap-3">
+                <input
+                  className="w-full rounded-full border border-(--app-border) px-4 py-3 text-lg font-semibold text-(--app-text) placeholder-(--app-muted) focus:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
+                  placeholder="Enter hint and number"
+                  aria-label="Hint input"
+                />
+                <button className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-semibold text-white">Give</button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
     </div>
   );
 }

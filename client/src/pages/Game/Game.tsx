@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BoardGrid } from "@/components/BoardGrid";
 import { GameHeader } from "@/components/GameHeader";
+import { SettingsPopup } from "@/components/SettingsPopup";
 import { EndGameModal } from "@/components/EndGameModal";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
@@ -45,6 +46,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   const [refreshingGame, setRefreshingGame] = useState(false);
   const devMode = isDevModeEnabled();
   const [showKeycard, setShowKeycard] = useState(false);
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const toast = useToast();
   const [hideBoard, setHideBoard] = useState(() => {
@@ -423,6 +425,48 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
       "operative",
   );
 
+  function handleResetTeams() {
+    if (!socket || !state.room || !user) return;
+    socket.emit("room:resetTeams", {
+      roomCode: state.room.roomCode,
+      ownerTelegramId: user.telegramId,
+    });
+  }
+
+  function handleShuffleTeams() {
+    if (!socket || !state.room || !user) return;
+    socket.emit("room:shuffleTeams", {
+      roomCode: state.room.roomCode,
+      ownerTelegramId: user.telegramId,
+    });
+  }
+
+  function handleToggleAllowSpectators() {
+    if (!socket || !state.room || !user) return;
+    const next = !state.room.settings.allowSpectators;
+    socket.emit("room:updateSettings", {
+      roomCode: state.room.roomCode,
+      ownerTelegramId: user.telegramId,
+      settings: {
+        ...state.room.settings,
+        allowSpectators: next,
+      },
+    });
+  }
+
+  function handleTogglePrivateRoom() {
+    if (!socket || !state.room || !user) return;
+    const next = !state.room.settings.privateRoom;
+    socket.emit("room:updateSettings", {
+      roomCode: state.room.roomCode,
+      ownerTelegramId: user.telegramId,
+      settings: {
+        ...state.room.settings,
+        privateRoom: next,
+      },
+    });
+  }
+
   function handleReturnToLobby() {
     onLeave();
   }
@@ -609,11 +653,73 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           />
         ) : null}
 
-        <GameHeader
-          room={state.room}
-          game={state.game}
+        <div className="relative">
+          <GameHeader
+            room={state.room}
+            game={state.game}
+            playerCount={getPlayerCount(state.room)}
+          />
+          <button
+            type="button"
+            aria-label="Open settings"
+            onClick={() => setShowSettingsPopup(true)}
+            className="absolute top-3 right-3 rounded-full border border-(--app-border) bg-(--app-surface) p-2 text-(--app-muted) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
+          >
+            ⚙
+          </button>
+        </div>
+
+        <SettingsPopup
+          open={showSettingsPopup}
+          title="Room settings"
+          onClose={() => setShowSettingsPopup(false)}
           playerCount={getPlayerCount(state.room)}
-        />
+        >
+          {isRoomOwner ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Allow spectators</span>
+                <button
+                  type="button"
+                  onClick={handleToggleAllowSpectators}
+                  className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
+                >
+                  {state.room?.settings.allowSpectators ? "On" : "Off"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Private room</span>
+                <button
+                  type="button"
+                  onClick={handleTogglePrivateRoom}
+                  className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
+                >
+                  {state.room?.settings.privateRoom ? "Yes" : "No"}
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetTeams}
+                  className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
+                >
+                  Reset teams
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShuffleTeams}
+                  className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
+                >
+                  Randomize teams
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-(--app-muted)">Only the room owner can change settings.</div>
+          )}
+        </SettingsPopup>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(38rem,1.4fr)_minmax(26rem,0.8fr)]">
           <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm sm:p-6">

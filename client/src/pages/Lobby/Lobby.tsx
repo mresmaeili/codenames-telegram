@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
+import { SettingsPopup } from "@/components/SettingsPopup";
 import { useAuthContext } from "@/context/AuthContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
@@ -1137,134 +1138,121 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       </button>
                     </div>
 
-                    {activeHostAction ? (
-                      <div className="mt-4 rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--app-muted)">
-                            {activeHostAction}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setActiveHostAction(null)}
-                            className="text-[11px] font-semibold text-(--app-muted)"
+                    <SettingsPopup
+                      open={Boolean(activeHostAction)}
+                      title={activeHostAction ?? "Settings"}
+                      onClose={() => setActiveHostAction(null)}
+                      playerCount={room?.players.length}
+                    >
+                      {/* Render the same host action content inside the popup */}
+                      {activeHostAction === "game-mode" ? (
+                        <label className="block text-xs text-(--app-muted)">
+                          <span className="mb-1 block">Game mode</span>
+                          <select
+                            value={hostControlDraft.gameMode}
+                            onChange={(event) =>
+                              setHostControlDraft((current) => ({
+                                ...current,
+                                gameMode: event.target.value as
+                                  | "standard"
+                                  | "rush",
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
                           >
-                            Close
-                          </button>
-                        </div>
+                            <option value="standard">Standard</option>
+                            <option value="rush">Rush</option>
+                          </select>
+                        </label>
+                      ) : null}
 
-                        <div className="mt-3 space-y-3">
-                          {activeHostAction === "game-mode" ? (
-                            <label className="block text-xs text-(--app-muted)">
-                              <span className="mb-1 block">Game mode</span>
-                              <select
-                                value={hostControlDraft.gameMode}
-                                onChange={(event) =>
-                                  setHostControlDraft((current) => ({
-                                    ...current,
-                                    gameMode: event.target.value as
-                                      | "standard"
-                                      | "rush",
-                                  }))
-                                }
-                                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                              >
-                                <option value="standard">Standard</option>
-                                <option value="rush">Rush</option>
-                              </select>
-                            </label>
-                          ) : null}
-
-                          {activeHostAction === "timer" ? (
-                            <label className="block text-xs text-(--app-muted)">
-                              <span className="mb-1 block">Timer</span>
-                              <select
-                                value={hostControlDraft.timer}
-                                onChange={(event) =>
-                                  setHostControlDraft((current) => ({
-                                    ...current,
-                                    timer: event.target.value as
-                                      | "none"
-                                      | "30"
-                                      | "60"
-                                      | "90",
-                                  }))
-                                }
-                                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                              >
-                                <option value="none">No timer</option>
-                                <option value="30">30 seconds</option>
-                                <option value="60">60 seconds</option>
-                                <option value="90">90 seconds</option>
-                              </select>
-                            </label>
-                          ) : null}
-
-                          {activeHostAction === "language" ? (
-                            <label className="block text-xs text-(--app-muted)">
-                              <span className="mb-1 block">Language</span>
-                              <select
-                                value={hostControlDraft.language}
-                                onChange={(event) =>
-                                  setHostControlDraft((current) => ({
-                                    ...current,
-                                    language: event.target.value as
-                                      | "en"
-                                      | "es"
-                                      | "he",
-                                  }))
-                                }
-                                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                              >
-                                <option value="en">English</option>
-                                <option value="es">Spanish</option>
-                                <option value="he">Hebrew</option>
-                              </select>
-                            </label>
-                          ) : null}
-
-                          {activeHostAction === "word-pack" ? (
-                            <label className="block text-xs text-(--app-muted)">
-                              <span className="mb-1 block">Word pack</span>
-                              <select
-                                value={hostControlDraft.wordPack}
-                                onChange={(event) =>
-                                  setHostControlDraft((current) => ({
-                                    ...current,
-                                    wordPack: event.target.value as
-                                      | "classic"
-                                      | "party",
-                                  }))
-                                }
-                                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                              >
-                                <option value="classic">Classic</option>
-                                <option value="party">Party</option>
-                              </select>
-                            </label>
-                          ) : null}
-
-                          {activeHostAction === "shuffle" ||
-                          activeHostAction === "reset" ? (
-                            <p className="text-sm text-(--app-muted)">
-                              {activeHostAction === "shuffle"
-                                ? "Shuffle teams will balance players and refresh the room assignment view."
-                                : "Reset teams returns the current lobby to standard team placements."}
-                            </p>
-                          ) : null}
-
-                          <button
-                            type="button"
-                            onClick={handleHostDraftApply}
-                            disabled={hostActionPending}
-                            className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-(--app-text) disabled:opacity-60"
+                      {activeHostAction === "timer" ? (
+                        <label className="block text-xs text-(--app-muted)">
+                          <span className="mb-1 block">Timer</span>
+                          <select
+                            value={hostControlDraft.timer}
+                            onChange={(event) =>
+                              setHostControlDraft((current) => ({
+                                ...current,
+                                timer: event.target.value as
+                                  | "none"
+                                  | "30"
+                                  | "60"
+                                  | "90",
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
                           >
-                            {hostActionPending
-                              ? "Applying..."
-                              : "Apply host setting"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
+                            <option value="none">No timer</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">60 seconds</option>
+                            <option value="90">90 seconds</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {activeHostAction === "language" ? (
+                        <label className="block text-xs text-(--app-muted)">
+                          <span className="mb-1 block">Language</span>
+                          <select
+                            value={hostControlDraft.language}
+                            onChange={(event) =>
+                              setHostControlDraft((current) => ({
+                                ...current,
+                                language: event.target.value as
+                                  | "en"
+                                  | "es"
+                                  | "he",
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+                          >
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="he">Hebrew</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {activeHostAction === "word-pack" ? (
+                        <label className="block text-xs text-(--app-muted)">
+                          <span className="mb-1 block">Word pack</span>
+                          <select
+                            value={hostControlDraft.wordPack}
+                            onChange={(event) =>
+                              setHostControlDraft((current) => ({
+                                ...current,
+                                wordPack: event.target.value as
+                                  | "classic"
+                                  | "party",
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+                          >
+                            <option value="classic">Classic</option>
+                            <option value="party">Party</option>
+                          </select>
+                        </label>
+                      ) : null}
+
+                      {activeHostAction === "shuffle" ||
+                      activeHostAction === "reset" ? (
+                        <p className="text-sm text-(--app-muted)">
+                          {activeHostAction === "shuffle"
+                            ? "Shuffle teams will balance players and refresh the room assignment view."
+                            : "Reset teams returns the current lobby to standard team placements."}
+                        </p>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        onClick={handleHostDraftApply}
+                        disabled={hostActionPending}
+                        className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-(--app-text) disabled:opacity-60"
+                      >
+                        {hostActionPending ? "Applying..." : "Apply host setting"}
+                      </button>
+                    </SettingsPopup>
                   </>
                 ) : (
                   <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 text-sm text-(--app-muted)">
