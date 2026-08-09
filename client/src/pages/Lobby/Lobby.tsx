@@ -539,74 +539,57 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="w-full max-w-5xl rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-2 pb-8">
+        <div className="rounded-4xl border border-(--app-border) bg-(--app-surface) p-6 shadow-2xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+              <p className="text-xs uppercase tracking-[0.28em] text-(--app-muted)">
                 Lobby
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-(--app-text)">
                 Room {room?.roomCode ?? roomCode}
               </h1>
-              <p className="mt-3 text-sm text-(--app-muted)">
-                Hosts:{" "}
+              <p className="mt-2 text-sm text-(--app-muted)">
+                Host:{" "}
                 {ownerPlayers.map((player) => player.displayName).join(", ") ||
                   "Unknown"}{" "}
                 · {room?.players.length ?? 0} player
                 {room?.players.length === 1 ? "" : "s"}
               </p>
             </div>
-
-            {inviteUrl ? (
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-3">
-                <div className="grid grid-cols-7 gap-1">
-                  {qrCells.map((active, index) => (
-                    <span
-                      key={`${room?.roomCode ?? roomCode}-${index}`}
-                      className={`h-2 w-2 rounded-[2px] ${
-                        active
-                          ? "bg-(--app-text)"
-                          : "bg-(--app-surface) border border-(--app-border)"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-muted)">
-                  Join QR
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  Room code
+                </p>
+                <p className="mt-3 text-2xl font-semibold tracking-[0.22em] text-(--app-text)">
+                  {room?.roomCode ?? roomCode}
                 </p>
               </div>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  Players
+                </p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-(--app-text)">
+                  {room?.players.length ?? 0}/{settingsForm.maxPlayers}
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={handleLeave}
-                className="w-full min-h-[3rem] rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text)"
-              >
-                Leave room
-              </button>
-              <button
-                type="button"
+                aria-label="Copy room code"
                 onClick={handleCopyRoomCode}
-                className="w-full min-h-[3rem] rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text)"
+                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
               >
-                Copy room code
+                Copy code
               </button>
               <button
                 type="button"
-                onClick={handleCopyInvite}
-                className="w-full min-h-[3rem] rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text)"
-              >
-                Copy invite
-              </button>
-              <button
-                type="button"
+                aria-label="Share room invite"
                 onClick={handleShareInvite}
                 disabled={!navigator.share}
-                className="w-full min-h-[3rem] rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
               >
-                Share room
+                Share
               </button>
             </div>
           </div>
@@ -639,226 +622,66 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             tone="error"
           />
         ) : room ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <section className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                    Blue Team
-                  </p>
-                  <p className="mt-1 text-sm text-(--app-muted)">
-                    {bluePlayers.length} player
-                    {bluePlayers.length === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700">
-                  {room.status === "playing" ? "Playing" : "Waiting"}
-                </span>
-              </div>
-
-              {currentPlayer?.team !== "blue" ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAssignmentChange(
-                      "blue",
-                      currentPlayer?.role ?? "operative",
-                    )
-                  }
-                  className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-700"
-                >
-                  Join Blue
-                </button>
-              ) : currentPlayer?.role === "operative" ? (
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("blue", "spymaster")}
-                  className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-700"
-                >
-                  Become Spymaster
-                </button>
-              ) : null}
-
-              {room.settings.allowSpectators && currentPlayer?.team !== null ? (
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange(null, "operative")}
-                  className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-700"
-                >
-                  Become Spectator
-                </button>
-              ) : null}
-
-              <div className="space-y-3">
-                {bluePlayers.map((player) => (
-                  <div
-                    key={player.userId}
-                    className="rounded-3xl border border-(--app-border) p-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-(--app-text)">
-                        {player.displayName}
-                      </p>
-                      {room.ownerIds?.includes(player.userId) ? (
-                        <span className="text-xs text-(--app-muted)">Host</span>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-700">
-                        Blue
-                      </span>
-                      <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
-                        {player.role === "spymaster"
-                          ? "Spymaster"
-                          : "Operative"}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 ${
-                          isPlayerReady(player)
-                            ? "bg-emerald-500/10 text-emerald-700"
-                            : "border border-(--app-border) text-(--app-muted)"
-                        }`}
-                      >
-                        {getPlayerReadinessLabel(player)}
-                      </span>
-                    </div>
-                    {isOwner && !room.ownerIds?.includes(player.userId) ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleTransferOwnership(player.telegramId)
-                        }
-                        className="mt-3 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
-                      >
-                        Promote to host
-                      </button>
-                    ) : null}
+          <>
+            <div className="grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_minmax(32rem,1.4fr)_minmax(18rem,1fr)]">
+              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                      Blue Team
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                      {bluePlayers.length} player
+                      {bluePlayers.length === 1 ? "" : "s"}
+                    </h2>
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                    Red Team
-                  </p>
-                  <p className="mt-1 text-sm text-(--app-muted)">
-                    {redPlayers.length} player
-                    {redPlayers.length === 1 ? "" : "s"}
-                  </p>
+                  <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+                    {room.status === "playing" ? "Playing" : "Waiting"}
+                  </span>
                 </div>
-                <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700">
-                  {room.status === "playing" ? "Playing" : "Waiting"}
-                </span>
-              </div>
 
-              {currentPlayer?.team !== "red" ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAssignmentChange(
-                      "red",
-                      currentPlayer?.role ?? "operative",
-                    )
-                  }
-                  className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-700"
-                >
-                  Join Red
-                </button>
-              ) : currentPlayer?.role === "operative" ? (
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("red", "spymaster")}
-                  className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-700"
-                >
-                  Become Spymaster
-                </button>
-              ) : null}
-
-              {room.settings.allowSpectators && currentPlayer?.team !== null ? (
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange(null, "operative")}
-                  className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-700"
-                >
-                  Become Spectator
-                </button>
-              ) : null}
-
-              <div className="space-y-3">
-                {redPlayers.map((player) => (
-                  <div
-                    key={player.userId}
-                    className="rounded-3xl border border-(--app-border) p-3"
+                {currentPlayer?.team !== "blue" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAssignmentChange(
+                        "blue",
+                        currentPlayer?.role ?? "operative",
+                      )
+                    }
+                    className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-(--app-text)">
-                        {player.displayName}
-                      </p>
-                      {room.ownerIds?.includes(player.userId) ? (
-                        <span className="text-xs text-(--app-muted)">Host</span>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-700">
-                        Red
-                      </span>
-                      <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
-                        {player.role === "spymaster"
-                          ? "Spymaster"
-                          : "Operative"}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 ${
-                          isPlayerReady(player)
-                            ? "bg-emerald-500/10 text-emerald-700"
-                            : "border border-(--app-border) text-(--app-muted)"
-                        }`}
-                      >
-                        {getPlayerReadinessLabel(player)}
-                      </span>
-                    </div>
-                    {isOwner && !room.ownerIds?.includes(player.userId) ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleTransferOwnership(player.telegramId)
-                        }
-                        className="mt-3 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
-                      >
-                        Promote to host
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </section>
+                    Join Blue
+                  </button>
+                ) : currentPlayer?.role === "operative" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAssignmentChange("blue", "spymaster")}
+                    className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
+                  >
+                    Become Spymaster
+                  </button>
+                ) : null}
 
-            <section className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <div className="mb-4">
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                  Spectators
-                </p>
-                <p className="mt-1 text-sm text-(--app-muted)">
-                  Players without a team appear here.
-                </p>
-              </div>
+                {room.settings.allowSpectators &&
+                currentPlayer?.team !== null ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAssignmentChange(null, "operative")}
+                    className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
+                  >
+                    Become Spectator
+                  </button>
+                ) : null}
 
-              {spectatorPlayers.length === 0 ? (
-                <p className="rounded-3xl border border-(--app-border) bg-(--app-surface) px-4 py-5 text-sm text-(--app-muted)">
-                  No spectators yet.
-                </p>
-              ) : (
                 <div className="space-y-3">
-                  {spectatorPlayers.map((player) => (
+                  {bluePlayers.map((player) => (
                     <div
                       key={player.userId}
-                      className="rounded-3xl border border-(--app-border) p-3"
+                      className="rounded-3xl border border-(--app-border) p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-medium text-(--app-text)">
+                        <p className="font-semibold text-(--app-text)">
                           {player.displayName}
                         </p>
                         {room.ownerIds?.includes(player.userId) ? (
@@ -867,7 +690,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-700">
+                          Blue
+                        </span>
                         <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
                           {player.role === "spymaster"
                             ? "Spymaster"
@@ -889,7 +715,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                           onClick={() =>
                             handleTransferOwnership(player.telegramId)
                           }
-                          className="mt-3 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
+                          className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
                         >
                           Promote to host
                         </button>
@@ -897,165 +723,422 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     </div>
                   ))}
                 </div>
-              )}
-            </section>
+              </section>
 
-            <section className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <div className="mb-4">
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                  Game settings
-                </p>
-                <p className="mt-1 text-sm text-(--app-muted)">
-                  Update the lobby, then start when the teams are ready.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <label
-                    className="text-sm font-medium text-(--app-text)"
-                    htmlFor="maxPlayers"
-                  >
-                    Maximum players
-                  </label>
-                  <input
-                    id="maxPlayers"
-                    type="number"
-                    min={ROOM_MIN_PLAYERS}
-                    max={ROOM_MAX_PLAYERS}
-                    value={settingsForm.maxPlayers}
-                    onChange={(event) => {
-                      const nextValue = Number(event.target.value);
-                      if (Number.isNaN(nextValue)) {
-                        return;
-                      }
-                      handleSettingsChange("maxPlayers", nextValue);
-                    }}
-                    disabled={!isOwner}
-                    className="mt-3 w-full rounded-2xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
-                  />
+              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+                <div className="mb-5">
+                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    Room overview
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                    Ready for game night
+                  </h2>
+                  <p className="mt-2 text-sm text-(--app-muted)">
+                    Share the room, confirm the teams, and start once everything
+                    is set.
+                  </p>
                 </div>
 
-                <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-(--app-text)">
-                      Allow spectators
-                    </p>
-                    <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                      <input
-                        type="checkbox"
-                        checked={settingsForm.allowSpectators}
-                        disabled={!isOwner}
-                        onChange={(event) =>
-                          handleSettingsChange(
-                            "allowSpectators",
-                            event.target.checked,
-                          )
-                        }
-                        className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                      />
-                      {settingsForm.allowSpectators ? "On" : "Off"}
-                    </label>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-(--app-text)">
-                      Private room
-                    </p>
-                    <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                      <input
-                        type="checkbox"
-                        checked={settingsForm.privateRoom}
-                        disabled={!isOwner}
-                        onChange={(event) =>
-                          handleSettingsChange(
-                            "privateRoom",
-                            event.target.checked,
-                          )
-                        }
-                        className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                      />
-                      {settingsForm.privateRoom ? "Yes" : "No"}
-                    </label>
-                  </div>
-                </div>
-
-                {isOwner ? (
+                <div className="grid gap-3 sm:grid-cols-3">
                   <button
                     type="button"
-                    onClick={handleSettingsSave}
-                    disabled={hostActionPending}
-                    className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                    aria-label="Copy room code"
+                    onClick={handleCopyRoomCode}
+                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                   >
-                    {hostActionPending ? "Saving..." : "Save settings"}
+                    Copy code
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Copy invite link"
+                    onClick={handleCopyInvite}
+                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  >
+                    Copy invite
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Share invite"
+                    onClick={handleShareInvite}
+                    disabled={!navigator.share}
+                    className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  >
+                    Share
+                  </button>
+                </div>
+
+                <div className="mt-5 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                      Invite link
+                    </span>
+                    <span className="text-xs text-(--app-muted)">
+                      Players {room.players.length}/{settingsForm.maxPlayers}
+                    </span>
+                  </div>
+                  <p className="mt-3 rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm text-(--app-text) break-all">
+                    {inviteUrl}
+                  </p>
+                </div>
+
+                <div className="mt-5 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                      Status
+                    </span>
+                    <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
+                      {isReady ? "Ready" : "Pending"}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-(--app-text)">
+                    {isReady
+                      ? "All required team assignments are complete."
+                      : "Adjust teams, spymasters, or spectator settings before starting."}
+                  </p>
+                  {readinessIssues.length > 0 ? (
+                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-(--app-muted)">
+                      {readinessIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {devMode ? (
+                    <button
+                      type="button"
+                      onClick={handleAddBot}
+                      disabled={
+                        room.players.length >= ROOM_MAX_PLAYERS ||
+                        room.status !== "waiting"
+                      }
+                      className="rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                    >
+                      Add Bot
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleStartGame}
+                    disabled={!isOwner || !isReady || room.status !== "waiting"}
+                    aria-label="Start game"
+                    className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  >
+                    Start Game
+                  </button>
+                </div>
+
+                <div className="mt-6">
+                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+                    Spectators
+                  </p>
+                  {spectatorPlayers.length === 0 ? (
+                    <p className="mt-3 rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-4 text-sm text-(--app-muted)">
+                      No spectators yet.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {spectatorPlayers.map((player) => (
+                        <div
+                          key={player.userId}
+                          className="rounded-3xl border border-(--app-border) p-4"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-medium text-(--app-text)">
+                              {player.displayName}
+                            </p>
+                            {room.ownerIds?.includes(player.userId) ? (
+                              <span className="text-xs text-(--app-muted)">
+                                Host
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                            <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
+                              {player.role === "spymaster"
+                                ? "Spymaster"
+                                : "Operative"}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-1 ${
+                                isPlayerReady(player)
+                                  ? "bg-emerald-500/10 text-emerald-700"
+                                  : "border border-(--app-border) text-(--app-muted)"
+                              }`}
+                            >
+                              {getPlayerReadinessLabel(player)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                      Red Team
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-(--app-text)">
+                      {redPlayers.length} player
+                      {redPlayers.length === 1 ? "" : "s"}
+                    </h2>
+                  </div>
+                  <span className="rounded-full bg-red-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-red-700">
+                    {room.status === "playing" ? "Playing" : "Waiting"}
+                  </span>
+                </div>
+
+                {currentPlayer?.team !== "red" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAssignmentChange(
+                        "red",
+                        currentPlayer?.role ?? "operative",
+                      )
+                    }
+                    className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
+                  >
+                    Join Red
+                  </button>
+                ) : currentPlayer?.role === "operative" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAssignmentChange("red", "spymaster")}
+                    className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
+                  >
+                    Become Spymaster
                   </button>
                 ) : null}
 
-                {isOwner ? (
+                {room.settings.allowSpectators &&
+                currentPlayer?.team !== null ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAssignmentChange(null, "operative")}
+                    className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
+                  >
+                    Become Spectator
+                  </button>
+                ) : null}
+
+                <div className="space-y-3">
+                  {redPlayers.map((player) => (
+                    <div
+                      key={player.userId}
+                      className="rounded-3xl border border-(--app-border) p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-(--app-text)">
+                          {player.displayName}
+                        </p>
+                        {room.ownerIds?.includes(player.userId) ? (
+                          <span className="text-xs text-(--app-muted)">
+                            Host
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-700">
+                          Red
+                        </span>
+                        <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
+                          {player.role === "spymaster"
+                            ? "Spymaster"
+                            : "Operative"}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 ${
+                            isPlayerReady(player)
+                              ? "bg-emerald-500/10 text-emerald-700"
+                              : "border border-(--app-border) text-(--app-muted)"
+                          }`}
+                        >
+                          {getPlayerReadinessLabel(player)}
+                        </span>
+                      </div>
+                      {isOwner && !room.ownerIds?.includes(player.userId) ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleTransferOwnership(player.telegramId)
+                          }
+                          className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
+                        >
+                          Promote to host
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+                <div className="mb-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    Game settings
+                  </p>
+                  <p className="mt-2 text-sm text-(--app-muted)">
+                    Update the room settings before the match begins.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                    <label
+                      className="text-sm font-medium text-(--app-text)"
+                      htmlFor="maxPlayers"
+                    >
+                      Maximum players
+                    </label>
+                    <input
+                      id="maxPlayers"
+                      type="number"
+                      min={ROOM_MIN_PLAYERS}
+                      max={ROOM_MAX_PLAYERS}
+                      value={settingsForm.maxPlayers}
+                      onChange={(event) => {
+                        const nextValue = Number(event.target.value);
+                        if (Number.isNaN(nextValue)) {
+                          return;
+                        }
+                        handleSettingsChange("maxPlayers", nextValue);
+                      }}
+                      disabled={!isOwner}
+                      className="mt-3 w-full rounded-2xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
+                    />
+                  </div>
+
                   <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-(--app-text)">
-                          Host controls
-                        </p>
-                        <p className="mt-1 text-xs text-(--app-muted)">
-                          Room owner actions
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-(--app-accent)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)">
-                        Host
-                      </span>
+                      <p className="text-sm font-medium text-(--app-text)">
+                        Allow spectators
+                      </p>
+                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.allowSpectators}
+                          disabled={!isOwner}
+                          onChange={(event) =>
+                            handleSettingsChange(
+                              "allowSpectators",
+                              event.target.checked,
+                            )
+                          }
+                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
+                        />
+                        {settingsForm.allowSpectators ? "On" : "Off"}
+                      </label>
                     </div>
+                  </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-(--app-text)">
+                        Private room
+                      </p>
+                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.privateRoom}
+                          disabled={!isOwner}
+                          onChange={(event) =>
+                            handleSettingsChange(
+                              "privateRoom",
+                              event.target.checked,
+                            )
+                          }
+                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
+                        />
+                        {settingsForm.privateRoom ? "Yes" : "No"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {isOwner ? (
+                    <button
+                      type="button"
+                      onClick={handleSettingsSave}
+                      disabled={hostActionPending}
+                      className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                    >
+                      {hostActionPending ? "Saving..." : "Save settings"}
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                      Host controls
+                    </p>
+                    <p className="mt-2 text-sm text-(--app-muted)">
+                      Only the room owner can adjust these settings.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
+                    Host
+                  </span>
+                </div>
+
+                {isOwner ? (
+                  <>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => handleHostControl("game-mode")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Game mode
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("timer")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Timer
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("language")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Language
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("word-pack")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Word packs
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("shuffle")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Shuffle teams
                       </button>
                       <button
                         type="button"
                         onClick={() => handleHostControl("reset")}
-                        className="min-h-[3rem] rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
+                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
                       >
                         Reset teams
                       </button>
                     </div>
 
                     {activeHostAction ? (
-                      <div className="mt-4 rounded-2xl border border-(--app-border) bg-(--app-background) p-3">
+                      <div className="mt-4 rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--app-muted)">
                             {activeHostAction}
@@ -1182,80 +1265,41 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         </div>
                       </div>
                     ) : null}
+                  </>
+                ) : (
+                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 text-sm text-(--app-muted)">
+                    Waiting for the host to adjust room settings and launch the
+                    game.
                   </div>
-                ) : null}
+                )}
+              </section>
+            </div>
 
-                <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <p className="text-sm font-medium text-(--app-text)">
-                    Ready status
-                  </p>
-                  <p className="mt-2 text-sm text-(--app-muted)">
-                    {isReady
-                      ? "The lobby is ready to start."
-                      : "The lobby needs action before starting."}
-                  </p>
-                  {readinessIssues.length > 0 ? (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-(--app-muted)">
-                      {readinessIssues.map((issue) => (
-                        <li key={issue}>{issue}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {devMode ? (
-                    <button
-                      type="button"
-                      onClick={handleAddBot}
-                      disabled={
-                        room.players.length >= ROOM_MAX_PLAYERS ||
-                        room.status !== "waiting"
-                      }
-                      className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-                    >
-                      Add Bot
-                    </button>
-                  ) : null}
+            {devMode ? (
+              <div className="rounded-4xl border border-(--app-border) bg-(--app-surface) p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+                      Dev inspector
+                    </p>
+                    <p className="mt-1 text-sm text-(--app-muted)">
+                      Raw room JSON and manual refresh for troubleshooting.
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={handleStartGame}
-                    disabled={!isOwner || !isReady || room.status !== "waiting"}
-                    className="w-full min-h-[3rem] rounded-full bg-(--app-accent) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                    onClick={refreshLobby}
+                    className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
                   >
-                    Start Game
+                    Refresh lobby
                   </button>
                 </div>
+                <pre className="mt-4 max-h-72 overflow-auto rounded-3xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
+                  {JSON.stringify(room, null, 2)}
+                </pre>
               </div>
-            </section>
-
-            <section className="lg:col-span-4 rounded-3xl border border-(--app-border) bg-(--app-background) p-4 lg:col-start-1 lg:col-end-5">
-              {devMode ? (
-                <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                        Dev inspector
-                      </p>
-                      <p className="mt-1 text-sm text-(--app-muted)">
-                        Raw room JSON and manual refresh for troubleshooting.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={refreshLobby}
-                      className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
-                    >
-                      Refresh lobby
-                    </button>
-                  </div>
-                  <pre className="mt-4 max-h-72 overflow-auto rounded-2xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
-                    {JSON.stringify(room, null, 2)}
-                  </pre>
-                </div>
-              ) : null}
-            </section>
-          </div>
+            ) : null}
+          </>
         ) : null}
       </div>
     </PageContainer>

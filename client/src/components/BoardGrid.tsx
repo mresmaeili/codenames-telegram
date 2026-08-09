@@ -23,7 +23,7 @@ export function BoardGrid({
   hideWords = false,
 }: BoardGridProps) {
   return (
-    <div className="grid grid-cols-5 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:gap-4">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -38,22 +38,30 @@ export function BoardGrid({
         }
 
         const publicCard = card as PublicCard;
+        const isSelectable = canSelectCard && !publicCard.revealed;
+        const ariaLabel = publicCard.revealed
+          ? `Revealed ${publicCard.word}`
+          : isSelectable
+            ? `Select ${publicCard.word}`
+            : `Locked ${publicCard.word}`;
+
         return (
           <button
             key={`${publicCard.word}-${index}`}
             type="button"
+            aria-label={ariaLabel}
             onClick={() => {
-              if (canSelectCard && !publicCard.revealed && onSelectCard) {
+              if (isSelectable && onSelectCard) {
                 onSelectCard(index);
               }
             }}
-            className="text-left"
-            disabled={!canSelectCard || publicCard.revealed}
+            className={`block w-full rounded-3xl transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-lg" : "cursor-not-allowed opacity-60"}`}
+            disabled={!isSelectable}
           >
             <BoardCard
               word={publicCard.word}
               hideWord={hideWords}
-              disabled={!canSelectCard || publicCard.revealed}
+              disabled={!isSelectable}
               revealPlaceholder={false}
               selectedPlaceholder={selectedCardId === String(index)}
               revealedColor={publicCard.revealed ? publicCard.color : null}

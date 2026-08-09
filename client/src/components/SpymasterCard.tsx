@@ -9,7 +9,8 @@ interface SpymasterCardProps {
 const colorStyles: Record<CardColor, string> = {
   red: "border-red-500 bg-red-500/15 text-red-700 dark:text-red-300",
   blue: "border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300",
-  neutral: "border-(--app-border) bg-(--app-background) text-(--app-text)",
+  neutral:
+    "border-[color:var(--app-border)] bg-[color:var(--app-background)] text-[color:var(--app-text)]",
   assassin: "border-black bg-black/80 text-white",
 };
 
@@ -20,9 +21,13 @@ export function SpymasterCard({
 }: SpymasterCardProps) {
   return (
     <div
-      className={`flex aspect-square items-center justify-center rounded-2xl border px-2 py-3 text-center text-sm font-medium shadow-sm ${colorStyles[color]} ${revealed ? "opacity-70" : ""}`}
+      className={`flex aspect-square items-center justify-center rounded-3xl border px-3 py-4 text-center text-sm font-semibold shadow-sm transition duration-200 ease-out ${colorStyles[color]} ${revealed ? "opacity-80 scale-105" : ""}`}
+      role="img"
+      aria-label={`${word} (${color})`}
     >
-      {word}
+      <span className="px-2 text-center wrap-break-word whitespace-normal leading-tight sm:text-base text-sm">
+        {word}
+      </span>
     </div>
   );
 }

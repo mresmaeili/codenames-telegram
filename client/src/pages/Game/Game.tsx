@@ -565,7 +565,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
   return (
     <PageContainer>
-      <div className="w-full max-w-6xl space-y-4">
+      <div className="mx-auto w-full max-w-7xl space-y-4 px-2 pb-8">
         {gameFinished ? (
           <EndGameModal
             title="Game complete"
@@ -595,7 +595,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                 {refreshingGame ? "Refreshing..." : "Refresh game state"}
               </button>
             </div>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl border border-(--app-border) bg-[color:var(--app-background)] p-3 text-xs text-[color:var(--app-text)]">
+            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
               {JSON.stringify({ room: state.room, game: state.game }, null, 2)}
             </pre>
           </div>
@@ -615,197 +615,239 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           playerCount={getPlayerCount(state.room)}
         />
 
-        <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 shadow-sm sm:p-4">
-          <div className="mb-3 flex justify-end">
-            {isViewerSpymaster ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const toggled = !showKeycard;
-                  setShowKeycard(toggled);
-                  if (toggled && socket && user?.telegramId !== undefined) {
-                    socket.emit("game:requestKeycard", {
-                      roomCode,
-                      requesterTelegramId: user.telegramId,
-                    });
-                  }
-                }}
-                className="mr-2 rounded-full border border-(--app-border) bg-(--app-background) px-3 py-2 text-sm font-medium text-(--app-text)"
-              >
-                {showKeycard ? "Hide keycard" : "Show keycard"}
-              </button>
-            ) : null}
-
-            {isViewerOperative ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setHideBoard((s) => {
-                    const next = !s;
-                    try {
-                      localStorage.setItem(
-                        "codenames.hideBoard",
-                        next ? "true" : "false",
-                      );
-                    } catch (e) {
-                      // ignore
-                    }
-                    return next;
-                  });
-                }}
-                className="rounded-full border border-(--app-border) bg-(--app-background) px-3 py-2 text-sm font-medium text-(--app-text)"
-              >
-                {hideBoard ? "Show board" : "Hide board"}
-              </button>
-            ) : null}
-          </div>
-          {gameFinished ? (
-            <div className="mb-3 rounded-2xl border border-(--app-accent)/40 bg-(--app-accent)/10 p-3 text-sm text-(--app-text)">
-              <p className="font-semibold text-(--app-accent)">Game finished</p>
-              <p className="mt-1">{completionSummary}</p>
-            </div>
-          ) : null}
-          {hintMessage ? (
-            <div className="mb-3">
-              <StatusPanel
-                title="Board update"
-                description={hintMessage}
-                tone="info"
-              />
-            </div>
-          ) : null}
-          <BoardGrid
-            cards={state.game.board}
-            role={state.game.role}
-            selectedCardId={state.game.selectedCardId}
-            canSelectCard={canSelectCard}
-            onSelectCard={handleSelectCard}
-            hideWords={isViewerOperative ? hideBoard : false}
-          />
-
-          {showKeycard && state.game ? (
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            >
-              <div className="max-w-3xl w-full rounded-2xl bg-(--app-surface) p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-semibold text-(--app-text)">
-                    Keycard
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowKeycard(false)}
-                    className="text-sm text-(--app-muted)"
-                  >
-                    Close
-                  </button>
-                </div>
-                <BoardGrid cards={state.game.board} role={"spymaster"} />
+        <div className="grid gap-4 xl:grid-cols-[minmax(38rem,1.4fr)_minmax(26rem,0.8fr)]">
+          <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 shadow-sm sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  Game board
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-(--app-text)">
+                  {state.game.currentTurn} team’s turn
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-(--app-border) px-3 py-2 text-xs text-(--app-muted)">
+                  Start: {state.game.startingTeam}
+                </span>
+                <span className="rounded-full border border-(--app-border) px-3 py-2 text-xs text-(--app-muted)">
+                  Guesses: {state.game.remainingGuesses}
+                </span>
               </div>
             </div>
-          ) : null}
-          {canPassTurn ? (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={handlePassTurn}
-                className="rounded-full border border-(--app-border) bg-(--app-background) px-3 py-2 text-sm font-medium text-(--app-text)"
-              >
-                Pass turn
-              </button>
-            </div>
-          ) : null}
-        </div>
 
-        <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 text-sm text-(--app-muted)">
-          <div className="flex flex-col gap-3 rounded-2xl border border-(--app-border) bg-(--app-background)/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--app-muted)">
-                Hint panel
-              </p>
-              <p className="mt-1 text-sm text-(--app-text)">
-                Current hint: {state.game.currentHintWord ?? "—"}
-              </p>
-              <p className="text-sm text-(--app-muted)">
-                Remaining guesses: {state.game.remainingGuesses}
+            {gameFinished ? (
+              <div className="mb-4 rounded-2xl border border-(--app-accent)/40 bg-(--app-accent)/10 p-4 text-sm text-(--app-text)">
+                <p className="font-semibold text-(--app-accent)">
+                  Game finished
+                </p>
+                <p className="mt-1">{completionSummary}</p>
+              </div>
+            ) : null}
+
+            {hintMessage ? (
+              <div className="mb-4">
+                <StatusPanel
+                  title="Board update"
+                  description={hintMessage}
+                  tone="info"
+                />
+              </div>
+            ) : null}
+
+            <BoardGrid
+              cards={state.game.board}
+              role={state.game.role}
+              selectedCardId={state.game.selectedCardId}
+              canSelectCard={canSelectCard}
+              onSelectCard={handleSelectCard}
+              hideWords={isViewerOperative ? hideBoard : false}
+            />
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {isViewerSpymaster ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toggled = !showKeycard;
+                    setShowKeycard(toggled);
+                    if (toggled && socket && user?.telegramId !== undefined) {
+                      socket.emit("game:requestKeycard", {
+                        roomCode,
+                        requesterTelegramId: user.telegramId,
+                      });
+                    }
+                  }}
+                  aria-label={showKeycard ? "Hide keycard" : "Show keycard"}
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                >
+                  {showKeycard ? "Hide keycard" : "Show keycard"}
+                </button>
+              ) : null}
+
+              {isViewerOperative ? (
+                <button
+                  type="button"
+                  aria-pressed={hideBoard}
+                  aria-label={hideBoard ? "Show board" : "Hide board"}
+                  onClick={() => {
+                    setHideBoard((s) => {
+                      const next = !s;
+                      try {
+                        localStorage.setItem(
+                          "codenames.hideBoard",
+                          next ? "true" : "false",
+                        );
+                      } catch {
+                        // ignore
+                      }
+                      return next;
+                    });
+                  }}
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                >
+                  {hideBoard ? "Show board" : "Hide board"}
+                </button>
+              ) : null}
+
+              {canPassTurn ? (
+                <button
+                  type="button"
+                  aria-label="Pass turn"
+                  onClick={handlePassTurn}
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                >
+                  Pass turn
+                </button>
+              ) : null}
+
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
+                <p className="font-semibold text-(--app-text)">
+                  Board controls
+                </p>
+                <p className="mt-2">
+                  {isViewerSpymaster
+                    ? "Reveal your keycard when you are ready."
+                    : "Tap cards on the board when your team has a valid hint."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                    Hint panel
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-(--app-text)">
+                    {state.game.currentHintWord ?? "No hint yet"}
+                  </h2>
+                </div>
+                <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
+                  {state.game.remainingGuesses} guess
+                  {state.game.remainingGuesses === 1 ? "" : "es"}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-(--app-muted)">
+                Current turn: {state.game.currentTurn} · Starting team:{" "}
+                {state.game.startingTeam}
               </p>
             </div>
-            <form
-              className="flex flex-col gap-2 sm:min-w-65"
-              onSubmit={handleSubmitHint}
-            >
-              <input
-                value={hintDraft.word}
-                onChange={(event) =>
-                  setHintDraft((current) => ({
-                    ...current,
-                    word: event.target.value,
-                  }))
-                }
-                placeholder="Hint word"
-                className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none"
-                disabled={!canSubmitHint || hintSubmitting}
-              />
-              <input
-                value={hintDraft.number}
-                onChange={(event) =>
-                  setHintDraft((current) => ({
-                    ...current,
-                    number: event.target.value,
-                  }))
-                }
-                placeholder="Number"
-                inputMode="numeric"
-                className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none"
-                disabled={!canSubmitHint || hintSubmitting}
-              />
-              <button
-                type="submit"
-                className="rounded-full border border-(--app-border) bg-(--app-accent) px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!canSubmitHint || hintSubmitting}
+
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Submit a hint
+              </p>
+              <form
+                className="mt-4 space-y-3"
+                onSubmit={handleSubmitHint}
+                aria-label="Submit hint form"
               >
-                {hintSubmitting ? "Submitting…" : "Submit hint"}
-              </button>
-            </form>
-          </div>
-          <div className="mt-4 rounded-2xl border border-(--app-border) bg-(--app-background) p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--app-muted)">
-              Hint history
-            </p>
-            {state.game.hintHistory.length === 0 ? (
-              <p className="mt-2 text-sm text-(--app-muted)">No hints yet.</p>
-            ) : (
-              <ul className="mt-3 space-y-3">
-                {state.game.hintHistory
-                  .slice()
-                  .reverse()
-                  .map((hint, index) => (
-                    <li
-                      key={`${hint.word}-${hint.submittedAt.toString()}-${index}`}
-                      className="rounded-2xl border border-(--app-border) bg-(--app-surface) p-3"
-                    >
-                      <p className="font-medium text-(--app-text)">
-                        {hint.word}
-                      </p>
-                      <p className="mt-1 text-xs text-(--app-muted)">
-                        {hint.number} guess{hint.number === 1 ? "" : "es"} •{" "}
-                        {hint.team} team
-                      </p>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
-          {hintMessage ? (
-            <p className="mt-3 text-sm text-(--app-text)">{hintMessage}</p>
-          ) : null}
-          <p className="mt-3">
-            {user?.firstName
-              ? `${user.firstName}, this board is currently for display only.`
-              : "This board is currently for display only."}
-          </p>
+                <label htmlFor="hintWord" className="sr-only">
+                  Hint word
+                </label>
+                <input
+                  id="hintWord"
+                  aria-label="Hint word"
+                  value={hintDraft.word}
+                  onChange={(event) =>
+                    setHintDraft((current) => ({
+                      ...current,
+                      word: event.target.value,
+                    }))
+                  }
+                  placeholder="Hint word"
+                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  disabled={!canSubmitHint || hintSubmitting}
+                />
+                <label htmlFor="hintNumber" className="sr-only">
+                  Hint number
+                </label>
+                <input
+                  id="hintNumber"
+                  aria-label="Hint number"
+                  value={hintDraft.number}
+                  onChange={(event) =>
+                    setHintDraft((current) => ({
+                      ...current,
+                      number: event.target.value,
+                    }))
+                  }
+                  placeholder="Number"
+                  inputMode="numeric"
+                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  disabled={!canSubmitHint || hintSubmitting}
+                />
+                <button
+                  type="submit"
+                  aria-label="Submit hint"
+                  className="w-full rounded-full border border-(--app-border) bg-(--app-accent) px-4 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
+                  disabled={!canSubmitHint || hintSubmitting}
+                >
+                  {hintSubmitting ? "Submitting…" : "Submit hint"}
+                </button>
+              </form>
+            </div>
+
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Hint history
+              </p>
+              {state.game.hintHistory.length === 0 ? (
+                <p className="mt-3 text-sm text-(--app-muted)">No hints yet.</p>
+              ) : (
+                <ul className="mt-3 space-y-3">
+                  {state.game.hintHistory
+                    .slice()
+                    .reverse()
+                    .map((hint, index) => (
+                      <li
+                        key={`${hint.word}-${hint.submittedAt.toString()}-${index}`}
+                        className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4"
+                      >
+                        <p className="font-semibold text-(--app-text)">
+                          {hint.word}
+                        </p>
+                        <p className="mt-2 text-xs text-(--app-muted)">
+                          {hint.number} guess{hint.number === 1 ? "" : "es"} •{" "}
+                          {hint.team} team
+                        </p>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-muted)">
+              <p>
+                {user?.firstName
+                  ? `${user.firstName}, this board is currently for display only.`
+                  : "This board is currently for display only."}
+              </p>
+            </div>
+          </section>
         </div>
       </div>
     </PageContainer>
