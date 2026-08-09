@@ -77,6 +77,17 @@ const gameSchema = new Schema<GameDocument>(
       type: Date,
       default: null,
     },
+    hintHistory: {
+      type: [
+        {
+          word: { type: String, required: true, trim: true },
+          number: { type: Number, required: true },
+          team: { type: String, enum: ["red", "blue"], required: true },
+          submittedAt: { type: Date, required: true },
+        },
+      ],
+      default: [],
+    },
     selectedCardId: {
       type: String,
       default: null,

@@ -16,17 +16,21 @@ interface SocketClientMessage {
 }
 
 let socketInstance: Socket | null = null;
+let socketEndpoint: string | null = null;
 
 export function createSocketClient(options: SocketClientOptions): Socket {
   if (socketInstance) {
     return socketInstance;
   }
 
+  socketEndpoint = options.endpoint;
   socketInstance = io(options.endpoint, {
     transports: ["websocket", "polling"],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 10000,
     autoConnect: true,
   });
 
@@ -47,6 +51,19 @@ export function createSocketClient(options: SocketClientOptions): Socket {
   });
 
   return socketInstance;
+}
+
+export function reconnectSocketClient(): Socket | null {
+  if (socketInstance) {
+    socketInstance.disconnect();
+    socketInstance = null;
+  }
+
+  if (!socketEndpoint) {
+    return null;
+  }
+
+  return createSocketClient({ endpoint: socketEndpoint });
 }
 
 export function getSocketClient(): Socket | null {

@@ -16,6 +16,8 @@ function parsePort(value: string | undefined) {
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
+  DEV_MODE:
+    process.env.DEV_MODE === "true" || process.env.NODE_ENV !== "production",
   PORT: parsePort(process.env.PORT),
   MONGODB_URI: process.env.MONGODB_URI ?? "",
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",

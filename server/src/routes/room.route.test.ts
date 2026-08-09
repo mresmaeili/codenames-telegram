@@ -6,6 +6,7 @@ import test from "node:test";
 import { createApp } from "../app.js";
 import { createRoomDocument } from "../test-utils/test-helpers.js";
 import { roomRepository } from "../repositories/room.repository.js";
+import { UserModel } from "../models/user.model.js";
 
 async function startTestServer() {
   const app = createApp();
@@ -37,6 +38,10 @@ test("POST /api/rooms returns 201 for a valid room creation request", async () =
         maxPlayers: 4,
         allowSpectators: false,
         privateRoom: true,
+        gameMode: "standard",
+        timer: "60",
+        language: "en",
+        wordPack: "classic",
       },
     });
   roomRepository.findByCode = async () => null;
@@ -75,6 +80,129 @@ test("GET /api/rooms/:roomCode returns 404 for unknown rooms", async () => {
     assert.equal(response.status, 404);
   } finally {
     roomRepository.findByCode = originalFindByCode;
+    server.close();
+  }
+});
+
+test("POST /api/rooms/join rejects new players in private rooms", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    settings: {
+      maxPlayers: 4,
+      allowSpectators: false,
+      privateRoom: true,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => null;
+
+  const { server, baseUrl } = await startTestServer();
+
+  try {
+    const response = await fetch(`${baseUrl}/api/rooms/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomCode: "abc123",
+        telegramId: 2,
+        displayName: "Guest",
+      }),
+    });
+
+    assert.equal(response.status, 400);
+    const payload = await response.json();
+    assert.match(payload.message, /private/i);
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+    server.close();
+  }
+});
+
+// The following public-room join test is optional but useful for validating privateRoom gating.
+test("POST /api/rooms/join accepts new players in public rooms", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    settings: {
+      maxPlayers: 4,
+      allowSpectators: false,
+      privateRoom: false,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "user-2" },
+    telegramId: 2,
+  });
+
+  const { server, baseUrl } = await startTestServer();
+
+  try {
+    const response = await fetch(`${baseUrl}/api/rooms/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomCode: "abc123",
+        telegramId: 2,
+        displayName: "Guest",
+      }),
+    });
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.roomCode, "ABC123");
+    assert.equal(payload.players.length, 2);
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
     server.close();
   }
 });

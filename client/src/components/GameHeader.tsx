@@ -35,11 +35,17 @@ export function GameHeader({ room, game, playerCount }: GameHeaderProps) {
           <span className="rounded-full border border-(--app-border) px-3 py-2 text-sm text-(--app-muted)">
             Guesses: {game.remainingGuesses}
           </span>
-          <span className="rounded-full border border-(--app-border) px-3 py-2 text-sm text-(--app-muted)">
+          <span
+            className={`rounded-full px-3 py-2 text-sm ${
+              game.status === "finished"
+                ? "bg-emerald-500/10 text-emerald-300"
+                : "border border-(--app-border) text-(--app-muted)"
+            }`}
+          >
             Status: {game.status}
           </span>
           {game.winningTeam ? (
-            <span className="rounded-full border border-(--app-border) px-3 py-2 text-sm text-(--app-muted)">
+            <span className="rounded-full bg-(--app-accent)/10 px-3 py-2 text-sm font-semibold text-(--app-text)">
               Winner: {game.winningTeam}
             </span>
           ) : null}

@@ -58,6 +58,21 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+@keyframes reveal-card {
+  from {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-reveal-card {
+  animation: reveal-card 260ms ease-out both;
+}
+
 * {
   box-sizing: border-box;
 }

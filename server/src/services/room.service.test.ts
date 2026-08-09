@@ -10,6 +10,9 @@ import { roomRepository } from "../repositories/room.repository.js";
 import {
   createRoom,
   joinRoom,
+  resetRoomTeams,
+  shuffleRoomTeams,
+  transferRoomOwnership,
   updateRoomPlayerAssignment,
   updateRoomSettings,
 } from "./room.service.js";
@@ -28,6 +31,10 @@ test("createRoom creates a waiting room with default settings", async () => {
         maxPlayers: ROOM_MAX_PLAYERS,
         allowSpectators: false,
         privateRoom: true,
+        gameMode: "standard",
+        timer: "60",
+        language: "en",
+        wordPack: "classic",
       },
     });
 
@@ -62,6 +69,15 @@ test("joinRoom adds a new player and normalizes the room code", async () => {
   roomRepository.findByCode = async () =>
     createRoomDocument({
       roomCode: "ABC123",
+      settings: {
+        maxPlayers: 4,
+        allowSpectators: false,
+        privateRoom: false,
+        gameMode: "standard",
+        timer: "60",
+        language: "en",
+        wordPack: "classic",
+      },
       players: [
         createRoomDocument({}).players[0] as {
           userId: string;
@@ -96,6 +112,98 @@ test("joinRoom adds a new player and normalizes the room code", async () => {
     (
       UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
     ).findOne = originalFindOne;
+  }
+});
+
+test("joinRoom rejects new players for private rooms", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    settings: {
+      maxPlayers: 4,
+      allowSpectators: false,
+      privateRoom: true,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+
+  try {
+    await assert.rejects(
+      () =>
+        joinRoom({
+          roomCode: "abc123",
+          telegramId: 2,
+          displayName: "Guest",
+        }),
+      /private/i,
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+  }
+});
+
+test("updateRoomPlayerAssignment allows a spectator when spectators are enabled", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    settings: {
+      maxPlayers: 4,
+      allowSpectators: true,
+      privateRoom: false,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "player-id",
+        telegramId: 2,
+        displayName: "Player",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+
+  try {
+    const updatedRoom = await updateRoomPlayerAssignment({
+      roomCode: "abc123",
+      telegramId: 2,
+      team: null,
+      role: "operative",
+    });
+
+    assert.equal(updatedRoom.players[1]?.team, null);
+    assert.equal(updatedRoom.players[1]?.role, "operative");
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
   }
 });
 
@@ -141,6 +249,220 @@ test("updateRoomPlayerAssignment rejects a second spymaster in the same team", a
   }
 });
 
+test("transferRoomOwnership promotes a player inside the room to owner", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: "owner-id",
+    status: "waiting",
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-id",
+        telegramId: 2,
+        displayName: "Guest",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async (query: unknown) => {
+    const telegramLookup = query as { telegramId?: number } | undefined;
+
+    return telegramLookup?.telegramId === 1
+      ? {
+          _id: { toString: () => "owner-id" },
+          telegramId: 1,
+        }
+      : null;
+  };
+
+  try {
+    const updatedRoom = await transferRoomOwnership({
+      roomCode: "ABC123",
+      ownerTelegramId: 1,
+      targetTelegramId: 2,
+    });
+
+    assert.equal(updatedRoom.ownerId, "owner-id");
+    assert.deepEqual(updatedRoom.ownerIds, ["owner-id", "guest-id"]);
+    assert.deepEqual(room.ownerIds, ["owner-id", "guest-id"]);
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
+test("shuffleRoomTeams fans the room into red and blue assignments", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: "owner-id",
+    ownerIds: ["owner-id"],
+    status: "waiting",
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-id",
+        telegramId: 2,
+        displayName: "Guest",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-2-id",
+        telegramId: 3,
+        displayName: "Guest Two",
+        team: "red",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-3-id",
+        telegramId: 4,
+        displayName: "Guest Three",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "owner-id" },
+    telegramId: 1,
+  });
+
+  try {
+    const updatedRoom = await shuffleRoomTeams({
+      roomCode: "ABC123",
+      ownerTelegramId: 1,
+    });
+
+    assert.ok(updatedRoom.players.some((player) => player.team === "red"));
+    assert.ok(updatedRoom.players.some((player) => player.team === "blue"));
+    assert.equal(
+      updatedRoom.players.filter((player) => player.team === "red").length,
+      2,
+    );
+    assert.equal(
+      updatedRoom.players.filter((player) => player.team === "blue").length,
+      2,
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
+test("resetRoomTeams restores active players to a clean team allocation", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: "owner-id",
+    ownerIds: ["owner-id"],
+    status: "waiting",
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-id",
+        telegramId: 2,
+        displayName: "Guest",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-2-id",
+        telegramId: 3,
+        displayName: "Guest Two",
+        team: "red",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "owner-id" },
+    telegramId: 1,
+  });
+
+  try {
+    const updatedRoom = await resetRoomTeams({
+      roomCode: "ABC123",
+      ownerTelegramId: 1,
+    });
+
+    const redCount = updatedRoom.players.filter(
+      (player) => player.team === "red",
+    ).length;
+    const blueCount = updatedRoom.players.filter(
+      (player) => player.team === "blue",
+    ).length;
+
+    assert.equal(redCount, 0);
+    assert.equal(blueCount, 0);
+    assert.ok(updatedRoom.players.every((player) => player.team === null));
+    assert.ok(
+      updatedRoom.players.every((player) => player.role === "operative"),
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
 test("updateRoomSettings validates the room settings payload", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindById = (
@@ -157,6 +479,21 @@ test("updateRoomSettings validates the room settings payload", async () => {
   ).findById = async () => ({
     telegramId: 1,
   });
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "owner-id" },
+    telegramId: 1,
+  });
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "owner-id" },
+    telegramId: 1,
+  });
 
   try {
     await assert.rejects(
@@ -168,10 +505,67 @@ test("updateRoomSettings validates the room settings payload", async () => {
             maxPlayers: ROOM_MIN_PLAYERS - 1,
             allowSpectators: false,
             privateRoom: true,
+            gameMode: "standard",
+            timer: "60",
+            language: "en",
+            wordPack: "classic",
           },
         }),
       /between 2 and 16/,
     );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findById: (id: string) => Promise<unknown> }
+    ).findById = originalFindById;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
+test("updateRoomSettings accepts valid settings and persists them", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindById = (
+    UserModel as unknown as { findById: (id: string) => Promise<unknown> }
+  ).findById;
+
+  const room = createRoomDocument({
+    status: "waiting",
+    ownerId: "owner-id",
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findById: (id: string) => Promise<unknown> }
+  ).findById = async () => ({
+    telegramId: 1,
+  });
+
+  try {
+    const settings = {
+      maxPlayers: ROOM_MAX_PLAYERS,
+      allowSpectators: true,
+      privateRoom: false,
+      gameMode: "rush" as const,
+      timer: "30" as const,
+      language: "es" as const,
+      wordPack: "party" as const,
+    };
+
+    const updated = await updateRoomSettings({
+      roomCode: "abc123",
+      ownerTelegramId: 1,
+      settings,
+    });
+
+    assert.equal(updated.settings.maxPlayers, settings.maxPlayers);
+    assert.equal(updated.settings.allowSpectators, settings.allowSpectators);
+    assert.equal(updated.settings.privateRoom, settings.privateRoom);
+    assert.equal(updated.settings.gameMode, settings.gameMode);
+    assert.equal(updated.settings.timer, settings.timer);
+    assert.equal(updated.settings.language, settings.language);
+    assert.equal(updated.settings.wordPack, settings.wordPack);
   } finally {
     roomRepository.findByCode = originalFindByCode;
     (

@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 
 import { env } from "@/config/env";
 import {
+  getDevModeUser,
+  isDevModeEnabled,
+} from "@/lib/dev";
+import {
   getTelegramInitData,
   getTelegramLaunchParams,
   initializeTelegramMiniApp,
@@ -97,6 +101,18 @@ export function useAuth() {
 
   useEffect(() => {
     async function runAuthentication() {
+      if (isDevModeEnabled()) {
+        const devUser = getDevModeUser();
+
+        setAuthState({
+          user: devUser,
+          loading: false,
+          error: null,
+        });
+
+        return;
+      }
+
       const telegramAvailable = await waitForTelegramMiniApp(2000);
 
       console.debug("[Auth] Telegram availability check", {

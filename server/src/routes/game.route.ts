@@ -99,6 +99,7 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
         currentHintWord: game.currentHintWord ?? null,
         currentHintNumber: game.currentHintNumber ?? null,
         hintSubmittedAt: game.hintSubmittedAt ?? null,
+        hintHistory: game.hintHistory ?? [],
       },
       room: {
         players: roomRecord.players,
@@ -113,6 +114,7 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
       currentHintNumber: result.game.currentHintNumber,
       remainingGuesses: result.game.remainingGuesses,
       hintSubmittedAt: result.game.hintSubmittedAt,
+      hintHistory: result.game.hintHistory,
     });
 
     if (!updatedGame) {
@@ -181,8 +183,10 @@ gameRouter.post("/:gameId/select", async (request, response) => {
       game: {
         status: game.status,
         currentTurn: game.currentTurn,
+        remainingGuesses: game.remainingGuesses,
         currentHintWord: game.currentHintWord ?? null,
         currentHintNumber: game.currentHintNumber ?? null,
+        hintSubmittedAt: game.hintSubmittedAt ?? null,
         board: game.board,
         selectedCardId: game.selectedCardId ?? null,
         selectedByPlayerId: game.selectedByPlayerId ?? null,
@@ -266,8 +270,10 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       game: {
         status: game.status,
         currentTurn: game.currentTurn,
+        remainingGuesses: game.remainingGuesses,
         currentHintWord: game.currentHintWord ?? null,
         currentHintNumber: game.currentHintNumber ?? null,
+        hintSubmittedAt: game.hintSubmittedAt ?? null,
         board: game.board,
         selectedCardId: game.selectedCardId ?? null,
         selectedByPlayerId: game.selectedByPlayerId ?? null,

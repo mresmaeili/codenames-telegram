@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { GamePage } from "@/pages/Game";
 import { LobbyPage } from "@/pages/Lobby";
 import { getSocketClient } from "@/socket/client";
@@ -36,7 +37,9 @@ export function HomePage() {
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
     "home",
   );
+  const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
   const socket = useMemo(() => getSocketClient(), []);
+  const toast = useToast();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -44,6 +47,7 @@ export function HomePage() {
 
     if (roomParam) {
       setRoomCode(roomParam.toUpperCase());
+      setFormValue(roomParam.toUpperCase());
       setActiveView("lobby");
     }
   }, []);
@@ -68,18 +72,52 @@ export function HomePage() {
       return;
     }
 
+    function handleConnect() {
+      toast.info("Reconnected. Restoring your room membership...");
+      if (roomCode && user) {
+        socket.emit("room:join", {
+          roomCode,
+          telegramId: user.telegramId,
+          displayName: user.firstName,
+        });
+      }
+    }
+
+    function handleDisconnect(reason: string) {
+      toast.error(
+        `Disconnected from the server. Attempting to reconnect... (${reason})`,
+      );
+    }
+
     function handleRoomUpdated(room: RoomResponse) {
       if (room.status === "playing") {
         setActiveView("game");
       }
     }
 
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
     socket.on("room:updated", handleRoomUpdated);
 
     return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
       socket.off("room:updated", handleRoomUpdated);
     };
-  }, [socket]);
+  }, [socket, roomCode, user, toast]);
+
+  useEffect(() => {
+    async function tryAutoJoinRoom() {
+      if (autoJoinAttempted || !roomCode || !user || submitting) {
+        return;
+      }
+
+      setAutoJoinAttempted(true);
+      await joinRoomByCode(roomCode);
+    }
+
+    void tryAutoJoinRoom();
+  }, [autoJoinAttempted, roomCode, user, submitting]);
 
   async function createRoom() {
     if (!user || submitting) {
@@ -122,10 +160,9 @@ export function HomePage() {
     }
   }
 
-  async function joinRoom(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function joinRoomByCode(roomCodeToJoin: string) {
     if (!user || submitting) {
-      return;
+      return null;
     }
 
     setSubmitting(true);
@@ -136,7 +173,7 @@ export function HomePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roomCode: formValue.trim().toUpperCase(),
+          roomCode: roomCodeToJoin,
           telegramId: user.telegramId,
           displayName: user.firstName,
         }),
@@ -150,6 +187,7 @@ export function HomePage() {
       }
 
       setRoomCode(payload.roomCode);
+      setFormValue(payload.roomCode);
       setActiveView("lobby");
       setFeedback("Joined room successfully.");
       if (socket) {
@@ -159,13 +197,25 @@ export function HomePage() {
           displayName: user.firstName,
         });
       }
+
+      return payload;
     } catch (joinError) {
       const message =
         joinError instanceof Error ? joinError.message : "Could not join room.";
       setFeedback(message);
+      return null;
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function joinRoom(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user || submitting) {
+      return;
+    }
+
+    await joinRoomByCode(formValue.trim().toUpperCase());
   }
 
   if (roomCode && activeView === "game") {
@@ -188,6 +238,7 @@ export function HomePage() {
           setRoomCode(null);
           setActiveView("home");
         }}
+        onGameStart={() => setActiveView("game")}
       />
     );
   }

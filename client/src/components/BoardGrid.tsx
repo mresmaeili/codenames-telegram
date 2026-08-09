@@ -11,6 +11,7 @@ interface BoardGridProps {
   selectedCardId?: string | null;
   canSelectCard?: boolean;
   onSelectCard?: (cardIndex: number) => void;
+  hideWords?: boolean;
 }
 
 export function BoardGrid({
@@ -19,6 +20,7 @@ export function BoardGrid({
   selectedCardId,
   canSelectCard = false,
   onSelectCard,
+  hideWords = false,
 }: BoardGridProps) {
   return (
     <div className="grid grid-cols-5 gap-2 sm:gap-3">
@@ -50,6 +52,7 @@ export function BoardGrid({
           >
             <BoardCard
               word={publicCard.word}
+              hideWord={hideWords}
               disabled={!canSelectCard || publicCard.revealed}
               revealPlaceholder={false}
               selectedPlaceholder={selectedCardId === String(index)}

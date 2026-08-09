@@ -6,6 +6,7 @@ interface BoardCardProps {
   revealPlaceholder?: boolean;
   selectedPlaceholder?: boolean;
   revealedColor?: CardColor | null;
+  hideWord?: boolean;
 }
 
 const colorStyles: Record<CardColor, string> = {
@@ -21,6 +22,7 @@ export function BoardCard({
   revealPlaceholder = false,
   selectedPlaceholder = false,
   revealedColor = null,
+  hideWord = false,
 }: BoardCardProps) {
   const visualState = selectedPlaceholder
     ? "border-(--app-accent) bg-(--app-accent)/15"
@@ -30,11 +32,23 @@ export function BoardCard({
         ? "border-(--app-border) bg-(--app-background) opacity-70"
         : "border-(--app-border) bg-(--app-background)";
 
+  const revealAnimation = revealedColor ? "scale-105 shadow-lg" : "scale-100";
+
   return (
     <div
-      className={`flex aspect-square items-center justify-center rounded-2xl border px-2 py-3 text-center text-sm font-medium text-(--app-text) shadow-sm ${visualState} ${disabled ? "opacity-70" : ""}`}
+      className={`relative flex aspect-square items-center justify-center rounded-2xl border px-2 py-3 text-center text-sm font-medium text-(--app-text) shadow-sm overflow-hidden transform-gpu transition-all duration-300 ease-out ${visualState} ${revealAnimation} ${disabled ? "opacity-70" : ""}`}
     >
-      {word}
+      <span
+        className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-out ${hideWord && !revealedColor && !selectedPlaceholder ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+        aria-hidden={true}
+      >
+        ••••
+      </span>
+      <span
+        className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-out ${hideWord && !revealedColor && !selectedPlaceholder ? "opacity-0 scale-95" : "opacity-100 scale-100"} ${revealedColor ? "animate-reveal-card" : ""}`}
+      >
+        {word}
+      </span>
     </div>
   );
 }

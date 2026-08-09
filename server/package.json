@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server/src/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/services/auth.service.test.ts src/services/game.service.test.ts src/services/hint.service.test.ts src/services/reveal.service.test.ts src/services/selection.service.test.ts src/services/turn.service.test.ts src/services/win-condition.service.test.ts src/services/room.service.test.ts src/services/room.socket.test.ts src/routes/room.route.test.ts",
+    "test": "tsx --test src/services/auth.service.test.ts src/services/game.service.test.ts src/services/hint.service.test.ts src/services/reveal.service.test.ts src/services/selection.service.test.ts src/services/turn.service.test.ts src/services/win-condition.service.test.ts src/services/room.service.test.ts src/services/room.socket.test.ts src/routes/room.route.test.ts src/routes/game.route.test.ts",
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

@@ -8,6 +8,7 @@ export function createRoomDocument(
     _id: "room-id" as unknown as RoomDocument["_id"],
     roomCode: "ABC123",
     ownerId: "owner-id",
+    ownerIds: ["owner-id"],
     players: [
       {
         userId: "owner-id",
@@ -31,6 +32,10 @@ export function createRoomDocument(
       maxPlayers: 4,
       allowSpectators: false,
       privateRoom: true,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
     },
     createdAt: new Date("2024-01-01T00:00:00.000Z"),
     updatedAt: new Date("2024-01-01T00:00:00.000Z"),

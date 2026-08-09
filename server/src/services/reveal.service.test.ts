@@ -8,8 +8,10 @@ test("applyCardReveal reveals the selected card and clears the pending selection
     game: {
       status: "active",
       currentTurn: "blue",
+      remainingGuesses: 2,
       currentHintWord: "forest",
       currentHintNumber: 2,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
       board: [{ word: "alpha", color: "red", revealed: false }],
       selectedCardId: "0",
       selectedByPlayerId: "user-1",
@@ -42,8 +44,10 @@ test("validateCardReveal rejects a reveal when no card is selected", () => {
     game: {
       status: "active",
       currentTurn: "blue",
+      remainingGuesses: 2,
       currentHintWord: "forest",
       currentHintNumber: 2,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
       board: [{ word: "alpha", color: "red", revealed: false }],
       selectedCardId: null,
       selectedByPlayerId: null,

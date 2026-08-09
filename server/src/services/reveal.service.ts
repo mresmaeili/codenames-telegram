@@ -3,8 +3,10 @@ import type { Room } from "../../../shared/src/types/room.js";
 
 interface RevealServiceContext {
   game: Pick<Game, "status" | "currentTurn"> & {
+    remainingGuesses: number;
     currentHintWord: string | null;
     currentHintNumber: number | null;
+    hintSubmittedAt: Date | null;
     board: Array<{ word: string; color: string | null; revealed: boolean }>;
     selectedCardId: string | null;
     selectedByPlayerId: string | null;

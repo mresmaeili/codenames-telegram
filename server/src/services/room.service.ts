@@ -17,6 +17,7 @@ import { UserModel } from "../models/user.model.js";
 import type { RoomDocument } from "../models/room.model.js";
 import { roomRepository } from "../repositories/room.repository.js";
 import { createGame } from "./game.service.js";
+import { env } from "../config/env.js";
 
 export interface CreateRoomInput {
   ownerId: string;
@@ -28,6 +29,7 @@ export interface CreateRoomResult {
   id: string;
   roomCode: string;
   ownerId: string;
+  ownerIds: string[];
   players: RoomPlayer[];
   status: RoomStatus;
   settings: RoomSettings;
@@ -59,11 +61,31 @@ export interface StartRoomInput {
   ownerTelegramId: number;
 }
 
+export interface TransferRoomOwnershipInput {
+  roomCode: string;
+  ownerTelegramId: number;
+  targetTelegramId: number;
+}
+
+export interface ShuffleRoomTeamsInput {
+  roomCode: string;
+  ownerTelegramId: number;
+}
+
+export interface ResetRoomTeamsInput {
+  roomCode: string;
+  ownerTelegramId: number;
+}
+
 function createDefaultSettings(): RoomSettings {
   return {
     maxPlayers: ROOM_MAX_PLAYERS,
     allowSpectators: false,
     privateRoom: true,
+    gameMode: "standard",
+    timer: "60",
+    language: "en",
+    wordPack: "classic",
   };
 }
 
@@ -110,6 +132,38 @@ function buildJoinPlayer(userId: string, input: JoinRoomInput): RoomPlayer {
   };
 }
 
+async function ensureUserExists(
+  telegramId: number,
+  displayName: string,
+): Promise<string> {
+  const existingUser = await UserModel.findOne({ telegramId });
+  if (existingUser) {
+    return existingUser._id.toString();
+  }
+
+  if (!env.DEV_MODE) {
+    throw new Error("Authenticated user not found.");
+  }
+
+  const username =
+    displayName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "") || null;
+
+  const devUser = await UserModel.create({
+    telegramId,
+    username,
+    firstName: displayName.trim() || "Developer",
+    lastName: null,
+    photoUrl: null,
+    languageCode: "en",
+    lastLoginAt: new Date(),
+  });
+
+  return devUser._id.toString();
+}
+
 function validateCreateRoomInput(input: CreateRoomInput): void {
   if (!input.ownerId.trim()) {
     throw new Error("Owner ID is required.");
@@ -128,10 +182,13 @@ function validateAssignmentValues(
   team: unknown,
   role: unknown,
 ): {
-  team: Team;
+  team: Team | null;
   role: PlayerRole;
 } {
-  if (typeof team !== "string" || !ROOM_TEAMS.includes(team as Team)) {
+  if (
+    team !== null &&
+    (typeof team !== "string" || !ROOM_TEAMS.includes(team as Team))
+  ) {
     throw new Error("Invalid team value.");
   }
 
@@ -142,8 +199,12 @@ function validateAssignmentValues(
     throw new Error("Invalid role value.");
   }
 
+  if (team === null && role !== "operative") {
+    throw new Error("Spectators cannot be spymasters.");
+  }
+
   return {
-    team: team as Team,
+    team: team as Team | null,
     role: role as PlayerRole,
   };
 }
@@ -167,6 +228,31 @@ function validateRoomSettings(settings: RoomSettings): void {
   if (typeof settings.privateRoom !== "boolean") {
     throw new Error("Private room must be a boolean.");
   }
+
+  if (settings.gameMode !== "standard" && settings.gameMode !== "rush") {
+    throw new Error("Invalid game mode.");
+  }
+
+  if (
+    settings.timer !== "none" &&
+    settings.timer !== "30" &&
+    settings.timer !== "60" &&
+    settings.timer !== "90"
+  ) {
+    throw new Error("Invalid timer setting.");
+  }
+
+  if (
+    settings.language !== "en" &&
+    settings.language !== "es" &&
+    settings.language !== "he"
+  ) {
+    throw new Error("Invalid language setting.");
+  }
+
+  if (settings.wordPack !== "classic" && settings.wordPack !== "party") {
+    throw new Error("Invalid word pack setting.");
+  }
 }
 
 async function assertRoomOwner(
@@ -177,8 +263,16 @@ async function assertRoomOwner(
     throw new Error("Owner Telegram ID is invalid.");
   }
 
-  const ownerUser = await UserModel.findById(room.ownerId);
-  if (!ownerUser || ownerUser.telegramId !== ownerTelegramId) {
+  const ownerIds = Array.isArray(room.ownerIds)
+    ? room.ownerIds
+    : [room.ownerId];
+
+  const ownerUser = await UserModel.findOne({ telegramId: ownerTelegramId });
+  if (!ownerUser) {
+    throw new Error("Only the room owner can change this room.");
+  }
+
+  if (!ownerIds.includes(ownerUser._id.toString())) {
     throw new Error("Only the room owner can change this room.");
   }
 }
@@ -217,7 +311,7 @@ function collectReadinessErrors(room: RoomDocument): string[] {
   }
 
   room.players.forEach((player) => {
-    if (!player.team) {
+    if (!player.team && !room.settings.allowSpectators) {
       errors.push(`${player.displayName} must select a team.`);
     }
   });
@@ -230,6 +324,7 @@ function serializeRoom(room: RoomDocument): CreateRoomResult {
     id: room._id.toString(),
     roomCode: room.roomCode,
     ownerId: room.ownerId,
+    ownerIds: Array.isArray(room.ownerIds) ? room.ownerIds : [room.ownerId],
     players: room.players,
     status: room.status,
     settings: room.settings,
@@ -248,6 +343,7 @@ export async function createRoom(
   const initialRoom: Partial<Room> = {
     roomCode,
     ownerId: input.ownerId,
+    ownerIds: [input.ownerId],
     players: [initialPlayer],
     status: "waiting" as RoomStatus,
     settings: createDefaultSettings(),
@@ -278,13 +374,6 @@ export async function joinRoom(
     throw new Error("Invalid room code format.");
   }
 
-  const authenticatedUser = await UserModel.findOne({
-    telegramId: input.telegramId,
-  });
-  if (!authenticatedUser) {
-    throw new Error("Authenticated user not found.");
-  }
-
   const room = await roomRepository.findByCode(normalizedRoomCode);
   if (!room) {
     throw new Error("Room not found.");
@@ -294,15 +383,19 @@ export async function joinRoom(
     throw new Error("Room is not accepting players.");
   }
 
-  const userId = authenticatedUser._id.toString();
   const alreadyJoined = room.players.some(
-    (player) =>
-      player.userId === userId || player.telegramId === input.telegramId,
+    (player) => player.telegramId === input.telegramId,
   );
 
   if (alreadyJoined) {
     return serializeRoom(room);
   }
+
+  if (room.settings.privateRoom) {
+    throw new Error("Room is private. New players cannot join by room code.");
+  }
+
+  const userId = await ensureUserExists(input.telegramId, input.displayName);
 
   if (room.players.length >= room.settings.maxPlayers) {
     throw new Error("Room is full.");
@@ -349,6 +442,10 @@ export async function updateRoomPlayerAssignment(
     throw new Error("User does not belong to this room.");
   }
 
+  if (assignmentValues.team === null && !room.settings.allowSpectators) {
+    throw new Error("Spectators are not allowed in this room.");
+  }
+
   const spymasterExistsInTargetTeam = room.players.some(
     (player) =>
       player.telegramId !== input.telegramId &&
@@ -393,6 +490,186 @@ export async function updateRoomSettings(
   await assertRoomOwner(room, input.ownerTelegramId);
 
   room.settings = input.settings;
+  const updatedRoom = await room.save();
+  return serializeRoom(updatedRoom);
+}
+
+export async function transferRoomOwnership(
+  input: TransferRoomOwnershipInput,
+): Promise<CreateRoomResult> {
+  if (!input.roomCode.trim()) {
+    throw new Error("Room code is required.");
+  }
+
+  if (!Number.isInteger(input.ownerTelegramId) || input.ownerTelegramId <= 0) {
+    throw new Error("Owner Telegram ID is invalid.");
+  }
+
+  if (
+    !Number.isInteger(input.targetTelegramId) ||
+    input.targetTelegramId <= 0
+  ) {
+    throw new Error("Target Telegram ID is invalid.");
+  }
+
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  await assertRoomOwner(room, input.ownerTelegramId);
+
+  const targetPlayer = room.players.find(
+    (player) => player.telegramId === input.targetTelegramId,
+  );
+
+  if (!targetPlayer) {
+    throw new Error("Target user is not a member of this room.");
+  }
+
+  const ownerIds = Array.isArray(room.ownerIds)
+    ? room.ownerIds
+    : [room.ownerId];
+  if (!ownerIds.includes(targetPlayer.userId)) {
+    ownerIds.push(targetPlayer.userId);
+  }
+
+  room.ownerIds = ownerIds;
+  const updatedRoom = await room.save();
+
+  return serializeRoom(updatedRoom);
+}
+
+export async function shuffleRoomTeams(
+  input: ShuffleRoomTeamsInput,
+): Promise<CreateRoomResult> {
+  if (!input.roomCode.trim()) {
+    throw new Error("Room code is required.");
+  }
+
+  if (!Number.isInteger(input.ownerTelegramId) || input.ownerTelegramId <= 0) {
+    throw new Error("Owner Telegram ID is invalid.");
+  }
+
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  if (room.status !== "waiting") {
+    throw new Error("Room is not accepting team changes.");
+  }
+
+  await assertRoomOwner(room, input.ownerTelegramId);
+
+  const activePlayers = room.players.filter((player) => player.team !== null);
+  const shuffled = [...activePlayers];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [
+      shuffled[swapIndex],
+      shuffled[index],
+    ];
+  }
+
+  const breakPoint = Math.ceil(shuffled.length / 2);
+  const redMirror = shuffled.slice(0, breakPoint);
+  const blueMirror = shuffled.slice(breakPoint);
+
+  room.players.forEach((player) => {
+    if (!player.team) {
+      return;
+    }
+
+    player.team = null;
+    player.role = "operative";
+  });
+
+  redMirror.forEach((player) => {
+    const target = room.players.find(
+      (candidate) => candidate.userId === player.userId,
+    );
+    if (target) {
+      target.team = "red";
+      target.role = "operative";
+    }
+  });
+
+  blueMirror.forEach((player) => {
+    const target = room.players.find(
+      (candidate) => candidate.userId === player.userId,
+    );
+    if (target) {
+      target.team = "blue";
+      target.role = "operative";
+    }
+  });
+
+  if (redMirror.length > 0) {
+    const firstRed = room.players.find(
+      (player) => player.userId === redMirror[0]?.userId,
+    );
+    if (firstRed) {
+      firstRed.role = "spymaster";
+    }
+  }
+
+  if (blueMirror.length > 0) {
+    const firstBlue = room.players.find(
+      (player) => player.userId === blueMirror[0]?.userId,
+    );
+    if (firstBlue) {
+      firstBlue.role = "spymaster";
+    }
+  }
+
+  const updatedRoom = await room.save();
+  return serializeRoom(updatedRoom);
+}
+
+export async function resetRoomTeams(
+  input: ResetRoomTeamsInput,
+): Promise<CreateRoomResult> {
+  if (!input.roomCode.trim()) {
+    throw new Error("Room code is required.");
+  }
+
+  if (!Number.isInteger(input.ownerTelegramId) || input.ownerTelegramId <= 0) {
+    throw new Error("Owner Telegram ID is invalid.");
+  }
+
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  if (room.status !== "waiting") {
+    throw new Error("Room is not accepting team changes.");
+  }
+
+  await assertRoomOwner(room, input.ownerTelegramId);
+
+  room.players.forEach((player) => {
+    player.team = null;
+    player.role = "operative";
+  });
+
   const updatedRoom = await room.save();
   return serializeRoom(updatedRoom);
 }

@@ -69,6 +69,30 @@ const roomSettingsSchema = new Schema<RoomSettings>(
       required: true,
       default: true,
     },
+    gameMode: {
+      type: String,
+      required: true,
+      enum: ["standard", "rush"],
+      default: "standard",
+    },
+    timer: {
+      type: String,
+      required: true,
+      enum: ["none", "30", "60", "90"],
+      default: "60",
+    },
+    language: {
+      type: String,
+      required: true,
+      enum: ["en", "es", "he"],
+      default: "en",
+    },
+    wordPack: {
+      type: String,
+      required: true,
+      enum: ["classic", "party"],
+      default: "classic",
+    },
   },
   { _id: false },
 );
@@ -88,6 +112,11 @@ const roomSchema = new Schema<RoomDocument>(
     ownerId: {
       type: String,
       required: true,
+    },
+    ownerIds: {
+      type: [String],
+      required: true,
+      default: [],
     },
     players: {
       type: [roomPlayerSchema],

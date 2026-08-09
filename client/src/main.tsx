@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 
 import App from "@/App";
 import { env } from "@/config/env";
+import { isDevModeEnabled } from "@/lib/dev";
 import {
   initializeTelegramMiniApp,
   waitForTelegramMiniApp,
@@ -11,19 +12,28 @@ import { createSocketClient } from "@/socket/client";
 import "@/styles/index.css";
 
 async function bootstrap() {
-  const telegramAvailable = await waitForTelegramMiniApp(2000);
+  const devMode = isDevModeEnabled();
 
-  console.debug("[Main] Telegram environment check", {
-    telegramAvailable,
-    telegram:
-      typeof window !== "undefined" ? (window as any).Telegram : undefined,
-    userAgent:
-      typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-    platform: typeof navigator !== "undefined" ? navigator.platform : undefined,
-    location: typeof window !== "undefined" ? window.location.href : undefined,
-  });
+  if (devMode) {
+    console.debug("[Main] Dev mode enabled, skipping Telegram SDK initialization.");
+  } else {
+    const telegramAvailable = await waitForTelegramMiniApp(2000);
 
-  initializeTelegramMiniApp();
+    console.debug("[Main] Telegram environment check", {
+      telegramAvailable,
+      telegram:
+        typeof window !== "undefined" ? (window as any).Telegram : undefined,
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+      platform:
+        typeof navigator !== "undefined" ? navigator.platform : undefined,
+      location:
+        typeof window !== "undefined" ? window.location.href : undefined,
+    });
+
+    initializeTelegramMiniApp();
+  }
+
   createSocketClient({ endpoint: env.SOCKET_URL });
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

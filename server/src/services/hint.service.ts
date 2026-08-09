@@ -6,6 +6,12 @@ interface HintServiceContext {
     currentHintWord: string | null;
     currentHintNumber: number | null;
     hintSubmittedAt: Date | null;
+    hintHistory: Array<{
+      word: string;
+      number: number;
+      team: string;
+      submittedAt: Date;
+    }>;
   };
   room: Pick<Room, "players">;
   senderTelegramId: number;
@@ -72,13 +78,21 @@ export function applyHintSubmission(
     throw new Error(validation.error ?? "Unable to submit hint.");
   }
 
+  const nextHint = {
+    word: context.word.trim(),
+    number: context.number,
+    team: context.game.currentTurn,
+    submittedAt: new Date(),
+  };
+
   return {
     game: {
       ...context.game,
-      currentHintWord: context.word.trim(),
-      currentHintNumber: context.number,
-      remainingGuesses: context.number,
-      hintSubmittedAt: new Date(),
+      currentHintWord: nextHint.word,
+      currentHintNumber: nextHint.number,
+      remainingGuesses: context.number + 1,
+      hintSubmittedAt: nextHint.submittedAt,
+      hintHistory: [...context.game.hintHistory, nextHint],
     },
   };
 }

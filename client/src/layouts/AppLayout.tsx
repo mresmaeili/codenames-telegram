@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
 
 import { env } from "@/config/env";
+import { DevToolbar } from "@/components/DevToolbar";
 
 export function AppLayout({ children }: PropsWithChildren) {
   return (
@@ -18,6 +19,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         </header>
 
         <main className="flex-1">{children}</main>
+        <DevToolbar />
       </div>
     </div>
   );

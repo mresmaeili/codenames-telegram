@@ -16,6 +16,7 @@ function serializeRoom(room: RoomDocument): LobbyRoomSnapshot {
     id: room._id.toString(),
     roomCode: room.roomCode,
     ownerId: room.ownerId,
+    ownerIds: Array.isArray(room.ownerIds) ? room.ownerIds : [room.ownerId],
     players: room.players,
     status: room.status,
     settings: room.settings,

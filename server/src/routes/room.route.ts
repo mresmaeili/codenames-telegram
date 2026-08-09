@@ -94,7 +94,8 @@ roomRouter.post("/join", async (request, response, next) => {
       message.includes("full") ||
       message.includes("Invalid") ||
       message.includes("accepting") ||
-      message.includes("Authenticated")
+      message.includes("Authenticated") ||
+      message.includes("private")
     ) {
       response.status(400).json({ message });
       return;
@@ -139,12 +140,20 @@ roomRouter.patch("/:roomCode/settings", async (request, response, next) => {
       maxPlayers?: unknown;
       allowSpectators?: unknown;
       privateRoom?: unknown;
+      gameMode?: unknown;
+      timer?: unknown;
+      language?: unknown;
+      wordPack?: unknown;
     };
 
     if (
       typeof settingsPayload.maxPlayers !== "number" ||
       typeof settingsPayload.allowSpectators !== "boolean" ||
-      typeof settingsPayload.privateRoom !== "boolean"
+      typeof settingsPayload.privateRoom !== "boolean" ||
+      typeof settingsPayload.gameMode !== "string" ||
+      typeof settingsPayload.timer !== "string" ||
+      typeof settingsPayload.language !== "string" ||
+      typeof settingsPayload.wordPack !== "string"
     ) {
       response.status(400).json({ message: "Invalid room settings payload." });
       return;
@@ -157,6 +166,10 @@ roomRouter.patch("/:roomCode/settings", async (request, response, next) => {
         maxPlayers: settingsPayload.maxPlayers,
         allowSpectators: settingsPayload.allowSpectators,
         privateRoom: settingsPayload.privateRoom,
+        gameMode: settingsPayload.gameMode as "standard" | "rush",
+        timer: settingsPayload.timer as "none" | "30" | "60" | "90",
+        language: settingsPayload.language as "en" | "es" | "he",
+        wordPack: settingsPayload.wordPack as "classic" | "party",
       },
     });
 
@@ -224,7 +237,7 @@ roomRouter.patch("/:roomCode/team", async (request, response, next) => {
 
     if (
       typeof body.telegramId !== "number" ||
-      typeof body.team !== "string" ||
+      !(typeof body.team === "string" || body.team === null) ||
       typeof body.role !== "string"
     ) {
       response

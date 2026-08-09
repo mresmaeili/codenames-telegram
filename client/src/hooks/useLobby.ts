@@ -31,6 +31,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     loading: Boolean(roomCode),
     error: null,
   });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const socket = useMemo(() => getSocketClient(), []);
 
@@ -65,21 +66,28 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
 
     void fetchRoom();
 
+    function handleRoomUpdated(room: Room) {
+      if (isMounted) {
+        setLobbyState((current) => ({ ...current, room, error: null }));
+      }
+    }
+
     if (socket) {
-      socket.on("room:updated", (room: Room) => {
-        if (isMounted) {
-          setLobbyState((current) => ({ ...current, room, error: null }));
-        }
-      });
+      socket.on("room:updated", handleRoomUpdated);
     }
 
     return () => {
       isMounted = false;
       if (socket) {
-        socket.off("room:updated");
+        socket.off("room:updated", handleRoomUpdated);
       }
     };
-  }, [roomCode, socket]);
+  }, [roomCode, socket, refreshKey]);
 
-  return lobbyState;
+  return {
+    room: lobbyState.room,
+    loading: lobbyState.loading,
+    error: lobbyState.error,
+    refreshLobby: () => setRefreshKey((current) => current + 1),
+  };
 }

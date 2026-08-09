@@ -2,9 +2,10 @@ import type { Game } from "../../../shared/src/types/game.js";
 import type { Room } from "../../../shared/src/types/room.js";
 
 interface SelectionServiceContext {
-  game: Pick<Game, "status" | "currentTurn"> & {
+  game: Pick<Game, "status" | "currentTurn" | "remainingGuesses"> & {
     currentHintWord: string | null;
     currentHintNumber: number | null;
+    hintSubmittedAt: Date | null;
     board: Array<{ word: string; color: string | null; revealed: boolean }>;
     selectedCardId: string | null;
     selectedByPlayerId: string | null;
@@ -64,6 +65,10 @@ export function validateCardSelection(
 
   if (card.revealed) {
     return { ok: false, error: "Card has already been revealed." };
+  }
+
+  if (context.game.remainingGuesses <= 0) {
+    return { ok: false, error: "No remaining guesses are available." };
   }
 
   if (context.game.selectedCardId !== null) {

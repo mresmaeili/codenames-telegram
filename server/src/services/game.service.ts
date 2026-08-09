@@ -5,6 +5,7 @@ import type {
   GameCompletionReason,
   GameStatus,
   GameView,
+  HintEntry,
   PublicCard,
   SpymasterCard,
   Turn,
@@ -95,6 +96,7 @@ export function buildGameView(input: {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
@@ -115,6 +117,7 @@ export function buildGameView(input: {
     currentHintWord: input.currentHintWord,
     currentHintNumber: input.currentHintNumber,
     hintSubmittedAt: input.hintSubmittedAt,
+    hintHistory: input.hintHistory,
     selectedCardId: input.selectedCardId,
     selectedByPlayerId: input.selectedByPlayerId,
     selectedAt: input.selectedAt,
@@ -186,6 +189,7 @@ export async function getGameByRoomCode(
     currentHintWord: game.currentHintWord ?? null,
     currentHintNumber: game.currentHintNumber ?? null,
     hintSubmittedAt: game.hintSubmittedAt ?? null,
+    hintHistory: game.hintHistory ?? [],
     selectedCardId: game.selectedCardId ?? null,
     selectedByPlayerId: game.selectedByPlayerId ?? null,
     selectedAt: game.selectedAt ?? null,
@@ -254,6 +258,7 @@ export async function createGame(
     currentHintWord: null,
     currentHintNumber: null,
     hintSubmittedAt: null,
+    hintHistory: [],
     selectedCardId: null,
     selectedByPlayerId: null,
     selectedAt: null,

@@ -2,6 +2,8 @@ type ImportMetaEnvShape = ImportMetaEnv & {
   readonly VITE_APP_NAME?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_SOCKET_URL?: string;
+  readonly VITE_DEBUG_AUTH_HASH?: string;
+  readonly VITE_DEV_MODE?: string;
 };
 
 const importMetaEnv = import.meta.env as ImportMetaEnvShape;
@@ -18,4 +20,5 @@ export const env = {
   // Opt-in debug flag to compute and log a SHA256 of the Telegram initData
   // on the client for safe comparison with server-side hashes.
   DEBUG_AUTH_HASH: (importMetaEnv as any).VITE_DEBUG_AUTH_HASH === "true",
+  DEV_MODE: (importMetaEnv as any).VITE_DEV_MODE === "true",
 };

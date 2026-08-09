@@ -12,6 +12,13 @@ export interface Card {
   revealed: boolean;
 }
 
+export interface HintEntry {
+  word: string;
+  number: number;
+  team: Turn;
+  submittedAt: Date;
+}
+
 export interface PublicCard {
   word: string;
   revealed: boolean;
@@ -33,6 +40,7 @@ export interface Game {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
@@ -54,6 +62,7 @@ export interface GameViewBase {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
