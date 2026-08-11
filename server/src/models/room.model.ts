@@ -67,7 +67,7 @@ const roomSettingsSchema = new Schema<RoomSettings>(
     privateRoom: {
       type: Boolean,
       required: true,
-      default: true,
+      default: false,
     },
     gameMode: {
       type: String,
@@ -84,7 +84,7 @@ const roomSettingsSchema = new Schema<RoomSettings>(
     language: {
       type: String,
       required: true,
-      enum: ["en", "es", "he"],
+      enum: ["fa", "en", "es", "he"],
       default: "en",
     },
     wordPack: {
@@ -140,7 +140,7 @@ const roomSchema = new Schema<RoomDocument>(
       default: () => ({
         maxPlayers: ROOM_MAX_PLAYERS,
         allowSpectators: false,
-        privateRoom: true,
+        privateRoom: false,
       }),
     },
   },

@@ -25,21 +25,23 @@ export function BoardCard({
   hideWord = false,
 }: BoardCardProps) {
   const hiddenWord = hideWord && !revealedColor && !selectedPlaceholder;
-  const outerClasses: string[] = ["shadow-lg"];
-  if (selectedPlaceholder) outerClasses.push("ring-4 ring-(--app-accent)");
+  const outerClasses: string[] = [
+    "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",
+  ];
+  if (selectedPlaceholder) outerClasses.push("ring-2 ring-(--app-accent)");
   if (disabled) outerClasses.push("opacity-60 pointer-events-none");
 
   const tileColor = revealedColor
     ? tileBgStyles[revealedColor]
-    : "bg-(--app-background)";
+    : "bg-[#dfe4ea]";
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-3xl ${tileColor} ${outerClasses.join(" ")} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[18px] ${tileColor} ${outerClasses.join(" ")} transform-gpu transition duration-200 ease-out`}
     >
-      <div className="absolute inset-3 rounded-2xl bg-white/95 p-3 flex items-center justify-center text-center">
+      <div className="absolute inset-[6px] flex items-center justify-center rounded-[12px] bg-white/95 p-1 text-center">
         <span
-          className={`block font-extrabold uppercase tracking-[0.2em] text-sm leading-tight text-(--app-text) ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`block font-extrabold uppercase tracking-[0.08em] text-[10px] leading-tight text-[#1c2430] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>

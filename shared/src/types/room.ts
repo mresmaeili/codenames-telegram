@@ -17,7 +17,7 @@ export interface RoomSettings {
   privateRoom: boolean;
   gameMode: "standard" | "rush";
   timer: "none" | "30" | "60" | "90";
-  language: "en" | "es" | "he";
+  language: "fa" | "en" | "es" | "he";
   wordPack: "classic" | "party";
 }
 

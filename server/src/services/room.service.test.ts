@@ -52,6 +52,7 @@ test("createRoom creates a waiting room with default settings", async () => {
     assert.equal(room.status, "waiting");
     assert.equal(room.settings.maxPlayers, ROOM_MAX_PLAYERS);
     assert.equal(room.settings.allowSpectators, false);
+    assert.equal(room.settings.privateRoom, false);
     assert.equal(room.players.length, 1);
     assert.equal(room.players[0]?.role, "operative");
   } finally {
@@ -154,6 +155,69 @@ test("joinRoom rejects new players for private rooms", async () => {
     );
   } finally {
     roomRepository.findByCode = originalFindByCode;
+  }
+});
+
+test("updateRoomSettings allows the room creator to make the room public", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: "1",
+    ownerIds: ["1"],
+    settings: {
+      maxPlayers: 4,
+      allowSpectators: false,
+      privateRoom: true,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+    players: [
+      {
+        userId: "1",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "db-user-id" },
+    telegramId: 1,
+  });
+
+  try {
+    const updatedRoom = await updateRoomSettings({
+      roomCode: "ABC123",
+      ownerTelegramId: 1,
+      settings: {
+        maxPlayers: 4,
+        allowSpectators: false,
+        privateRoom: false,
+        gameMode: "standard",
+        timer: "60",
+        language: "en",
+        wordPack: "classic",
+      },
+    });
+
+    assert.equal(updatedRoom.settings.privateRoom, false);
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
   }
 });
 

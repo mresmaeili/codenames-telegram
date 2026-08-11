@@ -81,7 +81,7 @@ function createDefaultSettings(): RoomSettings {
   return {
     maxPlayers: ROOM_MAX_PLAYERS,
     allowSpectators: false,
-    privateRoom: true,
+    privateRoom: false,
     gameMode: "standard",
     timer: "60",
     language: "en",
@@ -243,6 +243,7 @@ function validateRoomSettings(settings: RoomSettings): void {
   }
 
   if (
+    settings.language !== "fa" &&
     settings.language !== "en" &&
     settings.language !== "es" &&
     settings.language !== "he"
@@ -269,10 +270,26 @@ async function assertRoomOwner(
 
   const ownerUser = await UserModel.findOne({ telegramId: ownerTelegramId });
   if (!ownerUser) {
-    throw new Error("Only the room owner can change this room.");
+    const directOwner = room.players.find(
+      (player) => player.telegramId === ownerTelegramId,
+    );
+    if (!directOwner) {
+      throw new Error("Only the room owner can change this room.");
+    }
+    return;
   }
 
-  if (!ownerIds.includes(ownerUser._id.toString())) {
+  const ownerUserId = ownerUser._id.toString();
+  const matchingOwnerId =
+    ownerIds.includes(ownerUserId) ||
+    room.ownerId === ownerUserId ||
+    room.players.some(
+      (player) =>
+        player.telegramId === ownerTelegramId &&
+        (player.userId === ownerUserId || player.userId === room.ownerId),
+    );
+
+  if (!matchingOwnerId) {
     throw new Error("Only the room owner can change this room.");
   }
 }

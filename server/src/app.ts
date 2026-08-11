@@ -10,6 +10,7 @@ import { authRouter } from "./routes/auth.route.js";
 import { gameRouter } from "./routes/game.route.js";
 import { healthRouter } from "./routes/health.route.js";
 import { roomRouter } from "./routes/room.route.js";
+import { wordRouter } from "./routes/word.route.js";
 
 export function createApp() {
   const app = express();
@@ -29,6 +30,7 @@ export function createApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/rooms", roomRouter);
   app.use("/api/games", gameRouter);
+  app.use("/api/words", wordRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

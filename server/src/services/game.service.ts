@@ -13,12 +13,9 @@ import type {
 import { RoomModel } from "../models/room.model.js";
 import type { RoomDocument } from "../models/room.model.js";
 import type { RoomStatus } from "../../../shared/src/types/room.js";
-import {
-  StaticWordProvider,
-  type WordProvider,
-} from "../game/word-provider.js";
 import type { GameDocument } from "../models/game.model.js";
 import { gameRepository } from "../repositories/game.repository.js";
+import { getWordPoolForGame } from "./word.service.js";
 
 interface CreateGameInput {
   roomCode: string;
@@ -213,34 +210,12 @@ export async function createGame(
   }
 
   const startingTeam = createStartingTeam();
-  const wordProvider: WordProvider = new StaticWordProvider([
-    "apple",
-    "banana",
-    "carrot",
-    "diamond",
-    "eagle",
-    "forest",
-    "galaxy",
-    "harbor",
-    "island",
-    "jungle",
-    "knife",
-    "lantern",
-    "meteor",
-    "north",
-    "ocean",
-    "pearl",
-    "quartz",
-    "rocket",
-    "sunset",
-    "thunder",
-    "ultra",
-    "velvet",
-    "whistle",
-    "xenon",
-    "yacht",
-  ]);
-  const selectedWords = await wordProvider.getWords(BOARD_SIZE);
+  const words = await getWordPoolForGame(room.settings.language ?? "fa");
+  if (words.length < BOARD_SIZE) {
+    throw new Error("Not enough words available for the requested game board.");
+  }
+
+  const selectedWords = shuffleCards(words).slice(0, BOARD_SIZE);
   const board = buildGameBoard(selectedWords, startingTeam);
 
   const existingGame = await gameRepository.findByRoomId(room._id.toString());

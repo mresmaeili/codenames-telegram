@@ -44,7 +44,7 @@ interface SettingsFormState {
   privateRoom: boolean;
   gameMode: "standard" | "rush";
   timer: "none" | "30" | "60" | "90";
-  language: "en" | "es" | "he";
+  language: "fa" | "en" | "es" | "he";
   wordPack: "classic" | "party";
 }
 
@@ -112,10 +112,25 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [hostActionPending, setHostActionPending] = useState(false);
   const [localRoom, setLocalRoom] = useState<Room | null>(null);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const [wordPools, setWordPools] = useState<
+    Array<{
+      name: string;
+      language: "fa" | "en";
+      words: string[];
+      isDefault: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>
+  >([]);
+  const [wordPoolName, setWordPoolName] = useState("");
+  const [wordPoolLanguage, setWordPoolLanguage] = useState<"fa" | "en">("fa");
+  const [wordPoolWords, setWordPoolWords] = useState("");
+  const [wordPoolAdminKey, setWordPoolAdminKey] = useState("");
+  const [wordPoolSaving, setWordPoolSaving] = useState(false);
   const [hostControlDraft, setHostControlDraft] = useState<{
     gameMode: "standard" | "rush";
     timer: "none" | "30" | "60" | "90";
-    language: "en" | "es" | "he";
+    language: "fa" | "en" | "es" | "he";
     wordPack: "classic" | "party";
   }>({
     gameMode: "standard",
@@ -126,7 +141,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: ROOM_MAX_PLAYERS,
     allowSpectators: false,
-    privateRoom: true,
+    privateRoom: false,
     gameMode: "standard",
     timer: "60",
     language: "en",
@@ -201,6 +216,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       setHasJoinedRoom(true);
     }
   }, [socket, room, user, hasJoinedRoom]);
+
+  useEffect(() => {
+    void fetchWordPools();
+  }, []);
 
   function handleLeave() {
     if (!socket || !room) {
@@ -338,6 +357,108 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     openPopup();
   }
 
+  async function handleWordPoolSave() {
+    if (!room || !user) {
+      setFeedback("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!wordPoolName.trim()) {
+      setFeedback("Word pool name is required.");
+      return;
+    }
+
+    if (!wordPoolWords.trim()) {
+      setFeedback("Enter at least 25 words for the pool.");
+      return;
+    }
+
+    if (!wordPoolAdminKey.trim()) {
+      setFeedback("Admin key is required to save a word pool.");
+      return;
+    }
+
+    setWordPoolSaving(true);
+    try {
+      const response = await fetch("/api/words/pools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: wordPoolName,
+          language: wordPoolLanguage,
+          words: wordPoolWords.split(/\r?\n|,|;|\t/).map((word) => word.trim()),
+          isDefault: true,
+          adminKey: wordPoolAdminKey,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Unable to save word pool.");
+      }
+
+      setWordPoolName("");
+      setWordPoolWords("");
+      setWordPoolAdminKey("");
+      setFeedback("Word pool saved successfully.");
+      toast.success("Word pool saved.");
+
+      if (Array.isArray(payload.pool?.words)) {
+        setWordPools((current) => [
+          {
+            name: String(payload.pool.name ?? wordPoolName),
+            language: payload.pool.language === "fa" ? "fa" : "en",
+            words: payload.pool.words.map(String),
+            isDefault: Boolean(payload.pool.isDefault),
+            createdAt: String(
+              payload.pool.createdAt ?? new Date().toISOString(),
+            ),
+            updatedAt: String(
+              payload.pool.updatedAt ?? new Date().toISOString(),
+            ),
+          },
+          ...current.filter((pool) => pool.name !== payload.pool.name),
+        ]);
+      } else {
+        void fetchWordPools();
+      }
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Unable to save word pool.",
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Unable to save word pool.",
+      );
+    } finally {
+      setWordPoolSaving(false);
+    }
+  }
+
+  async function fetchWordPools() {
+    try {
+      const response = await fetch("/api/words/pools");
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      if (Array.isArray(payload.pools)) {
+        setWordPools(
+          payload.pools.map((pool: any) => ({
+            name: String(pool.name ?? ""),
+            language: pool.language === "fa" ? "fa" : "en",
+            words: Array.isArray(pool.words) ? pool.words.map(String) : [],
+            isDefault: Boolean(pool.isDefault),
+            createdAt: String(pool.createdAt ?? ""),
+            updatedAt: String(pool.updatedAt ?? ""),
+          })),
+        );
+      }
+    } catch {
+      // ignore load errors
+    }
+  }
+
   function handleHostDraftApply() {
     if (!room || !user || !socket) {
       setFeedback("Socket connection is unavailable.");
@@ -389,7 +510,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    if (!["en", "es", "he"].includes(nextSettings.language)) {
+    if (!["fa", "en", "es", "he"].includes(nextSettings.language)) {
       setFeedback("Invalid language selection.");
       setHostActionPending(false);
       return;
@@ -577,11 +698,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 onChange={(event) =>
                   setHostControlDraft((current) => ({
                     ...current,
-                    language: event.target.value as "en" | "es" | "he",
+                    language: event.target.value as "fa" | "en" | "es" | "he",
                   }))
                 }
                 className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
               >
+                <option value="fa">Farsi</option>
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
                 <option value="he">Hebrew</option>
@@ -632,6 +754,100 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               {hostActionPending ? "Applying..." : "Apply host settings"}
             </button>
           ) : null}
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+            Word pools
+          </p>
+          <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
+            <p className="text-sm text-(--app-muted)">
+              Save a custom word pool for Farsi or English games. You must
+              provide the admin key to persist a pool and set it as the default.
+            </p>
+            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Pool name
+              </span>
+              <input
+                value={wordPoolName}
+                onChange={(event) => setWordPoolName(event.target.value)}
+                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+                placeholder="e.g. Farsi default pack"
+              />
+            </label>
+            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Language
+              </span>
+              <select
+                value={wordPoolLanguage}
+                onChange={(event) =>
+                  setWordPoolLanguage(event.target.value === "fa" ? "fa" : "en")
+                }
+                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+              >
+                <option value="fa">Farsi</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Words
+              </span>
+              <textarea
+                value={wordPoolWords}
+                onChange={(event) => setWordPoolWords(event.target.value)}
+                rows={6}
+                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+                placeholder="Enter one word per line, comma-separated, or semicolon-separated"
+              />
+            </label>
+            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                Admin key
+              </span>
+              <input
+                value={wordPoolAdminKey}
+                onChange={(event) => setWordPoolAdminKey(event.target.value)}
+                type="password"
+                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
+                placeholder="Required to save word pools"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleWordPoolSave}
+              disabled={wordPoolSaving}
+              className="w-full rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
+            >
+              {wordPoolSaving ? "Saving..." : "Save word pool"}
+            </button>
+            {wordPools.length > 0 ? (
+              <div className="space-y-3 rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
+                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                  Saved pools
+                </p>
+                {wordPools.map((pool) => (
+                  <div
+                    key={`${pool.name}-${pool.language}`}
+                    className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-sm text-(--app-text)">
+                      <span>{pool.name}</span>
+                      <span className="rounded-full bg-(--app-border)/20 px-2 py-1 text-xs text-(--app-muted)">
+                        {pool.language.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-(--app-muted)">
+                      {pool.words.length} words •{" "}
+                      {pool.isDefault ? "Default" : "Saved"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>,
       "Room settings",
@@ -746,698 +962,253 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-4xl space-y-4 px-3 pb-8 pt-1">
-        <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 shadow-2xl sm:p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted)">
-                Lobby
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-(--app-text) sm:text-3xl">
-                Room {room?.roomCode ?? roomCode}
-              </h1>
-              <p className="mt-2 text-sm text-(--app-muted)">
-                Host:{" "}
-                {ownerPlayers.map((player) => player.displayName).join(", ") ||
-                  "Unknown"}{" "}
-                · {room?.players.length ?? 0} player
-                {room?.players.length === 1 ? "" : "s"}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-3 text-sm text-(--app-text) lg:p-4">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted)">
-                  Room code
-                </p>
-                <p className="mt-2 text-xl font-semibold tracking-[0.18em] text-(--app-text) lg:text-2xl lg:tracking-[0.22em]">
-                  {room?.roomCode ?? roomCode}
-                </p>
-              </div>
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-3 text-sm text-(--app-text) lg:p-4">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted)">
-                  Players
-                </p>
-                <p className="mt-2 text-xl font-semibold tracking-tight text-(--app-text) lg:text-2xl">
-                  {room?.players.length ?? 0}/{settingsForm.maxPlayers}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Copy room code"
-                onClick={handleCopyRoomCode}
-                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-3 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) lg:px-4"
-              >
-                Copy code
-              </button>
-              <button
-                type="button"
-                aria-label="Share room invite"
-                onClick={handleShareInvite}
-                disabled={!navigator.share}
-                className="min-h-12 rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) lg:px-4"
-              >
-                Share
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <div className="mx-auto w-full max-w-[480px] bg-[#070b12] px-3 pb-8 pt-3 text-white">
         {feedback ? (
-          <StatusPanel
-            title="Update"
-            description={feedback}
-            tone={
-              feedback.toLowerCase().includes("error") ||
-              feedback.toLowerCase().includes("could not") ||
-              feedback.toLowerCase().includes("failed")
-                ? "error"
-                : "success"
-            }
-          />
+          <div className="mb-4">
+            <StatusPanel
+              title="Update"
+              description={feedback}
+              tone={
+                feedback.toLowerCase().includes("error") ||
+                feedback.toLowerCase().includes("could not") ||
+                feedback.toLowerCase().includes("failed")
+                  ? "error"
+                  : "success"
+              }
+            />
+          </div>
         ) : null}
 
         {loading ? (
-          <StatusPanel
-            title="Loading lobby"
-            description="We are restoring the latest room details and player list."
-            tone="info"
-          />
+          <div className="mb-4">
+            <StatusPanel
+              title="Loading lobby"
+              description="We are restoring the latest room details and player list."
+              tone="info"
+            />
+          </div>
         ) : error ? (
-          <StatusPanel
-            title="Lobby unavailable"
-            description={error}
-            tone="error"
-          />
+          <div className="mb-4">
+            <StatusPanel
+              title="Lobby unavailable"
+              description={error}
+              tone="error"
+            />
+          </div>
         ) : room ? (
           <>
-            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <section className="flex flex-col rounded-4xl border border-(--app-border) bg-(--app-background) p-4 sm:p-5">
-                  <div className="mb-4 flex items-start justify-between gap-4 sm:mb-5">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                        Blue team
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold text-(--app-text) sm:text-2xl">
-                        {bluePlayers.length} player
-                        {bluePlayers.length === 1 ? "" : "s"}
-                      </h3>
-                    </div>
-                    <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
-                      {room.status === "playing" ? "Playing" : "Waiting"}
-                    </span>
-                  </div>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                aria-label="Players"
+                className="flex items-center gap-2 rounded-full border border-white/70 bg-[#101720] px-3 py-2 text-white"
+              >
+                <span className="text-2xl">👥</span>
+                <span className="text-base font-semibold">
+                  {room.players.length}
+                </span>
+              </button>
 
-                  {currentPlayer?.team !== "blue" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleAssignmentChange(
-                          "blue",
-                          currentPlayer?.role ?? "operative",
-                        )
-                      }
-                      className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
-                    >
-                      Join Blue
-                    </button>
-                  ) : currentPlayer?.role === "operative" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleAssignmentChange("blue", "spymaster")
-                      }
-                      className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
-                    >
-                      Become Spymaster
-                    </button>
-                  ) : null}
-
-                  {room.settings.allowSpectators &&
-                  currentPlayer?.team !== null ? (
-                    <button
-                      type="button"
-                      onClick={() => handleAssignmentChange(null, "operative")}
-                      className="mb-4 w-full rounded-full border border-blue-500 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-700"
-                    >
-                      Become Spectator
-                    </button>
-                  ) : null}
-
-                  <div className="space-y-3">
-                    {bluePlayers.map((player) => (
-                      <div
-                        key={player.userId}
-                        className="rounded-3xl border border-(--app-border) p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-semibold text-(--app-text)">
-                            {player.displayName}
-                          </p>
-                          {room.ownerIds?.includes(player.userId) ? (
-                            <span className="text-xs text-(--app-muted)">
-                              Host
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                          <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-700">
-                            Blue
-                          </span>
-                          <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
-                            {player.role === "spymaster"
-                              ? "Spymaster"
-                              : "Operative"}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-1 ${isPlayerReady(player) ? "bg-emerald-500/10 text-emerald-700" : "border border-(--app-border) text-(--app-muted)"}`}
-                          >
-                            {getPlayerReadinessLabel(player)}
-                          </span>
-                        </div>
-                        {isOwner && !room.ownerIds?.includes(player.userId) ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleTransferOwnership(player.telegramId)
-                            }
-                            className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
-                          >
-                            Promote to host
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="flex flex-col rounded-4xl border border-(--app-border) bg-(--app-background) p-4 sm:p-5">
-                  <div className="mb-4 flex items-start justify-between gap-4 sm:mb-5">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                        Red team
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold text-(--app-text) sm:text-2xl">
-                        {redPlayers.length} player
-                        {redPlayers.length === 1 ? "" : "s"}
-                      </h3>
-                    </div>
-                    <span className="rounded-full bg-red-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-red-700">
-                      {room.status === "playing" ? "Playing" : "Waiting"}
-                    </span>
-                  </div>
-
-                  {currentPlayer?.team !== "red" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleAssignmentChange(
-                          "red",
-                          currentPlayer?.role ?? "operative",
-                        )
-                      }
-                      className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
-                    >
-                      Join Red
-                    </button>
-                  ) : currentPlayer?.role === "operative" ? (
-                    <button
-                      type="button"
-                      onClick={() => handleAssignmentChange("red", "spymaster")}
-                      className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
-                    >
-                      Become Spymaster
-                    </button>
-                  ) : null}
-
-                  {room.settings.allowSpectators &&
-                  currentPlayer?.team !== null ? (
-                    <button
-                      type="button"
-                      onClick={() => handleAssignmentChange(null, "operative")}
-                      className="mb-4 w-full rounded-full border border-red-500 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700"
-                    >
-                      Become Spectator
-                    </button>
-                  ) : null}
-
-                  <div className="space-y-3">
-                    {redPlayers.map((player) => (
-                      <div
-                        key={player.userId}
-                        className="rounded-3xl border border-(--app-border) p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-semibold text-(--app-text)">
-                            {player.displayName}
-                          </p>
-                          {room.ownerIds?.includes(player.userId) ? (
-                            <span className="text-xs text-(--app-muted)">
-                              Host
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                          <span className="rounded-full bg-red-500/10 px-2 py-1 text-red-700">
-                            Red
-                          </span>
-                          <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
-                            {player.role === "spymaster"
-                              ? "Spymaster"
-                              : "Operative"}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-1 ${isPlayerReady(player) ? "bg-emerald-500/10 text-emerald-700" : "border border-(--app-border) text-(--app-muted)"}`}
-                          >
-                            {getPlayerReadinessLabel(player)}
-                          </span>
-                        </div>
-                        {isOwner && !room.ownerIds?.includes(player.userId) ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleTransferOwnership(player.telegramId)
-                            }
-                            className="mt-4 w-full rounded-full border border-(--app-border) px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.20em] text-(--app-text)"
-                          >
-                            Promote to host
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </section>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-full border border-white/70 bg-[#101720] px-4 py-2 text-base font-black tracking-tight text-white"
+                >
+                  News
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-white/70 bg-[#101720] px-4 py-2 text-base font-black tracking-tight text-white"
+                >
+                  Rules
+                </button>
               </div>
 
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 sm:p-5">
-                <div className="mb-4">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                    Room overview
-                  </p>
-                  <h3 className="mt-2 text-xl font-semibold text-(--app-text) sm:text-2xl">
-                    Ready to start
-                  </h3>
-                </div>
+              <button
+                type="button"
+                aria-label="Room settings"
+                onClick={() => openPopup()}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-[#101720] text-2xl text-white"
+              >
+                ⚙
+              </button>
+            </div>
 
-                <div className="space-y-4">
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                          Invite link
-                        </span>
-                        <span className="text-xs text-(--app-muted)">
-                          {room.players.length}/{settingsForm.maxPlayers}
-                        </span>
-                      </div>
-                      <p className="rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm text-(--app-text) break-all">
-                        {inviteUrl}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={handleCopyRoomCode}
-                          className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text)"
-                        >
-                          Copy code
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleShareInvite}
-                          disabled={!navigator.share}
-                          className="rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-                        >
-                          Share
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="flex-1" />
+              <div className="flex items-center gap-2">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dfe7ef] text-xl text-black">
+                  👤
                 </div>
+                <span className="text-base font-semibold text-white">
+                  {user?.firstName ?? ownerPlayer?.displayName ?? "Player"}
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label="Help"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#20c05b] text-2xl font-bold text-white"
+              >
+                ?
+              </button>
+            </div>
 
-                <div className="mt-5 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                      Readiness
-                    </span>
-                    <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
-                      {isReady ? "Ready" : "Pending"}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm text-(--app-text)">
-                    {isReady
-                      ? "All required team assignments are complete."
-                      : "Adjust teams, spymasters, or spectator settings before starting."}
-                  </p>
-                  {readinessIssues.length > 0 ? (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-(--app-muted)">
-                      {readinessIssues.map((issue) => (
-                        <li key={issue}>{issue}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
+            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-3 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
+              <h2 className="text-center text-2xl font-black uppercase tracking-tight text-white">
+                Game settings
+              </h2>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {devMode ? (
-                    <button
-                      type="button"
-                      onClick={handleAddBot}
-                      disabled={
-                        room.players.length >= ROOM_MAX_PLAYERS ||
-                        room.status !== "waiting"
-                      }
-                      className="rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-                    >
-                      Add Bot
-                    </button>
-                  ) : null}
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={handleStartGame}
-                    disabled={!isOwner || !isReady || room.status !== "waiting"}
-                    aria-label="Start game"
-                    className="rounded-full bg-(--app-accent) px-4 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-60"
+                    onClick={() =>
+                      handleAssignmentChange(
+                        "blue",
+                        currentPlayer?.role ?? "operative",
+                      )
+                    }
+                    className="rounded-[18px] border border-white/20 bg-[#2d9bff] px-4 py-4 text-left text-white shadow-inner"
                   >
-                    Start Game
+                    <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/80">
+                      Codenames
+                    </div>
+                    <div className="text-3xl font-black">Classic</div>
+                    <div className="mt-1 text-sm font-semibold text-white/85">
+                      4+ Players
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAssignmentChange(
+                        "red",
+                        currentPlayer?.role ?? "operative",
+                      )
+                    }
+                    className="rounded-[18px] border border-white/20 bg-[#6c7177] px-4 py-4 text-left text-white"
+                  >
+                    <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/60">
+                      Codenames
+                    </div>
+                    <div className="text-3xl font-black">Duet</div>
+                    <div className="mt-1 text-sm font-semibold text-white/85">
+                      2+ Players
+                    </div>
                   </button>
                 </div>
 
-                <div className="mt-6">
-                  <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                    Spectators
-                  </p>
-                  {spectatorPlayers.length === 0 ? (
-                    <p className="mt-3 rounded-2xl border border-(--app-border) bg-(--app-background) px-4 py-4 text-sm text-(--app-muted)">
-                      No spectators yet.
-                    </p>
-                  ) : (
-                    <div className="mt-3 space-y-3">
-                      {spectatorPlayers.map((player) => (
-                        <div
-                          key={player.userId}
-                          className="rounded-3xl border border-(--app-border) p-4"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="font-medium text-(--app-text)">
-                              {player.displayName}
-                            </p>
-                            {room.ownerIds?.includes(player.userId) ? (
-                              <span className="text-xs text-(--app-muted)">
-                                Host
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                            <span className="rounded-full border border-(--app-border) px-2 py-1 text-(--app-muted)">
-                              {player.role === "spymaster"
-                                ? "Spymaster"
-                                : "Operative"}
-                            </span>
-                            <span
-                              className={`rounded-full px-2 py-1 ${isPlayerReady(player) ? "bg-emerald-500/10 text-emerald-700" : "border border-(--app-border) text-(--app-muted)"}`}
-                            >
-                              {getPlayerReadinessLabel(player)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-4 sm:p-5">
-                <div className="mb-4">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                    Game settings
-                  </p>
-                  <p className="mt-2 text-sm text-(--app-muted)">
-                    Update the room settings before the match begins.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                    <label
-                      className="text-sm font-medium text-(--app-text)"
-                      htmlFor="maxPlayers"
-                    >
-                      Maximum players
-                    </label>
-                    <input
-                      id="maxPlayers"
-                      type="number"
-                      min={ROOM_MIN_PLAYERS}
-                      max={ROOM_MAX_PLAYERS}
-                      value={settingsForm.maxPlayers}
-                      onChange={(event) => {
-                        const nextValue = Number(event.target.value);
-                        if (Number.isNaN(nextValue)) return;
-                        handleSettingsChange("maxPlayers", nextValue);
-                      }}
-                      disabled={!isOwner}
-                      className="mt-3 w-full rounded-2xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
-                    />
-                  </div>
-
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-(--app-text)">
-                        Allow spectators
-                      </p>
-                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                        <input
-                          type="checkbox"
-                          checked={settingsForm.allowSpectators}
-                          disabled={!isOwner}
-                          onChange={(event) =>
-                            handleSettingsChange(
-                              "allowSpectators",
-                              event.target.checked,
-                            )
-                          }
-                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                        />
-                        {settingsForm.allowSpectators ? "On" : "Off"}
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-(--app-text)">
-                        Private room
-                      </p>
-                      <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                        <input
-                          type="checkbox"
-                          checked={settingsForm.privateRoom}
-                          disabled={!isOwner}
-                          onChange={(event) =>
-                            handleSettingsChange(
-                              "privateRoom",
-                              event.target.checked,
-                            )
-                          }
-                          className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                        />
-                        {settingsForm.privateRoom ? "Yes" : "No"}
-                      </label>
-                    </div>
-                  </div>
-
-                  {isOwner ? (
-                    <button
-                      type="button"
-                      onClick={handleSettingsSave}
-                      disabled={hostActionPending}
-                      className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-                    >
-                      {hostActionPending ? "Saving..." : "Save settings"}
-                    </button>
-                  ) : null}
-                </div>
-              </section>
-
-              <section className="rounded-4xl border border-(--app-border) bg-(--app-background) p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                      Host controls
-                    </p>
-                    <p className="mt-2 text-sm text-(--app-muted)">
-                      Only the room owner can adjust these settings.
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
-                    Host
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black"
+                >
+                  <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
+                    English
                   </span>
-                </div>
+                  <span className="ml-4 text-base font-semibold text-black/80">
+                    Classic / Duet
+                  </span>
+                </button>
 
-                {isOwner ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("game-mode")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Game mode
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("timer")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Timer
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("language")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Language
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("word-pack")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Word packs
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("shuffle")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Shuffle teams
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleHostControl("reset")}
-                        className="min-h-12 rounded-2xl border border-(--app-border) px-3 py-3 text-sm font-medium text-(--app-text)"
-                      >
-                        Reset teams
-                      </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-3 text-left text-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f1ec] text-lg text-black">
+                      ⏱
                     </div>
-
-                    {activeHostAction === "timer" ? (
-                      <label className="block text-xs text-(--app-muted)">
-                        <span className="mb-1 block">Timer</span>
-                        <select
-                          value={hostControlDraft.timer}
-                          onChange={(event) =>
-                            setHostControlDraft((current) => ({
-                              ...current,
-                              timer: event.target.value as
-                                | "none"
-                                | "30"
-                                | "60"
-                                | "90",
-                            }))
-                          }
-                          className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                        >
-                          <option value="none">No timer</option>
-                          <option value="30">30 seconds</option>
-                          <option value="60">60 seconds</option>
-                          <option value="90">90 seconds</option>
-                        </select>
-                      </label>
-                    ) : null}
-                    {activeHostAction === "language" ? (
-                      <label className="block text-xs text-(--app-muted)">
-                        <span className="mb-1 block">Language</span>
-                        <select
-                          value={hostControlDraft.language}
-                          onChange={(event) =>
-                            setHostControlDraft((current) => ({
-                              ...current,
-                              language: event.target.value as
-                                | "en"
-                                | "es"
-                                | "he",
-                            }))
-                          }
-                          className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                        >
-                          <option value="en">English</option>
-                          <option value="es">Spanish</option>
-                          <option value="he">Hebrew</option>
-                        </select>
-                      </label>
-                    ) : null}
-                    {activeHostAction === "word-pack" ? (
-                      <label className="block text-xs text-(--app-muted)">
-                        <span className="mb-1 block">Word pack</span>
-                        <select
-                          value={hostControlDraft.wordPack}
-                          onChange={(event) =>
-                            setHostControlDraft((current) => ({
-                              ...current,
-                              wordPack: event.target.value as
-                                | "classic"
-                                | "party",
-                            }))
-                          }
-                          className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                        >
-                          <option value="classic">Classic</option>
-                          <option value="party">Party</option>
-                        </select>
-                      </label>
-                    ) : null}
-                    {activeHostAction === "shuffle" ||
-                    activeHostAction === "reset" ? (
-                      <p className="text-sm text-(--app-muted)">
-                        {activeHostAction === "shuffle"
-                          ? "Shuffle teams will balance players and refresh the room assignment view."
-                          : "Reset teams returns the current lobby to standard team placements."}
-                      </p>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={handleHostDraftApply}
-                      disabled={hostActionPending}
-                      className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold uppercase tracking-[0.20em] text-(--app-text) disabled:opacity-60"
-                    >
-                      {hostActionPending ? "Applying..." : "Apply host setting"}
-                    </button>
-                  </>
-                ) : (
-                  <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-4 text-sm text-(--app-muted)">
-                    Waiting for the host to adjust room settings and launch the
-                    game.
+                    <span className="text-xl font-black uppercase text-white">
+                      Timer
+                    </span>
                   </div>
-                )}
+                  <span className="text-lg font-bold text-white">OFF</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleHostControl("reset")}
+                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+              >
+                Reset teams
+              </button>
+              <button
+                type="button"
+                onClick={() => handleHostControl("shuffle")}
+                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+              >
+                Randomize
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                <p className="text-center text-xl font-black uppercase tracking-tight">
+                  Operatives
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleAssignmentChange("blue", "operative")}
+                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                >
+                  Join team
+                </button>
+              </section>
+
+              <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                <p className="text-center text-xl font-black uppercase tracking-tight">
+                  Operatives
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleAssignmentChange("red", "operative")}
+                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                >
+                  Join team
+                </button>
               </section>
             </div>
 
-            {devMode ? (
-              <div className="rounded-4xl border border-(--app-border) bg-(--app-surface) p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
-                      Dev inspector
-                    </p>
-                    <p className="mt-1 text-sm text-(--app-muted)">
-                      Raw room JSON and manual refresh for troubleshooting.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={refreshLobby}
-                    className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
-                  >
-                    Refresh lobby
-                  </button>
-                </div>
-                <pre className="mt-4 max-h-72 overflow-auto rounded-3xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
-                  {JSON.stringify(room, null, 2)}
-                </pre>
-              </div>
-            ) : null}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                <p className="text-center text-xl font-black uppercase tracking-tight">
+                  Spymasters
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleAssignmentChange("blue", "spymaster")}
+                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                >
+                  Join team
+                </button>
+              </section>
+
+              <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+                <p className="text-center text-xl font-black uppercase tracking-tight">
+                  Spymasters
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleAssignmentChange("red", "spymaster")}
+                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                >
+                  Join team
+                </button>
+              </section>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartGame}
+              disabled={!isOwner || !isReady || room.status !== "waiting"}
+              className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)] disabled:opacity-60"
+            >
+              Start game
+            </button>
           </>
         ) : null}
       </div>

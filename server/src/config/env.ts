@@ -21,5 +21,6 @@ export const env = {
   PORT: parsePort(process.env.PORT),
   MONGODB_URI: process.env.MONGODB_URI ?? "",
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",
+  ADMIN_KEY: process.env.ADMIN_KEY ?? "",
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 };

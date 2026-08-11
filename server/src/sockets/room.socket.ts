@@ -558,7 +558,7 @@ export function registerRoomSocketHandlers(
             privateRoom: settingsPayload.privateRoom,
             gameMode: settingsPayload.gameMode as "standard" | "rush",
             timer: settingsPayload.timer as "none" | "30" | "60" | "90",
-            language: settingsPayload.language as "en" | "es" | "he",
+            language: settingsPayload.language as "fa" | "en" | "es" | "he",
             wordPack: settingsPayload.wordPack as "classic" | "party",
           },
         });

@@ -684,7 +684,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
   return (
     <PageContainer>
-      <div className="flex h-full w-full flex-col space-y-3 overflow-hidden">
+      <div className="mx-auto w-full max-w-[560px] bg-[#0a63d4] px-3 pb-5 pt-3 text-white">
         {gameFinished ? (
           <EndGameModal
             title="Game complete"
@@ -694,364 +694,205 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             onRematch={isRoomOwner ? handleRematch : undefined}
           />
         ) : null}
+
         {devMode ? (
-          <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/75">
                   Dev inspector
                 </p>
-                <p className="mt-1 text-sm text-(--app-muted)">
-                  Manual game refresh and raw JSON state for debugging.
+                <p className="mt-1 text-sm text-white/80">
+                  Manual refresh and raw state.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={refreshGameState}
                 disabled={refreshingGame}
-                className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text) disabled:opacity-60"
+                className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {refreshingGame ? "Refreshing..." : "Refresh game state"}
+                {refreshingGame ? "Refreshing..." : "Refresh"}
               </button>
             </div>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
-              {JSON.stringify({ room: state.room, game: state.game }, null, 2)}
-            </pre>
           </div>
         ) : null}
 
         {isReconnecting ? (
-          <StatusPanel
-            title="Reconnecting"
-            description="Your connection dropped. We are syncing the latest room and board state."
-            tone="info"
-          />
+          <div className="mb-3">
+            <StatusPanel
+              title="Reconnecting"
+              description="Syncing the latest room and board state."
+              tone="info"
+            />
+          </div>
         ) : null}
 
-        <div className="relative">
-          <GameHeader
-            room={state.room}
-            game={state.game}
-            playerCount={getPlayerCount(state.room)}
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-full border border-white/75 bg-[#1f5fae] px-3 py-2 text-white"
+            aria-label="Player count"
+          >
+            <span className="text-2xl">👥</span>
+            <span className="text-base font-semibold">
+              {getPlayerCount(state.room)}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="relative rounded-full border border-white/75 bg-[#1f5fae] px-4 py-2 text-base font-black tracking-tight text-white"
+            >
+              News
+              <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#ff3b30] text-[10px] text-white">
+                25
+              </span>
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-white/75 bg-[#1f5fae] px-4 py-2 text-base font-black tracking-tight text-white"
+            >
+              Rules
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/75 bg-[#1f5fae] text-2xl text-white"
+            aria-label="Room settings"
+            onClick={() => setShowKeycard((current) => !current)}
+          >
+            ⚙
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-[22px] border border-white/10 bg-[#2d9bff] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+                Operatives
+              </p>
+            </div>
+            <div className="mt-2 flex items-end justify-between">
+              <div className="text-5xl font-black leading-none">
+                {blueCardsRemaining}
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/10 text-lg">
+                👤
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-white/10 bg-[#6f7277] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+            <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
+              Game log
+            </div>
+            <div className="mt-3 rounded-[14px] bg-black/65 p-2 text-center text-[10px] text-white/80">
+              {state.game.currentHintWord
+                ? `${state.game.currentHintWord} (${state.game.currentHintNumber})`
+                : "No hint yet"}
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-white/10 bg-[#ef5c48] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+                Operatives
+              </p>
+            </div>
+            <div className="mt-2 flex items-end justify-between">
+              <div className="text-5xl font-black leading-none">
+                {redCardsRemaining}
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/10 text-lg">
+                👤
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="rounded-[22px] border border-[#9ef3ff] bg-[#2ca4ff] p-2 text-white">
+            <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+              Spymasters
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm">
+                👤
+              </div>
+              <span className="text-sm font-bold">
+                {blueSpymaster?.displayName ?? "None"}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-[#ffc3be] bg-[#ef5c48] p-2 text-white">
+            <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+              Spymasters
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm">
+                👤
+              </div>
+              <span className="text-sm font-bold">
+                {redSpymaster?.displayName ?? "None"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 text-center text-[22px] font-black uppercase tracking-tight text-white">
+          Give your operatives a clue
+        </div>
+
+        <div className="mt-4 rounded-[20px] border border-white/10 bg-[#0a63d4] p-2">
+          <BoardGrid
+            cards={state.game.board}
+            role={state.game.role}
+            selectedCardId={state.game.selectedCardId}
+            canSelectCard={canSelectCard}
+            onSelectCard={handleSelectCard}
+            hideWords={isViewerOperative ? hideBoard : false}
           />
         </div>
 
-        <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-[1fr_1.1fr_1fr]">
-          <div className="rounded-4xl border border-blue-500/20 bg-blue-500/10 p-3 text-blue-950 shadow-inner sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-blue-700 sm:text-xs">
-              Blue team
-            </p>
-            <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
-              <div>
-                <p className="text-3xl font-bold text-(--app-text) sm:text-4xl">
-                  {blueCardsRemaining}
-                </p>
-                <p className="text-xs text-(--app-muted) sm:text-sm">
-                  cards remaining
-                </p>
-              </div>
-              <span className="rounded-full bg-blue-500 px-2.5 py-1 text-[10px] font-semibold uppercase text-white sm:px-3 sm:text-xs">
-                {state.game.currentTurn === "blue" ? "Active" : "Waiting"}
-              </span>
-            </div>
-            <div className="mt-3 rounded-3xl border border-blue-500/20 bg-(--app-surface) p-3 sm:mt-4">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                Spymaster
-              </p>
-              <p className="mt-2 text-sm font-semibold text-(--app-text)">
-                {blueSpymaster?.displayName ?? "None assigned"}
-              </p>
-            </div>
+        <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
+          <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
+            {state.game.currentHintWord ?? "YOUR CLUE"}
           </div>
-
-          <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3 shadow-sm sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-(--app-muted) sm:text-xs">
-              Game log
-            </p>
-            <div className="mt-3 min-h-36 rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-text) sm:mt-4 sm:min-h-40 sm:p-4">
-              <p className="font-semibold">
-                {state.game.currentTurn} team’s turn
-              </p>
-              <p className="mt-2 text-(--app-muted)">
-                {state.game.currentHintWord
-                  ? `${state.game.currentHintWord} (${state.game.currentHintNumber})`
-                  : "No hint yet."}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-(--app-muted)">
-                <span className="rounded-full border border-(--app-border) px-3 py-1 text-[10px] sm:text-xs">
-                  Start: {state.game.startingTeam}
-                </span>
-                <span className="rounded-full border border-(--app-border) px-3 py-1 text-[10px] sm:text-xs">
-                  {state.game.remainingGuesses} guesses
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-4xl border border-red-500/20 bg-red-500/10 p-3 text-red-950 shadow-inner sm:p-4">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-red-700 sm:text-xs">
-              Red team
-            </p>
-            <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
-              <div>
-                <p className="text-3xl font-bold text-(--app-text) sm:text-4xl">
-                  {redCardsRemaining}
-                </p>
-                <p className="text-xs text-(--app-muted) sm:text-sm">
-                  cards remaining
-                </p>
-              </div>
-              <span className="rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-semibold uppercase text-white sm:px-3 sm:text-xs">
-                {state.game.currentTurn === "red" ? "Active" : "Waiting"}
-              </span>
-            </div>
-            <div className="mt-3 rounded-3xl border border-red-500/20 bg-(--app-surface) p-3 sm:mt-4">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                Spymaster
-              </p>
-              <p className="mt-2 text-sm font-semibold text-(--app-text)">
-                {redSpymaster?.displayName ?? "None assigned"}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <div className="grid h-full gap-4 xl:grid-cols-[minmax(38rem,1.4fr)_minmax(26rem,0.8fr)]">
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-4xl border border-(--app-border) bg-(--app-surface) p-2 shadow-sm sm:p-3">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
-                  Game board
-                </p>
-                <h2 className="mt-2 text-lg font-semibold text-(--app-text) sm:text-xl">
-                  {state.game.currentTurn} team’s turn
-                </h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-(--app-border) px-2.5 py-1.5 text-[10px] text-(--app-muted) sm:px-3 sm:py-2 sm:text-xs">
-                  Start: {state.game.startingTeam}
-                </span>
-                <span className="rounded-full border border-(--app-border) px-2.5 py-1.5 text-[10px] text-(--app-muted) sm:px-3 sm:py-2 sm:text-xs">
-                  Guesses: {state.game.remainingGuesses}
-                </span>
-              </div>
-            </div>
-
-            {gameFinished ? (
-              <div className="mb-4 rounded-2xl border border-(--app-accent)/40 bg-(--app-accent)/10 p-3 text-sm text-(--app-text)">
-                <p className="font-semibold text-(--app-accent)">
-                  Game finished
-                </p>
-                <p className="mt-1">{completionSummary}</p>
-              </div>
-            ) : null}
-
-            {hintMessage ? (
-              <div className="mb-4">
-                <StatusPanel
-                  title="Board update"
-                  description={hintMessage}
-                  tone="info"
-                />
-              </div>
-            ) : null}
-
-            <div className="min-h-0 overflow-hidden">
-              <BoardGrid
-                cards={state.game.board}
-                role={state.game.role}
-                selectedCardId={state.game.selectedCardId}
-                canSelectCard={canSelectCard}
-                onSelectCard={handleSelectCard}
-                hideWords={isViewerOperative ? hideBoard : false}
-              />
-            </div>
-
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {isViewerSpymaster ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const toggled = !showKeycard;
-                    setShowKeycard(toggled);
-                    if (toggled && socket && user?.telegramId !== undefined) {
-                      socket.emit("game:requestKeycard", {
-                        roomCode,
-                        requesterTelegramId: user.telegramId,
-                      });
-                    }
-                  }}
-                  aria-label={showKeycard ? "Hide keycard" : "Show keycard"}
-                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                >
-                  {showKeycard ? "Hide keycard" : "Show keycard"}
-                </button>
-              ) : null}
-
-              {isViewerOperative ? (
-                <button
-                  type="button"
-                  aria-pressed={hideBoard}
-                  aria-label={hideBoard ? "Show board" : "Hide board"}
-                  onClick={() => {
-                    setHideBoard((s) => {
-                      const next = !s;
-                      try {
-                        localStorage.setItem(
-                          "codenames.hideBoard",
-                          next ? "true" : "false",
-                        );
-                      } catch {
-                        // ignore
-                      }
-                      return next;
-                    });
-                  }}
-                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                >
-                  {hideBoard ? "Show board" : "Hide board"}
-                </button>
-              ) : null}
-
-              {canPassTurn ? (
-                <button
-                  type="button"
-                  aria-label="Pass turn"
-                  onClick={handlePassTurn}
-                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                >
-                  Pass turn
-                </button>
-              ) : null}
-
-              <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-2 text-sm text-(--app-muted)">
-                <p className="font-semibold text-(--app-text)">
-                  Board controls
-                </p>
-                <p className="mt-2">
-                  {isViewerSpymaster
-                    ? "Reveal your keycard when you are ready."
-                    : "Tap cards on the board when your team has a valid hint."}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-2">
-            <div className="rounded-4xl border border-(--app-border) bg-(--app-bg) p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                    Hint panel
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-(--app-text)">
-                    {state.game.currentHintWord ?? "No hint yet"}
-                  </h2>
-                </div>
-                <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
-                  {state.game.remainingGuesses} guess
-                  {state.game.remainingGuesses === 1 ? "" : "es"}
-                </span>
-              </div>
-              <p className="mt-3 text-sm text-(--app-muted)">
-                Current turn: {state.game.currentTurn} · Starting team:{" "}
-                {state.game.startingTeam}
-              </p>
-            </div>
-
-            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Submit a hint
-              </p>
-              <form
-                className="mt-3 space-y-2"
-                onSubmit={handleSubmitHint}
-                aria-label="Submit hint form"
-              >
-                <label htmlFor="hintWord" className="sr-only">
-                  Hint word
-                </label>
-                <input
-                  id="hintWord"
-                  aria-label="Hint word"
-                  value={hintDraft.word}
-                  onChange={(event) =>
-                    setHintDraft((current) => ({
-                      ...current,
-                      word: event.target.value,
-                    }))
-                  }
-                  placeholder="Hint word"
-                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                  disabled={!canSubmitHint || hintSubmitting}
-                />
-                <label htmlFor="hintNumber" className="sr-only">
-                  Hint number
-                </label>
-                <input
-                  id="hintNumber"
-                  aria-label="Hint number"
-                  value={hintDraft.number}
-                  onChange={(event) =>
-                    setHintDraft((current) => ({
-                      ...current,
-                      number: event.target.value,
-                    }))
-                  }
-                  placeholder="Number"
-                  inputMode="numeric"
-                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                  disabled={!canSubmitHint || hintSubmitting}
-                />
-                <button
-                  type="submit"
-                  aria-label="Submit hint"
-                  className="w-full rounded-full border border-(--app-border) bg-(--app-accent) px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
-                  disabled={!canSubmitHint || hintSubmitting}
-                >
-                  {hintSubmitting ? "Submitting…" : "Submit hint"}
-                </button>
-              </form>
-            </div>
-
-            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Hint history
-              </p>
-              {state.game.hintHistory.length === 0 ? (
-                <p className="mt-3 text-sm text-(--app-muted)">No hints yet.</p>
-              ) : (
-                <ul className="mt-3 space-y-3">
-                  {state.game.hintHistory
-                    .slice()
-                    .reverse()
-                    .map((hint, index) => (
-                      <li
-                        key={`${hint.word}-${hint.submittedAt.toString()}-${index}`}
-                        className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3"
-                      >
-                        <p className="font-semibold text-(--app-text)">
-                          {hint.word}
-                        </p>
-                        <p className="mt-2 text-xs text-(--app-muted)">
-                          {hint.number} guess{hint.number === 1 ? "" : "es"} •{" "}
-                          {hint.team} team
-                        </p>
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="rounded-4xl border border-(--app-border) bg-(--app-bg) p-3 text-sm text-(--app-muted)">
-              <p>
-                {user?.firstName
-                  ? `${user.firstName}, this board is currently for display only.`
-                  : "This board is currently for display only."}
-              </p>
-            </div>
-          </section>
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl text-white"
+            onClick={() =>
+              setHintDraft((current) => ({
+                ...current,
+                word: current.word || "",
+              }))
+            }
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmitHint as any}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#24d16b] text-2xl font-black text-white"
+            aria-label="Submit clue"
+          >
+            ↑
+          </button>
         </div>
+
+        {hintMessage ? (
+          <div className="mt-3">
+            <StatusPanel
+              title="Board update"
+              description={hintMessage}
+              tone="info"
+            />
+          </div>
+        ) : null}
       </div>
     </PageContainer>
   );
