@@ -71,6 +71,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     (player) => player.team === "red" && player.role === "spymaster",
   );
 
+  const getPlayerAvatarUrl = (player: Room["players"][number]) =>
+    player.ghibliAvatarUrl ??
+    player.photoUrl ??
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      player.displayName,
+    )}&background=ffffff&color=000000&size=64`;
+
   async function loadGameData() {
     try {
       const roomResponse = await fetch(`/api/rooms/${roomCode}`);
@@ -779,8 +786,16 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {blueCardsRemaining}
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/10 text-lg">
-                👤
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10">
+                <img
+                  src={
+                    blueSpymaster
+                      ? getPlayerAvatarUrl(blueSpymaster)
+                      : "https://ui-avatars.com/api/?name=Blue&background=ffffff&color=000000&size=64"
+                  }
+                  alt={blueSpymaster?.displayName ?? "Blue"}
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
           </div>
@@ -806,8 +821,16 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {redCardsRemaining}
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/10 text-lg">
-                👤
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10">
+                <img
+                  src={
+                    redSpymaster
+                      ? getPlayerAvatarUrl(redSpymaster)
+                      : "https://ui-avatars.com/api/?name=Red&background=ffffff&color=000000&size=64"
+                  }
+                  alt={redSpymaster?.displayName ?? "Red"}
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
           </div>
@@ -819,8 +842,16 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               Spymasters
             </div>
             <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm">
-                👤
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10">
+                <img
+                  src={
+                    blueSpymaster
+                      ? getPlayerAvatarUrl(blueSpymaster)
+                      : "https://ui-avatars.com/api/?name=Blue&background=ffffff&color=000000&size=64"
+                  }
+                  alt={blueSpymaster?.displayName ?? "Blue"}
+                  className="h-full w-full object-cover"
+                />
               </div>
               <span className="text-sm font-bold">
                 {blueSpymaster?.displayName ?? "None"}
@@ -833,8 +864,16 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               Spymasters
             </div>
             <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm">
-                👤
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10">
+                <img
+                  src={
+                    redSpymaster
+                      ? getPlayerAvatarUrl(redSpymaster)
+                      : "https://ui-avatars.com/api/?name=Red&background=ffffff&color=000000&size=64"
+                  }
+                  alt={redSpymaster?.displayName ?? "Red"}
+                  className="h-full w-full object-cover"
+                />
               </div>
               <span className="text-sm font-bold">
                 {redSpymaster?.displayName ?? "None"}

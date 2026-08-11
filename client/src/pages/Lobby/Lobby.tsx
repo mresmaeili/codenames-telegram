@@ -604,6 +604,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     room && room.ownerIds?.includes(currentPlayer?.userId ?? ""),
   );
 
+  const getPlayerAvatarUrl = (player: Room["players"][number]) =>
+    player.ghibliAvatarUrl ??
+    player.photoUrl ??
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      player.displayName,
+    )}&background=ffffff&color=000000&size=64`;
+
   useEffect(() => {
     if (!room) {
       return;
@@ -1055,20 +1062,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         ) : room ? (
           <>
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                aria-label="Players"
-                className="flex items-center gap-2 rounded-full border border-white/70 bg-[#101720] px-3 py-2 text-white"
-              >
-                <span className="text-2xl">👥</span>
-                <span className="text-base font-semibold">
-                  {room.players.length}
-                </span>
-              </button>
-
-              <div />
-
+            <div className="flex justify-end">
               <button
                 type="button"
                 aria-label="Room settings"
@@ -1080,7 +1074,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="flex-1" />
               <div className="flex items-center gap-2">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dfe7ef] text-xl text-black">
                   👤
@@ -1119,13 +1112,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   {avatarGenerating ? "Generating..." : "Refresh avatar"}
                 </button>
               </div>
-              <button
-                type="button"
-                aria-label="Help"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#20c05b] text-2xl font-bold text-white"
-              >
-                ?
-              </button>
             </div>
 
             <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-3 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
@@ -1134,27 +1120,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </h2>
 
               <div className="mt-4 space-y-3">
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleAssignmentChange(
-                        "blue",
-                        currentPlayer?.role ?? "operative",
-                      )
-                    }
-                    className="rounded-[18px] border border-white/20 bg-[#2d9bff] px-4 py-4 text-left text-white shadow-inner"
-                  >
-                    <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/80">
-                      Codenames
-                    </div>
-                    <div className="text-3xl font-black">Classic</div>
-                    <div className="mt-1 text-sm font-semibold text-white/85">
-                      4+ Players
-                    </div>
-                  </button>
-                </div>
-
                 <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black">
                   <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
                     Language
@@ -1220,18 +1185,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <div className="flex items-center gap-2">
-                  {redPlayers.slice(0, 4).map((p) => (
+                  {bluePlayers.slice(0, 4).map((p) => (
                     <img
                       key={p.userId}
                       alt={p.displayName}
                       title={p.displayName}
-                      src={
-                        p.ghibliAvatarUrl ??
-                        p.photoUrl ??
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.displayName,
-                        )}&background=2d9bff&color=ffffff&size=32`
-                      }
+                      src={getPlayerAvatarUrl(p)}
                       className="h-8 w-8 rounded-full border border-white/20"
                     />
                   ))}
@@ -1250,18 +1209,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
               <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <div className="flex items-center gap-2">
-                  {bluePlayers.slice(0, 4).map((p) => (
+                  {redPlayers.slice(0, 4).map((p) => (
                     <img
                       key={p.userId}
                       alt={p.displayName}
                       title={p.displayName}
-                      src={
-                        p.ghibliAvatarUrl ??
-                        p.photoUrl ??
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.displayName,
-                        )}&background=ef5b5b&color=ffffff&size=32`
-                      }
+                      src={getPlayerAvatarUrl(p)}
                       className="h-8 w-8 rounded-full border border-white/20"
                     />
                   ))}
@@ -1282,18 +1235,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <div className="flex items-center gap-2">
-                  {redPlayers.slice(0, 4).map((p) => (
+                  {bluePlayers.slice(0, 4).map((p) => (
                     <img
                       key={p.userId}
                       alt={p.displayName}
                       title={p.displayName}
-                      src={
-                        p.ghibliAvatarUrl ??
-                        p.photoUrl ??
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.displayName,
-                        )}&background=2f7ec7&color=ffffff&size=32`
-                      }
+                      src={getPlayerAvatarUrl(p)}
                       className="h-8 w-8 rounded-full border border-white/20"
                     />
                   ))}
@@ -1312,18 +1259,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
               <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <div className="flex items-center gap-2">
-                  {bluePlayers.slice(0, 4).map((p) => (
+                  {redPlayers.slice(0, 4).map((p) => (
                     <img
                       key={p.userId}
                       alt={p.displayName}
                       title={p.displayName}
-                      src={
-                        p.ghibliAvatarUrl ??
-                        p.photoUrl ??
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.displayName,
-                        )}&background=ef5b5b&color=ffffff&size=32`
-                      }
+                      src={getPlayerAvatarUrl(p)}
                       className="h-8 w-8 rounded-full border border-white/20"
                     />
                   ))}
