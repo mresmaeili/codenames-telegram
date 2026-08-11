@@ -58,6 +58,19 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     }
   });
 
+  const blueCardsRemaining =
+    state.game?.board.filter((card) => card.color === "blue" && !card.revealed)
+      .length ?? 0;
+  const redCardsRemaining =
+    state.game?.board.filter((card) => card.color === "red" && !card.revealed)
+      .length ?? 0;
+  const blueSpymaster = state.room?.players.find(
+    (player) => player.team === "blue" && player.role === "spymaster",
+  );
+  const redSpymaster = state.room?.players.find(
+    (player) => player.team === "red" && player.role === "spymaster",
+  );
+
   async function loadGameData() {
     try {
       const roomResponse = await fetch(`/api/rooms/${roomCode}`);
@@ -412,7 +425,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
     registerPopup(
       <div className="space-y-3">
-        <div className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+        <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
           Room settings
         </div>
 
@@ -423,7 +436,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <button
                 type="button"
                 onClick={handleToggleAllowSpectators}
-                className="rounded-full border border-[color:var(--app-border)] px-3 py-1 text-sm"
+                className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
               >
                 {state.room?.settings.allowSpectators ? "On" : "Off"}
               </button>
@@ -434,7 +447,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <button
                 type="button"
                 onClick={handleTogglePrivateRoom}
-                className="rounded-full border border-[color:var(--app-border)] px-3 py-1 text-sm"
+                className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
               >
                 {state.room?.settings.privateRoom ? "Yes" : "No"}
               </button>
@@ -444,21 +457,21 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <button
                 type="button"
                 onClick={handleResetTeams}
-                className="flex-1 rounded-full border border-[color:var(--app-border)] px-4 py-2 text-sm font-semibold"
+                className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
               >
                 Reset teams
               </button>
               <button
                 type="button"
                 onClick={handleShuffleTeams}
-                className="flex-1 rounded-full border border-[color:var(--app-border)] px-4 py-2 text-sm font-semibold"
+                className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
               >
                 Randomize teams
               </button>
             </div>
           </div>
         ) : (
-          <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3 text-sm text-[color:var(--app-muted)]">
+          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
             Only the room owner can change settings.
           </div>
         )}
@@ -648,7 +661,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   if (state.error || !state.room || !state.game) {
     return (
       <PageContainer>
-        <div className="space-y-4 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-4">
+        <div className="space-y-4 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
           <StatusPanel
             title="Board unavailable"
             description={
@@ -660,7 +673,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           <button
             type="button"
             onClick={onLeave}
-            className="rounded-full border border-[color:var(--app-border)] px-4 py-2 text-sm font-medium text-[color:var(--app-text)]"
+            className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
           >
             Return to lobby
           </button>
@@ -682,13 +695,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           />
         ) : null}
         {devMode ? (
-          <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4">
+          <div className="rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.24em] text-(--app-muted)">
                   Dev inspector
                 </p>
-                <p className="mt-1 text-sm text-[color:var(--app-muted)]">
+                <p className="mt-1 text-sm text-(--app-muted)">
                   Manual game refresh and raw JSON state for debugging.
                 </p>
               </div>
@@ -696,12 +709,12 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                 type="button"
                 onClick={refreshGameState}
                 disabled={refreshingGame}
-                className="rounded-full border border-[color:var(--app-border)] px-4 py-2 text-sm font-medium text-[color:var(--app-text)] disabled:opacity-60"
+                className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text) disabled:opacity-60"
               >
                 {refreshingGame ? "Refreshing..." : "Refresh game state"}
               </button>
             </div>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-3 text-xs text-[color:var(--app-text)]">
+            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl border border-(--app-border) bg-(--app-background) p-3 text-xs text-(--app-text)">
               {JSON.stringify({ room: state.room, game: state.game }, null, 2)}
             </pre>
           </div>
@@ -723,30 +736,110 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           />
         </div>
 
+        <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-[1fr_1.1fr_1fr]">
+          <div className="rounded-4xl border border-blue-500/20 bg-blue-500/10 p-3 text-blue-950 shadow-inner sm:p-4">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-blue-700 sm:text-xs">
+              Blue team
+            </p>
+            <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
+              <div>
+                <p className="text-3xl font-bold text-(--app-text) sm:text-4xl">
+                  {blueCardsRemaining}
+                </p>
+                <p className="text-xs text-(--app-muted) sm:text-sm">
+                  cards remaining
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-500 px-2.5 py-1 text-[10px] font-semibold uppercase text-white sm:px-3 sm:text-xs">
+                {state.game.currentTurn === "blue" ? "Active" : "Waiting"}
+              </span>
+            </div>
+            <div className="mt-3 rounded-3xl border border-blue-500/20 bg-(--app-surface) p-3 sm:mt-4">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
+                Spymaster
+              </p>
+              <p className="mt-2 text-sm font-semibold text-(--app-text)">
+                {blueSpymaster?.displayName ?? "None assigned"}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3 shadow-sm sm:p-4">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-(--app-muted) sm:text-xs">
+              Game log
+            </p>
+            <div className="mt-3 min-h-36 rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-text) sm:mt-4 sm:min-h-40 sm:p-4">
+              <p className="font-semibold">
+                {state.game.currentTurn} team’s turn
+              </p>
+              <p className="mt-2 text-(--app-muted)">
+                {state.game.currentHintWord
+                  ? `${state.game.currentHintWord} (${state.game.currentHintNumber})`
+                  : "No hint yet."}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-(--app-muted)">
+                <span className="rounded-full border border-(--app-border) px-3 py-1 text-[10px] sm:text-xs">
+                  Start: {state.game.startingTeam}
+                </span>
+                <span className="rounded-full border border-(--app-border) px-3 py-1 text-[10px] sm:text-xs">
+                  {state.game.remainingGuesses} guesses
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-4xl border border-red-500/20 bg-red-500/10 p-3 text-red-950 shadow-inner sm:p-4">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-red-700 sm:text-xs">
+              Red team
+            </p>
+            <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
+              <div>
+                <p className="text-3xl font-bold text-(--app-text) sm:text-4xl">
+                  {redCardsRemaining}
+                </p>
+                <p className="text-xs text-(--app-muted) sm:text-sm">
+                  cards remaining
+                </p>
+              </div>
+              <span className="rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-semibold uppercase text-white sm:px-3 sm:text-xs">
+                {state.game.currentTurn === "red" ? "Active" : "Waiting"}
+              </span>
+            </div>
+            <div className="mt-3 rounded-3xl border border-red-500/20 bg-(--app-surface) p-3 sm:mt-4">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
+                Spymaster
+              </p>
+              <p className="mt-2 text-sm font-semibold text-(--app-text)">
+                {redSpymaster?.displayName ?? "None assigned"}
+              </p>
+            </div>
+          </div>
+        </section>
+
         <div className="grid h-full gap-4 xl:grid-cols-[minmax(38rem,1.4fr)_minmax(26rem,0.8fr)]">
-          <section className="flex min-h-0 flex-col rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm overflow-hidden">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-4xl border border-(--app-border) bg-(--app-surface) p-2 shadow-sm sm:p-3">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-(--app-muted) sm:text-xs">
                   Game board
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-[color:var(--app-text)]">
+                <h2 className="mt-2 text-lg font-semibold text-(--app-text) sm:text-xl">
                   {state.game.currentTurn} team’s turn
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-xs text-[color:var(--app-muted)]">
+                <span className="rounded-full border border-(--app-border) px-2.5 py-1.5 text-[10px] text-(--app-muted) sm:px-3 sm:py-2 sm:text-xs">
                   Start: {state.game.startingTeam}
                 </span>
-                <span className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-xs text-[color:var(--app-muted)]">
+                <span className="rounded-full border border-(--app-border) px-2.5 py-1.5 text-[10px] text-(--app-muted) sm:px-3 sm:py-2 sm:text-xs">
                   Guesses: {state.game.remainingGuesses}
                 </span>
               </div>
             </div>
 
             {gameFinished ? (
-              <div className="mb-4 rounded-2xl border border-[color:var(--app-accent)]/40 bg-[color:var(--app-accent)]/10 p-3 text-sm text-[color:var(--app-text)]">
-                <p className="font-semibold text-[color:var(--app-accent)]">
+              <div className="mb-4 rounded-2xl border border-(--app-accent)/40 bg-(--app-accent)/10 p-3 text-sm text-(--app-text)">
+                <p className="font-semibold text-(--app-accent)">
                   Game finished
                 </p>
                 <p className="mt-1">{completionSummary}</p>
@@ -789,7 +882,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                     }
                   }}
                   aria-label={showKeycard ? "Hide keycard" : "Show keycard"}
-                  className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                 >
                   {showKeycard ? "Hide keycard" : "Show keycard"}
                 </button>
@@ -814,7 +907,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                       return next;
                     });
                   }}
-                  className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                 >
                   {hideBoard ? "Show board" : "Hide board"}
                 </button>
@@ -825,14 +918,14 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                   type="button"
                   aria-label="Pass turn"
                   onClick={handlePassTurn}
-                  className="rounded-full border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm font-medium text-[color:var(--app-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm font-medium text-(--app-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                 >
                   Pass turn
                 </button>
               ) : null}
 
-              <div className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-2 text-sm text-[color:var(--app-muted)]">
-                <p className="font-semibold text-[color:var(--app-text)]">
+              <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-2 text-sm text-(--app-muted)">
+                <p className="font-semibold text-(--app-text)">
                   Board controls
                 </p>
                 <p className="mt-2">
@@ -845,29 +938,29 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           </section>
 
           <section className="space-y-2">
-            <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-bg)] p-3">
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-bg) p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+                  <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
                     Hint panel
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-[color:var(--app-text)]">
+                  <h2 className="mt-2 text-xl font-semibold text-(--app-text)">
                     {state.game.currentHintWord ?? "No hint yet"}
                   </h2>
                 </div>
-                <span className="rounded-full bg-[color:var(--app-border)]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--app-text)]">
+                <span className="rounded-full bg-(--app-border)/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--app-text)">
                   {state.game.remainingGuesses} guess
                   {state.game.remainingGuesses === 1 ? "" : "es"}
                 </span>
               </div>
-              <p className="mt-3 text-sm text-[color:var(--app-muted)]">
+              <p className="mt-3 text-sm text-(--app-muted)">
                 Current turn: {state.game.currentTurn} · Starting team:{" "}
                 {state.game.startingTeam}
               </p>
             </div>
 
-            <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
                 Submit a hint
               </p>
               <form
@@ -889,7 +982,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                     }))
                   }
                   placeholder="Hint word"
-                  className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[color:var(--app-text)] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                   disabled={!canSubmitHint || hintSubmitting}
                 />
                 <label htmlFor="hintNumber" className="sr-only">
@@ -907,13 +1000,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                   }
                   placeholder="Number"
                   inputMode="numeric"
-                  className="w-full rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm text-[color:var(--app-text)] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-sm text-(--app-text) outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                   disabled={!canSubmitHint || hintSubmitting}
                 />
                 <button
                   type="submit"
                   aria-label="Submit hint"
-                  className="w-full rounded-full border border-[color:var(--app-border)] bg-[var(--app-accent)] px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)]"
+                  className="w-full rounded-full border border-(--app-border) bg-(--app-accent) px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
                   disabled={!canSubmitHint || hintSubmitting}
                 >
                   {hintSubmitting ? "Submitting…" : "Submit hint"}
@@ -921,14 +1014,12 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               </form>
             </div>
 
-            <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--app-muted)]">
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-background) p-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
                 Hint history
               </p>
               {state.game.hintHistory.length === 0 ? (
-                <p className="mt-3 text-sm text-[color:var(--app-muted)]">
-                  No hints yet.
-                </p>
+                <p className="mt-3 text-sm text-(--app-muted)">No hints yet.</p>
               ) : (
                 <ul className="mt-3 space-y-3">
                   {state.game.hintHistory
@@ -937,12 +1028,12 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                     .map((hint, index) => (
                       <li
                         key={`${hint.word}-${hint.submittedAt.toString()}-${index}`}
-                        className="rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-3"
+                        className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3"
                       >
-                        <p className="font-semibold text-[color:var(--app-text)]">
+                        <p className="font-semibold text-(--app-text)">
                           {hint.word}
                         </p>
-                        <p className="mt-2 text-xs text-[color:var(--app-muted)]">
+                        <p className="mt-2 text-xs text-(--app-muted)">
                           {hint.number} guess{hint.number === 1 ? "" : "es"} •{" "}
                           {hint.team} team
                         </p>
@@ -952,7 +1043,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               )}
             </div>
 
-            <div className="rounded-4xl border border-[color:var(--app-border)] bg-[var(--app-bg)] p-3 text-sm text-[color:var(--app-muted)]">
+            <div className="rounded-4xl border border-(--app-border) bg-(--app-bg) p-3 text-sm text-(--app-muted)">
               <p>
                 {user?.firstName
                   ? `${user.firstName}, this board is currently for display only.`

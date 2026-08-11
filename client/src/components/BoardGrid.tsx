@@ -23,7 +23,7 @@ export function BoardGrid({
   hideWords = false,
 }: BoardGridProps) {
   return (
-    <div className="grid grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+    <div className="grid grid-cols-5 gap-1 sm:gap-2 lg:gap-3">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -55,7 +55,7 @@ export function BoardGrid({
                 onSelectCard(index);
               }
             }}
-            className={`block w-full h-full rounded-2xl transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-bg)] ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-xl" : "cursor-not-allowed opacity-60"}`}
+            className={`block w-full min-h-[5.5rem] rounded-3xl transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
             disabled={!isSelectable}
           >
             <BoardCard

@@ -110,10 +110,10 @@ export function DevToolbar() {
   const roomCode = currentRoom?.toUpperCase() || null;
 
   return (
-    <div className="border-t border-[color:var(--app-border)] bg-[var(--app-background)] px-6 py-4 text-sm text-[color:var(--app-muted)]">
+    <div className="border-t border-(--app-border) bg-(--app-background) px-6 py-4 text-sm text-(--app-muted)">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4">
         <div className="min-w-[240px] space-y-2">
-          <p className="font-semibold text-[color:var(--app-text)]">
+          <p className="font-semibold text-(--app-text)">
             Dev mode active
           </p>
           <p>
@@ -146,7 +146,7 @@ export function DevToolbar() {
                   "_blank",
                 );
               }}
-              className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[color:var(--app-text)] transition hover:bg-[color:var(--app-border)]"
+              className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
             >
               Open {userName}
             </button>
@@ -154,39 +154,39 @@ export function DevToolbar() {
           <button
             type="button"
             onClick={handleResetRoom}
-            className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[color:var(--app-text)] transition hover:bg-[color:var(--app-border)]"
+            className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
           >
             Reset room
           </button>
           <button
             type="button"
             onClick={handleRevealKeycard}
-            className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[color:var(--app-text)] transition hover:bg-[color:var(--app-border)]"
+            className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
           >
             Reveal keycard
           </button>
           <button
             type="button"
             onClick={handleReconnect}
-            className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[color:var(--app-text)] transition hover:bg-[color:var(--app-border)]"
+            className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
           >
             Force reconnect
           </button>
           <button
             type="button"
             onClick={handleDisconnect}
-            className="rounded-full border border-[color:var(--app-border)] px-3 py-2 text-[color:var(--app-text)] transition hover:bg-[color:var(--app-border)]"
+            className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
           >
             Disconnect socket
           </button>
         </div>
       </div>
-      <div className="mx-auto mt-4 max-w-5xl rounded-2xl border border-[color:var(--app-border)] bg-[color:var(--app-background)] p-4 text-xs text-[color:var(--app-text)]">
-        <p className="font-semibold text-[color:var(--app-text)]">
+      <div className="mx-auto mt-4 max-w-5xl rounded-2xl border border-(--app-border) bg-(--app-background) p-4 text-xs text-(--app-text)">
+        <p className="font-semibold text-(--app-text)">
           Socket event log
         </p>
         {eventLog.length === 0 ? (
-          <p className="mt-2 text-[color:var(--app-muted)]">
+          <p className="mt-2 text-(--app-muted)">
             No socket events received yet.
           </p>
         ) : (
@@ -194,17 +194,17 @@ export function DevToolbar() {
             {eventLog.map((entry, index) => (
               <div
                 key={`${entry.timestamp}-${index}`}
-                className="rounded-2xl border border-[color:var(--app-border)] bg-[color:var(--app-surface)] p-3"
+                className="rounded-2xl border border-(--app-border) bg-(--app-surface) p-3"
               >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-medium text-[color:var(--app-text)]">
+                  <span className="font-medium text-(--app-text)">
                     {entry.event}
                   </span>
-                  <span className="text-[color:var(--app-muted)]">
+                  <span className="text-(--app-muted)">
                     {entry.timestamp.slice(11, 19)}
                   </span>
                 </div>
-                <pre className="mt-2 whitespace-pre-wrap break-words text-[color:var(--app-text)]">
+                <pre className="mt-2 whitespace-pre-wrap break-words text-(--app-text)">
                   {JSON.stringify(entry.payload, null, 2)}
                 </pre>
               </div>

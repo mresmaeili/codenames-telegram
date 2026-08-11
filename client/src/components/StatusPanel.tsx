@@ -14,13 +14,13 @@ export function StatusPanel({
   children,
 }: StatusPanelProps) {
   const toneClasses = {
-    info: "border-[color:var(--app-border)] bg-[color:var(--app-background)]/80 text-[color:var(--app-text)]",
+    info: "border-(--app-border) bg-(--app-background)/80 text-(--app-text)",
     success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-100",
     error: "border-rose-500/20 bg-rose-500/10 text-rose-100",
   }[tone];
 
   const dotClasses = {
-    info: "bg-[color:var(--app-accent)]",
+    info: "bg-(--app-accent)",
     success: "bg-emerald-400",
     error: "bg-rose-400",
   }[tone];

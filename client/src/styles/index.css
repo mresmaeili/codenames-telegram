@@ -32,16 +32,40 @@ body,
   min-height: 100%;
 }
 
+html {
+  background: var(--app-bg);
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
   color: var(--app-text);
   background: var(--app-bg);
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
 }
 
-html {
-  background: var(--app-bg);
+@media (max-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (pointer: coarse) {
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 42px;
+  }
 }
 
 button,
@@ -49,6 +73,10 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button {
+  touch-action: manipulation;
 }
 
 button:focus-visible,

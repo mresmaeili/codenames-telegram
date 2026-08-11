@@ -245,12 +245,12 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <div className="w-full max-w-3xl space-y-6 rounded-3xl border border-[color:var(--app-border)] bg-[var(--app-surface)] p-6 shadow-sm">
+      <div className="w-full max-w-3xl space-y-6 rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 shadow-sm">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--app-text)] sm:text-5xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-(--app-text) sm:text-5xl">
             Codenames Telegram Mini App
           </h1>
-          <p className="text-[color:var(--app-muted)]">
+          <p className="text-(--app-muted)">
             Create a room or join an existing one to start playing.
           </p>
         </div>
@@ -269,9 +269,9 @@ export function HomePage() {
           />
         ) : user ? (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-[color:var(--app-border)] bg-[var(--app-background)] p-4 text-left">
-              <p className="text-sm text-[color:var(--app-muted)]">Signed in as</p>
-              <p className="mt-1 font-semibold text-[color:var(--app-text)]">
+            <div className="rounded-2xl border border-(--app-border) bg-(--app-background) p-4 text-left">
+              <p className="text-sm text-(--app-muted)">Signed in as</p>
+              <p className="mt-1 font-semibold text-(--app-text)">
                 {user.firstName}
               </p>
             </div>
@@ -281,20 +281,20 @@ export function HomePage() {
                 type="button"
                 onClick={createRoom}
                 disabled={submitting}
-                className="rounded-2xl bg-[var(--app-accent)] px-4 py-4 text-left text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-(--app-accent) px-4 py-4 text-left text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <p className="font-semibold">Create room</p>
-                <p className="mt-1 text-sm text-[color:var(--app-muted)]">
+                <p className="mt-1 text-sm text-(--app-muted)">
                   Start a new lobby for your friends.
                 </p>
               </button>
 
               <form
                 onSubmit={joinRoom}
-                className="space-y-3 rounded-2xl border border-[color:var(--app-border)] p-4"
+                className="space-y-3 rounded-2xl border border-(--app-border) p-4"
               >
                 <label
-                  className="text-sm font-medium text-[color:var(--app-text)]"
+                  className="text-sm font-medium text-(--app-text)"
                   htmlFor="roomCode"
                 >
                   Join room
@@ -306,12 +306,12 @@ export function HomePage() {
                     setFormValue(event.target.value.toUpperCase())
                   }
                   placeholder="Enter room code"
-                  className="w-full rounded-xl border border-[color:var(--app-border)] bg-[var(--app-background)] px-3 py-2 text-[color:var(--app-text)]"
+                  className="w-full rounded-xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full rounded-xl border border-[color:var(--app-border)] px-3 py-2 text-sm font-medium text-[color:var(--app-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-xl border border-(--app-border) px-3 py-2 text-sm font-medium text-(--app-text) disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? "Working…" : "Join room"}
                 </button>
