@@ -1073,6 +1073,35 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </button>
             </div>
 
+            <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">
+                    Room code
+                  </p>
+                  <div className="text-xl font-black tracking-tight">
+                    {room.roomCode}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyRoomCode}
+                    className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white"
+                  >
+                    Copy code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyInvite}
+                    className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white"
+                  >
+                    Copy invite
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dfe7ef] text-xl text-black">

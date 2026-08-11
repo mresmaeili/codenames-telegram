@@ -735,6 +735,14 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           </div>
         ) : null}
 
+        <div className="mb-3">
+          <GameHeader
+            room={state.room}
+            game={state.game}
+            playerCount={getPlayerCount(state.room)}
+          />
+        </div>
+
         <div className="mb-3 flex items-center justify-between gap-3">
           <button
             type="button"
