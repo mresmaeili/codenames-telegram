@@ -6,6 +6,7 @@ export interface TelegramUserRecord {
   firstName: string;
   lastName?: string | null;
   photoUrl?: string | null;
+  ghibliAvatarUrl?: string | null;
   languageCode?: string | null;
   lastLoginAt: Date;
   createdAt: Date;
@@ -35,6 +36,10 @@ const userSchema = new Schema<TelegramUserDocument>(
       default: null,
     },
     photoUrl: {
+      type: String,
+      default: null,
+    },
+    ghibliAvatarUrl: {
       type: String,
       default: null,
     },

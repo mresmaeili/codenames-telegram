@@ -112,6 +112,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [hostActionPending, setHostActionPending] = useState(false);
   const [localRoom, setLocalRoom] = useState<Room | null>(null);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const [avatarGenerating, setAvatarGenerating] = useState(false);
   const [wordPools, setWordPools] = useState<
     Array<{
       name: string;
@@ -318,6 +319,45 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         language: settingsForm.language,
         wordPack: settingsForm.wordPack,
       },
+    });
+
+    toast.info("Updating room settings...");
+  }
+
+  async function handleInlineUpdate<K extends keyof SettingsFormState>(
+    field: K,
+    value: SettingsFormState[K],
+  ) {
+    if (!socket || !room || !user) {
+      toast.error("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!isOwner) {
+      toast.error("Only the room owner can change this setting.");
+      return;
+    }
+
+    const nextSettings: SettingsFormState = {
+      ...settingsForm,
+      [field]: value,
+    } as SettingsFormState;
+
+    setSettingsForm(nextSettings);
+    // optimistic UI
+    setLocalRoom((current) =>
+      current && room
+        ? {
+            ...room,
+            settings: nextSettings,
+          }
+        : current,
+    );
+
+    socket.emit("room:updateSettings", {
+      roomCode: room.roomCode,
+      ownerTelegramId: user.telegramId,
+      settings: nextSettings,
     });
 
     toast.info("Updating room settings...");
@@ -653,24 +693,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
               <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Game mode
-              </span>
-              <select
-                value={hostControlDraft.gameMode}
-                onChange={(event) =>
-                  setHostControlDraft((current) => ({
-                    ...current,
-                    gameMode: event.target.value as "standard" | "rush",
-                  }))
-                }
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-              >
-                <option value="standard">Standard</option>
-                <option value="rush">Rush</option>
-              </select>
-            </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
                 Timer
               </span>
               <select
@@ -875,6 +897,42 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast.info("Starting room...");
   }
 
+  function handleResetTeams() {
+    if (!socket || !room || !user) {
+      toast.error("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!isOwner) {
+      toast.error("Only the room owner can reset teams.");
+      return;
+    }
+
+    socket.emit("room:resetTeams", {
+      roomCode: room.roomCode,
+      ownerTelegramId: user.telegramId,
+    });
+    toast.success("Reset teams sent to the room.");
+  }
+
+  function handleRandomizeTeams() {
+    if (!socket || !room || !user) {
+      toast.error("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!isOwner) {
+      toast.error("Only the room owner can randomize teams.");
+      return;
+    }
+
+    socket.emit("room:shuffleTeams", {
+      roomCode: room.roomCode,
+      ownerTelegramId: user.telegramId,
+    });
+    toast.success("Randomize teams sent to the room.");
+  }
+
   function handleAddBot() {
     if (!socket || !room) {
       setFeedback("Socket connection is unavailable.");
@@ -962,7 +1020,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-[480px] bg-[#070b12] px-3 pb-8 pt-3 text-white">
+      <div className="mx-auto w-full max-w-[480px] bg-[#070b12] px-3 pb-0 pt-0 text-white">
         {feedback ? (
           <div className="mb-4">
             <StatusPanel
@@ -1009,26 +1067,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </span>
               </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="rounded-full border border-white/70 bg-[#101720] px-4 py-2 text-base font-black tracking-tight text-white"
-                >
-                  News
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/70 bg-[#101720] px-4 py-2 text-base font-black tracking-tight text-white"
-                >
-                  Rules
-                </button>
-              </div>
+              <div />
 
               <button
                 type="button"
                 aria-label="Room settings"
                 onClick={() => openPopup()}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-[#101720] text-2xl text-white"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-transparent text-3xl text-white"
               >
                 ⚙
               </button>
@@ -1043,6 +1088,36 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 <span className="text-base font-semibold text-white">
                   {user?.firstName ?? ownerPlayer?.displayName ?? "Player"}
                 </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!user?.telegramId) return;
+                    setAvatarGenerating(true);
+                    try {
+                      const resp = await fetch("/api/avatars/ghibli", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ telegramId: user.telegramId }),
+                      });
+                      if (!resp.ok) {
+                        toast.error("Avatar generation request failed.");
+                      } else {
+                        toast.info(
+                          "Avatar generation requested. Refreshing lobby...",
+                        );
+                        refreshLobby();
+                      }
+                    } catch (e) {
+                      toast.error("Avatar generation failed.");
+                    } finally {
+                      setAvatarGenerating(false);
+                    }
+                  }}
+                  className="ml-2 inline-flex items-center gap-2 rounded-full bg-[#101720] px-3 py-1 text-sm text-white"
+                  disabled={avatarGenerating}
+                >
+                  {avatarGenerating ? "Generating..." : "Refresh avatar"}
+                </button>
               </div>
               <button
                 type="button"
@@ -1059,7 +1134,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </h2>
 
               <div className="mt-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <button
                     type="button"
                     onClick={() =>
@@ -1078,43 +1153,28 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       4+ Players
                     </div>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleAssignmentChange(
-                        "red",
-                        currentPlayer?.role ?? "operative",
-                      )
-                    }
-                    className="rounded-[18px] border border-white/20 bg-[#6c7177] px-4 py-4 text-left text-white"
-                  >
-                    <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/60">
-                      Codenames
-                    </div>
-                    <div className="text-3xl font-black">Duet</div>
-                    <div className="mt-1 text-sm font-semibold text-white/85">
-                      2+ Players
-                    </div>
-                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black"
-                >
+                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black">
                   <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
-                    English
+                    Language
                   </span>
-                  <span className="ml-4 text-base font-semibold text-black/80">
-                    Classic / Duet
-                  </span>
-                </button>
+                  <select
+                    value={settingsForm.language}
+                    onChange={(e) =>
+                      handleInlineUpdate("language", e.target.value as any)
+                    }
+                    disabled={!isOwner}
+                    className="ml-4 appearance-none bg-transparent text-base font-semibold text-black/80"
+                  >
+                    <option value="fa">Farsi</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="he">Hebrew</option>
+                  </select>
+                </label>
 
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-3 text-left text-white"
-                >
+                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-3 text-left text-white">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f1ec] text-lg text-black">
                       ⏱
@@ -1123,22 +1183,34 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                       Timer
                     </span>
                   </div>
-                  <span className="text-lg font-bold text-white">OFF</span>
-                </button>
+                  <select
+                    value={settingsForm.timer}
+                    onChange={(e) =>
+                      handleInlineUpdate("timer", e.target.value as any)
+                    }
+                    disabled={!isOwner}
+                    className="ml-4 appearance-none bg-transparent text-lg font-bold text-white"
+                  >
+                    <option value="none">OFF</option>
+                    <option value="30">30s</option>
+                    <option value="60">60s</option>
+                    <option value="90">90s</option>
+                  </select>
+                </label>
               </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => handleHostControl("reset")}
+                onClick={handleResetTeams}
                 className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
               >
                 Reset teams
               </button>
               <button
                 type="button"
-                onClick={() => handleHostControl("shuffle")}
+                onClick={handleRandomizeTeams}
                 className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
               >
                 Randomize
@@ -1147,26 +1219,60 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight">
+                <div className="flex items-center gap-2">
+                  {redPlayers.slice(0, 4).map((p) => (
+                    <img
+                      key={p.userId}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      src={
+                        p.ghibliAvatarUrl ??
+                        p.photoUrl ??
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          p.displayName,
+                        )}&background=2d9bff&color=ffffff&size=32`
+                      }
+                      className="h-8 w-8 rounded-full border border-white/20"
+                    />
+                  ))}
+                </div>
+                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Operatives
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("blue", "operative")}
-                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
                 >
                   Join team
                 </button>
               </section>
 
               <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight">
+                <div className="flex items-center gap-2">
+                  {bluePlayers.slice(0, 4).map((p) => (
+                    <img
+                      key={p.userId}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      src={
+                        p.ghibliAvatarUrl ??
+                        p.photoUrl ??
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          p.displayName,
+                        )}&background=ef5b5b&color=ffffff&size=32`
+                      }
+                      className="h-8 w-8 rounded-full border border-white/20"
+                    />
+                  ))}
+                </div>
+                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Operatives
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("red", "operative")}
-                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
                 >
                   Join team
                 </button>
@@ -1175,26 +1281,60 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight">
+                <div className="flex items-center gap-2">
+                  {redPlayers.slice(0, 4).map((p) => (
+                    <img
+                      key={p.userId}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      src={
+                        p.ghibliAvatarUrl ??
+                        p.photoUrl ??
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          p.displayName,
+                        )}&background=2f7ec7&color=ffffff&size=32`
+                      }
+                      className="h-8 w-8 rounded-full border border-white/20"
+                    />
+                  ))}
+                </div>
+                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Spymasters
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("blue", "spymaster")}
-                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
                 >
                   Join team
                 </button>
               </section>
 
               <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight">
+                <div className="flex items-center gap-2">
+                  {bluePlayers.slice(0, 4).map((p) => (
+                    <img
+                      key={p.userId}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      src={
+                        p.ghibliAvatarUrl ??
+                        p.photoUrl ??
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          p.displayName,
+                        )}&background=ef5b5b&color=ffffff&size=32`
+                      }
+                      className="h-8 w-8 rounded-full border border-white/20"
+                    />
+                  ))}
+                </div>
+                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Spymasters
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("red", "spymaster")}
-                  className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
                 >
                   Join team
                 </button>

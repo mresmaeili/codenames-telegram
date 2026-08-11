@@ -202,6 +202,25 @@ export async function authenticateTelegramUser(
     existingUser.lastLoginAt = now;
     await existingUser.save();
 
+    // Trigger background avatar generation if provider configured and
+    // user has a source photo but no ghibli avatar yet.
+    if (existingUser.photoUrl && !existingUser.ghibliAvatarUrl) {
+      // enqueue generation task (non-blocking) so retry/backoff applies
+      void (async () => {
+        try {
+          const { enqueueGhibliAvatarGeneration } =
+            await import("./avatar.queue.js");
+          await enqueueGhibliAvatarGeneration(
+            existingUser.telegramId,
+            existingUser.photoUrl as string,
+          );
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.debug("background avatar generation enqueue failed", e);
+        }
+      })();
+    }
+
     return normalizeUser(existingUser);
   }
 
@@ -214,6 +233,23 @@ export async function authenticateTelegramUser(
     languageCode: telegramUser.language_code ?? null,
     lastLoginAt: now,
   });
+
+  // Trigger background generation for newly created users
+  if (createdUser.photoUrl) {
+    void (async () => {
+      try {
+        const { enqueueGhibliAvatarGeneration } =
+          await import("./avatar.queue.js");
+        await enqueueGhibliAvatarGeneration(
+          createdUser.telegramId,
+          createdUser.photoUrl as string,
+        );
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.debug("background avatar generation enqueue failed", e);
+      }
+    })();
+  }
 
   return normalizeUser(createdUser);
 }

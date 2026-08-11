@@ -336,13 +336,56 @@ function collectReadinessErrors(room: RoomDocument): string[] {
   return errors;
 }
 
-function serializeRoom(room: RoomDocument): CreateRoomResult {
+async function serializeRoom(room: RoomDocument): Promise<CreateRoomResult> {
+  const telegramIds = room.players.map((p) => p.telegramId);
+  let users: Array<{
+    telegramId: number;
+    photoUrl?: string | null;
+    ghibliAvatarUrl?: string | null;
+  }> = [];
+  try {
+    users = await UserModel.find({ telegramId: { $in: telegramIds } })
+      .select("telegramId photoUrl ghibliAvatarUrl")
+      .exec();
+  } catch (e) {
+    // Tests may run without a connected DB; fall back to empty users list.
+    // eslint-disable-next-line no-console
+    console.debug(
+      "serializeRoom: user lookup failed, falling back to null photos",
+      e,
+    );
+    users = [];
+  }
+
+  const photoMap = new Map<
+    number,
+    { photoUrl: string | null; ghibliAvatarUrl: string | null }
+  >();
+  users.forEach((u) =>
+    photoMap.set(u.telegramId, {
+      photoUrl: (u.photoUrl as string) ?? null,
+      ghibliAvatarUrl: (u.ghibliAvatarUrl as string) ?? null,
+    }),
+  );
+
+  const playersWithPhotos = room.players.map((p) => {
+    const mapped = photoMap.get(p.telegramId) ?? {
+      photoUrl: null,
+      ghibliAvatarUrl: null,
+    };
+    return {
+      ...p,
+      photoUrl: mapped.photoUrl,
+      ghibliAvatarUrl: mapped.ghibliAvatarUrl,
+    };
+  });
+
   return {
     id: room._id.toString(),
     roomCode: room.roomCode,
     ownerId: room.ownerId,
     ownerIds: Array.isArray(room.ownerIds) ? room.ownerIds : [room.ownerId],
-    players: room.players,
+    players: playersWithPhotos,
     status: room.status,
     settings: room.settings,
     createdAt: room.createdAt,
@@ -368,7 +411,7 @@ export async function createRoom(
 
   const createdRoom = await roomRepository.create(initialRoom);
 
-  return serializeRoom(createdRoom);
+  return await serializeRoom(createdRoom);
 }
 
 export async function joinRoom(
@@ -405,7 +448,7 @@ export async function joinRoom(
   );
 
   if (alreadyJoined) {
-    return serializeRoom(room);
+    return await serializeRoom(room);
   }
 
   if (room.settings.privateRoom) {
@@ -423,7 +466,7 @@ export async function joinRoom(
 
   const updatedRoom = await room.save();
 
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function updateRoomPlayerAssignment(
@@ -478,7 +521,7 @@ export async function updateRoomPlayerAssignment(
   currentPlayer.role = assignmentValues.role;
 
   const updatedRoom = await room.save();
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function updateRoomSettings(
@@ -508,7 +551,7 @@ export async function updateRoomSettings(
 
   room.settings = input.settings;
   const updatedRoom = await room.save();
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function transferRoomOwnership(
@@ -558,8 +601,7 @@ export async function transferRoomOwnership(
 
   room.ownerIds = ownerIds;
   const updatedRoom = await room.save();
-
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function shuffleRoomTeams(
@@ -652,7 +694,7 @@ export async function shuffleRoomTeams(
   }
 
   const updatedRoom = await room.save();
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function resetRoomTeams(
@@ -688,7 +730,7 @@ export async function resetRoomTeams(
   });
 
   const updatedRoom = await room.save();
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }
 
 export async function startRoom(
@@ -723,5 +765,5 @@ export async function startRoom(
   const updatedRoom = await room.save();
   await createGame({ roomCode: normalizedRoomCode });
 
-  return serializeRoom(updatedRoom);
+  return await serializeRoom(updatedRoom);
 }

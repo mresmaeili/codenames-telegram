@@ -6,6 +6,8 @@ export interface RoomPlayer {
   userId: string;
   telegramId: number;
   displayName: string;
+  photoUrl?: string | null;
+  ghibliAvatarUrl?: string | null;
   team: Team | null;
   role: PlayerRole;
   joinedAt: Date;

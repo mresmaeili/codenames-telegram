@@ -15,18 +15,6 @@ function HeaderControls() {
       <div className="flex w-full items-center justify-between">
         <div />
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Open room settings"
-            disabled={!hasContent}
-            onClick={openPopup}
-            className="rounded-full border border-(--app-border) bg-(--app-surface) p-2 text-(--app-muted) disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ⚙
-          </button>
-        </div>
-
         <SettingsPopup
           open={open}
           title={title}

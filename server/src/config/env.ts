@@ -23,4 +23,12 @@ export const env = {
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",
   ADMIN_KEY: process.env.ADMIN_KEY ?? "",
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  // Avatar generation provider configuration (optional)
+  AVATAR_PROVIDER: process.env.AVATAR_PROVIDER ?? "",
+  REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN ?? "",
+  REPLICATE_MODEL_VERSION: process.env.REPLICATE_MODEL_VERSION ?? "",
+  // Queue tuning for avatar generation
+  AVATAR_CONCURRENCY: process.env.AVATAR_CONCURRENCY ?? "3",
+  AVATAR_MAX_RETRIES: process.env.AVATAR_MAX_RETRIES ?? "3",
+  AVATAR_BASE_DELAY_MS: process.env.AVATAR_BASE_DELAY_MS ?? "1000",
 };
