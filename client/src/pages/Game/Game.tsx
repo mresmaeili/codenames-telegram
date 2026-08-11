@@ -776,7 +776,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-[22px] border border-white/10 bg-[#2d9bff] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+          <div className="rounded-3xl border border-white/10 bg-[#2d9bff] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -800,18 +800,18 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/10 bg-[#6f7277] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+          <div className="rounded-3xl border border-white/10 bg-[#6f7277] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
               Game log
             </div>
-            <div className="mt-3 rounded-[14px] bg-black/65 p-2 text-center text-[10px] text-white/80">
+            <div className="mt-3 rounded-2xl bg-black/65 p-2 text-center text-[10px] text-white/80">
               {state.game.currentHintWord
                 ? `${state.game.currentHintWord} (${state.game.currentHintNumber})`
                 : "No hint yet"}
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/10 bg-[#ef5c48] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+          <div className="rounded-3xl border border-white/10 bg-[#ef5c48] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -837,7 +837,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <div className="rounded-[22px] border border-[#9ef3ff] bg-[#2ca4ff] p-2 text-white">
+          <div className="rounded-3xl border border-[#9ef3ff] bg-[#2ca4ff] p-2 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -859,7 +859,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-[#ffc3be] bg-[#ef5c48] p-2 text-white">
+          <div className="rounded-3xl border border-[#ffc3be] bg-[#ef5c48] p-2 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -886,7 +886,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           Give your operatives a clue
         </div>
 
-        <div className="mt-4 rounded-[20px] border border-white/10 bg-[#0a63d4] p-2">
+        <div className="mt-4 rounded-3xl border border-white/10 bg-[#0a63d4] p-2">
           <BoardGrid
             cards={state.game.board}
             role={state.game.role}

@@ -1183,101 +1183,101 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center gap-2">
-                  {bluePlayers.slice(0, 4).map((p) => (
-                    <img
-                      key={p.userId}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      src={getPlayerAvatarUrl(p)}
-                      className="h-8 w-8 rounded-full border border-white/20"
-                    />
-                  ))}
-                </div>
+              <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Operatives
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("blue", "operative")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  Join team
+                  <div className="mb-2 flex items-center justify-center gap-1">
+                    {bluePlayers.slice(0, 4).map((p) => (
+                      <img
+                        key={p.userId}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        src={getPlayerAvatarUrl(p)}
+                        className="h-7 w-7 rounded-full border border-white/20"
+                      />
+                    ))}
+                  </div>
+                  <span className="block text-sm">Join team</span>
                 </button>
               </section>
 
-              <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center gap-2">
-                  {redPlayers.slice(0, 4).map((p) => (
-                    <img
-                      key={p.userId}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      src={getPlayerAvatarUrl(p)}
-                      className="h-8 w-8 rounded-full border border-white/20"
-                    />
-                  ))}
-                </div>
+              <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Operatives
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("red", "operative")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  Join team
+                  <div className="mb-2 flex items-center justify-center gap-1">
+                    {redPlayers.slice(0, 4).map((p) => (
+                      <img
+                        key={p.userId}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        src={getPlayerAvatarUrl(p)}
+                        className="h-7 w-7 rounded-full border border-white/20"
+                      />
+                    ))}
+                  </div>
+                  <span className="block text-sm">Join team</span>
                 </button>
               </section>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <section className="rounded-[24px] bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center gap-2">
-                  {bluePlayers.slice(0, 4).map((p) => (
-                    <img
-                      key={p.userId}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      src={getPlayerAvatarUrl(p)}
-                      className="h-8 w-8 rounded-full border border-white/20"
-                    />
-                  ))}
-                </div>
+              <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Spymasters
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("blue", "spymaster")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  Join team
+                  <div className="mb-2 flex items-center justify-center gap-1">
+                    {bluePlayers.slice(0, 4).map((p) => (
+                      <img
+                        key={p.userId}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        src={getPlayerAvatarUrl(p)}
+                        className="h-7 w-7 rounded-full border border-white/20"
+                      />
+                    ))}
+                  </div>
+                  <span className="block text-sm">Join team</span>
                 </button>
               </section>
 
-              <section className="rounded-[24px] bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center gap-2">
-                  {redPlayers.slice(0, 4).map((p) => (
-                    <img
-                      key={p.userId}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      src={getPlayerAvatarUrl(p)}
-                      className="h-8 w-8 rounded-full border border-white/20"
-                    />
-                  ))}
-                </div>
+              <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
                 <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
                   Spymasters
                 </p>
                 <button
                   type="button"
                   onClick={() => handleAssignmentChange("red", "spymaster")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-4 py-3 text-xl font-black uppercase text-white"
+                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  Join team
+                  <div className="mb-2 flex items-center justify-center gap-1">
+                    {redPlayers.slice(0, 4).map((p) => (
+                      <img
+                        key={p.userId}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        src={getPlayerAvatarUrl(p)}
+                        className="h-7 w-7 rounded-full border border-white/20"
+                      />
+                    ))}
+                  </div>
+                  <span className="block text-sm">Join team</span>
                 </button>
               </section>
             </div>
