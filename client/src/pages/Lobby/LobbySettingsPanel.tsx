@@ -20,9 +20,6 @@ interface LobbySettingsPanelProps {
   onWordPoolLanguageChange: (language: "fa" | "en") => void;
   onWordPoolWordsChange: (value: string) => void;
   onWordPoolSave: () => Promise<void> | void;
-  onWordPoolLanguageChange: (language: "fa" | "en") => void;
-  onWordPoolWordsChange: (value: string) => void;
-  onWordPoolSave: () => Promise<void> | void;
   onResetTeams: () => void;
   onRandomizeTeams: () => void;
   onSaveSettings: () => void;
@@ -36,9 +33,6 @@ export function LobbySettingsPanel({
   wordPoolWords,
   wordPoolSaving,
   wordPools,
-  onWordPoolLanguageChange,
-  onWordPoolWordsChange,
-  onWordPoolSave,
   onWordPoolLanguageChange,
   onWordPoolWordsChange,
   onWordPoolSave,

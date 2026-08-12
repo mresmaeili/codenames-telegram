@@ -106,8 +106,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const toast = useToast();
   const [hostActionPending, setHostActionPending] = useState(false);
-  const [localRoom, setLocalRoom] = useState<Room | null>(null);
-  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const [avatarGenerating, setAvatarGenerating] = useState(false);
   const [wordPools, setWordPools] = useState<
     Array<{
@@ -131,6 +129,50 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     language: "en",
     wordPack: "classic",
   });
+
+  useEffect(() => {
+    if (!room) {
+      return;
+    }
+
+    setSettingsForm(room.settings);
+  }, [room]);
+
+  useEffect(() => {
+    async function loadWordPools() {
+      try {
+        const response = await fetch("/api/words/pools");
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          pools?: typeof wordPools;
+        };
+
+        setWordPools(payload.pools ?? []);
+      } catch {
+        // Ignore fetch errors for optional word pool loading.
+      }
+    }
+
+    void loadWordPools();
+  }, []);
+
+  const currentPlayer = room?.players.find(
+    (player) => player.telegramId === user?.telegramId,
+  );
+
+  const ownerPlayer = room?.players.find(
+    (player) =>
+      player.userId === room.ownerId || room.ownerIds?.includes(player.userId),
+  );
+
+  const isOwner = Boolean(
+    currentPlayer &&
+    (room?.ownerId === currentPlayer.userId ||
+      room?.ownerIds?.includes(currentPlayer.userId)),
+  );
 
   function handleStartGame() {
     if (!socket || !room || !user) {
@@ -191,6 +233,104 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       roomCode: room.roomCode,
     });
     toast.info("Adding bot to the room...");
+  }
+
+  async function handleWordPoolSave() {
+    if (!wordPoolWords.trim()) {
+      toast.error("Enter pool words before saving.");
+      return;
+    }
+
+    const words = wordPoolWords
+      .split(/[,;\n]+/)
+      .map((word) => word.trim())
+      .filter(Boolean);
+
+    if (words.length < 25) {
+      toast.error("At least 25 words are required.");
+      return;
+    }
+
+    setWordPoolSaving(true);
+
+    try {
+      const response = await fetch("/api/words/pools", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: `Custom pool ${new Date().toISOString().slice(0, 10)}`,
+          language: wordPoolLanguage,
+          words,
+          isDefault: false,
+          adminKey: "",
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        const message =
+          payload && typeof payload.message === "string"
+            ? payload.message
+            : "Unable to save word pool.";
+        toast.error(message);
+        return;
+      }
+
+      toast.success("Word pool saved successfully.");
+      setWordPoolWords("");
+      const fetchResponse = await fetch("/api/words/pools");
+      if (fetchResponse.ok) {
+        const payload = (await fetchResponse.json()) as {
+          pools?: typeof wordPools;
+        };
+        setWordPools(payload.pools ?? []);
+      }
+    } catch {
+      toast.error("Unable to save word pool.");
+    } finally {
+      setWordPoolSaving(false);
+    }
+  }
+
+  function handleSettingsSave() {
+    if (!socket || !room || !user) {
+      toast.error("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!isOwner) {
+      toast.error("Only the room owner can save settings.");
+      return;
+    }
+
+    setHostActionPending(true);
+    socket.emit("room:updateSettings", {
+      roomCode: room.roomCode,
+      ownerTelegramId: user.telegramId,
+      settings: settingsForm,
+    });
+    toast.info("Saving game settings...");
+    window.setTimeout(() => setHostActionPending(false), 1200);
+  }
+
+  function handleAssignmentChange(
+    nextTeam: "blue" | "red",
+    nextRole: "operative" | "spymaster",
+  ) {
+    if (!socket || !room || !user) {
+      setFeedback("Socket connection is unavailable.");
+      return;
+    }
+
+    socket.emit("room:updateTeam", {
+      roomCode: room.roomCode,
+      telegramId: user.telegramId,
+      team: nextTeam,
+      role: nextRole,
+    });
+    toast.info(`Joining ${nextTeam} as ${nextRole}...`);
   }
 
   const readinessIssues = getReadinessIssues(room);
