@@ -10,6 +10,11 @@ import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
 import { isDevModeEnabled } from "@/lib/dev";
+import {
+  avatarUrlForPlayer,
+  avatarUrlForName,
+  avatarEmojiForPlayer,
+} from "@/lib/avatar";
 import type { GameView, HintEntry, Turn } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 
@@ -70,13 +75,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   const redSpymaster = state.room?.players.find(
     (player) => player.team === "red" && player.role === "spymaster",
   );
-
-  const getPlayerAvatarUrl = (player: Room["players"][number]) =>
-    player.ghibliAvatarUrl ??
-    player.photoUrl ??
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      player.displayName,
-    )}&background=ffffff&color=000000&size=64`;
 
   async function loadGameData() {
     try {
@@ -606,6 +604,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     }
   }
 
+  // Click wrapper so we can call the form submit logic from a button
+  async function handleSubmitHintClick() {
+    await handleSubmitHint({
+      preventDefault: () => {},
+    } as React.FormEvent<HTMLFormElement>);
+  }
+
   async function refreshGameState() {
     setRefreshingGame(true);
     await loadGameData();
@@ -794,16 +799,8 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {blueCardsRemaining}
               </div>
-              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10">
-                <img
-                  src={
-                    blueSpymaster
-                      ? getPlayerAvatarUrl(blueSpymaster)
-                      : "https://ui-avatars.com/api/?name=Blue&background=ffffff&color=000000&size=64"
-                  }
-                  alt={blueSpymaster?.displayName ?? "Blue"}
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-2xl">
+                {blueSpymaster ? avatarEmojiForPlayer(blueSpymaster) : "🐟"}
               </div>
             </div>
           </div>
@@ -829,16 +826,8 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {redCardsRemaining}
               </div>
-              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10">
-                <img
-                  src={
-                    redSpymaster
-                      ? getPlayerAvatarUrl(redSpymaster)
-                      : "https://ui-avatars.com/api/?name=Red&background=ffffff&color=000000&size=64"
-                  }
-                  alt={redSpymaster?.displayName ?? "Red"}
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-2xl">
+                {redSpymaster ? avatarEmojiForPlayer(redSpymaster) : "🐙"}
               </div>
             </div>
           </div>
@@ -850,16 +839,8 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               Spymasters
             </div>
             <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10">
-                <img
-                  src={
-                    blueSpymaster
-                      ? getPlayerAvatarUrl(blueSpymaster)
-                      : "https://ui-avatars.com/api/?name=Blue&background=ffffff&color=000000&size=64"
-                  }
-                  alt={blueSpymaster?.displayName ?? "Blue"}
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-xl">
+                {blueSpymaster ? avatarEmojiForPlayer(blueSpymaster) : "🐟"}
               </div>
               <span className="text-sm font-bold">
                 {blueSpymaster?.displayName ?? "None"}
@@ -872,16 +853,8 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               Spymasters
             </div>
             <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10">
-                <img
-                  src={
-                    redSpymaster
-                      ? getPlayerAvatarUrl(redSpymaster)
-                      : "https://ui-avatars.com/api/?name=Red&background=ffffff&color=000000&size=64"
-                  }
-                  alt={redSpymaster?.displayName ?? "Red"}
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-xl">
+                {redSpymaster ? avatarEmojiForPlayer(redSpymaster) : "🐙"}
               </div>
               <span className="text-sm font-bold">
                 {redSpymaster?.displayName ?? "None"}
@@ -923,11 +896,20 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           </button>
           <button
             type="button"
-            onClick={handleSubmitHint as any}
+            onClick={handleSubmitHintClick}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-[#24d16b] text-2xl font-black text-white"
             aria-label="Submit clue"
           >
             ↑
+          </button>
+          <button
+            type="button"
+            onClick={handlePassTurn}
+            disabled={!canPassTurn || hintSubmitting}
+            aria-label="Pass turn"
+            className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#ffb84d] text-xl font-bold text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
+          >
+            ⏭
           </button>
         </div>
 

@@ -6,6 +6,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
+import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -107,8 +108,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const socket = useMemo(() => getSocketClient(), []);
   const [feedback, setFeedback] = useState<string | null>(null);
   const toast = useToast();
-  const [activeHostAction, setActiveHostAction] =
-    useState<HostControlAction | null>(null);
   const [hostActionPending, setHostActionPending] = useState(false);
   const [localRoom, setLocalRoom] = useState<Room | null>(null);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
@@ -126,19 +125,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [wordPoolName, setWordPoolName] = useState("");
   const [wordPoolLanguage, setWordPoolLanguage] = useState<"fa" | "en">("fa");
   const [wordPoolWords, setWordPoolWords] = useState("");
-  const [wordPoolAdminKey, setWordPoolAdminKey] = useState("");
   const [wordPoolSaving, setWordPoolSaving] = useState(false);
-  const [hostControlDraft, setHostControlDraft] = useState<{
-    gameMode: "standard" | "rush";
-    timer: "none" | "30" | "60" | "90";
-    language: "fa" | "en" | "es" | "he";
-    wordPack: "classic" | "party";
-  }>({
-    gameMode: "standard",
-    timer: "60",
-    language: "en",
-    wordPack: "classic",
-  });
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: ROOM_MAX_PLAYERS,
     allowSpectators: false,
@@ -156,12 +143,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         maxPlayers: displayRoom.settings.maxPlayers,
         allowSpectators: displayRoom.settings.allowSpectators,
         privateRoom: displayRoom.settings.privateRoom,
-        gameMode: displayRoom.settings.gameMode,
-        timer: displayRoom.settings.timer,
-        language: displayRoom.settings.language,
-        wordPack: displayRoom.settings.wordPack,
-      });
-      setHostControlDraft({
         gameMode: displayRoom.settings.gameMode,
         timer: displayRoom.settings.timer,
         language: displayRoom.settings.language,
@@ -377,26 +358,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast.info("Transferring room ownership...");
   }
 
-  function handleHostControl(action: HostControlAction) {
-    if (!room || !user) {
-      toast.error("Socket connection is unavailable.");
-      return;
-    }
-
-    const labelMap: Record<HostControlAction, string> = {
-      "game-mode": "Game mode",
-      timer: "Timer",
-      language: "Language",
-      "word-pack": "Word pack",
-      shuffle: "Shuffle teams",
-      reset: "Reset teams",
-    };
-
-    setActiveHostAction(action);
-    toast.info(`${labelMap[action]} settings opened.`);
-    openPopup();
-  }
-
   async function handleWordPoolSave() {
     if (!room || !user) {
       setFeedback("Socket connection is unavailable.");
@@ -413,11 +374,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    if (!wordPoolAdminKey.trim()) {
-      setFeedback("Admin key is required to save a word pool.");
-      return;
-    }
-
     setWordPoolSaving(true);
     try {
       const response = await fetch("/api/words/pools", {
@@ -428,7 +384,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           language: wordPoolLanguage,
           words: wordPoolWords.split(/\r?\n|,|;|\t/).map((word) => word.trim()),
           isDefault: true,
-          adminKey: wordPoolAdminKey,
         }),
       });
 
@@ -439,7 +394,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
       setWordPoolName("");
       setWordPoolWords("");
-      setWordPoolAdminKey("");
       setFeedback("Word pool saved successfully.");
       toast.success("Word pool saved.");
 
@@ -499,93 +453,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
   }
 
-  function handleHostDraftApply() {
-    if (!room || !user || !socket) {
-      setFeedback("Socket connection is unavailable.");
-      return;
-    }
-
-    setHostActionPending(true);
-    const selected = activeHostAction ?? "game-mode";
-
-    if (selected === "shuffle") {
-      socket.emit("room:shuffleTeams", {
-        roomCode: room.roomCode,
-        ownerTelegramId: user.telegramId,
-      });
-      toast.success("Shuffle teams sent to the room.");
-      return;
-    }
-
-    if (selected === "reset") {
-      socket.emit("room:resetTeams", {
-        roomCode: room.roomCode,
-        ownerTelegramId: user.telegramId,
-      });
-      toast.success("Reset teams sent to the room.");
-      return;
-    }
-
-    const nextSettings = {
-      ...settingsForm,
-      gameMode: hostControlDraft.gameMode,
-      timer: hostControlDraft.timer,
-      language: hostControlDraft.language,
-      wordPack: hostControlDraft.wordPack,
-    };
-
-    // validate draft values before sending
-    if (
-      nextSettings.gameMode !== "standard" &&
-      nextSettings.gameMode !== "rush"
-    ) {
-      setFeedback("Invalid game mode.");
-      setHostActionPending(false);
-      return;
-    }
-
-    if (!["none", "30", "60", "90"].includes(nextSettings.timer)) {
-      setFeedback("Invalid timer value.");
-      setHostActionPending(false);
-      return;
-    }
-
-    if (!["fa", "en", "es", "he"].includes(nextSettings.language)) {
-      setFeedback("Invalid language selection.");
-      setHostActionPending(false);
-      return;
-    }
-
-    if (!["classic", "party"].includes(nextSettings.wordPack)) {
-      setFeedback("Invalid word pack selection.");
-      setHostActionPending(false);
-      return;
-    }
-    // optimistic update for settings changes
-    if (room) {
-      setLocalRoom({
-        ...room,
-        settings: nextSettings,
-      });
-    }
-
-    socket.emit("room:updateSettings", {
-      roomCode: room.roomCode,
-      ownerTelegramId: user.telegramId,
-      settings: nextSettings,
-    });
-
-    const labelMap: Record<HostControlAction, string> = {
-      "game-mode": "Game mode",
-      timer: "Timer",
-      language: "Language",
-      "word-pack": "Word pack",
-      shuffle: "Shuffle teams",
-      reset: "Reset teams",
-    };
-    toast.success(`${labelMap[selected]} settings sent to the room.`);
-  }
-
   function handleSettingsChange<K extends keyof SettingsFormState>(
     field: K,
     value: SettingsFormState[K],
@@ -603,13 +470,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const isOwner = Boolean(
     room && room.ownerIds?.includes(currentPlayer?.userId ?? ""),
   );
-
-  const getPlayerAvatarUrl = (player: Room["players"][number]) =>
-    player.ghibliAvatarUrl ??
-    player.photoUrl ??
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      player.displayName,
-    )}&background=ffffff&color=000000&size=64`;
 
   useEffect(() => {
     if (!room) {
@@ -695,104 +555,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-            Host controls
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Timer
-              </span>
-              <select
-                value={hostControlDraft.timer}
-                onChange={(event) =>
-                  setHostControlDraft((current) => ({
-                    ...current,
-                    timer: event.target.value as "none" | "30" | "60" | "90",
-                  }))
-                }
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-              >
-                <option value="none">No timer</option>
-                <option value="30">30 seconds</option>
-                <option value="60">60 seconds</option>
-                <option value="90">90 seconds</option>
-              </select>
-            </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Language
-              </span>
-              <select
-                value={hostControlDraft.language}
-                onChange={(event) =>
-                  setHostControlDraft((current) => ({
-                    ...current,
-                    language: event.target.value as "fa" | "en" | "es" | "he",
-                  }))
-                }
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-              >
-                <option value="fa">Farsi</option>
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="he">Hebrew</option>
-              </select>
-            </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Word pack
-              </span>
-              <select
-                value={hostControlDraft.wordPack}
-                onChange={(event) =>
-                  setHostControlDraft((current) => ({
-                    ...current,
-                    wordPack: event.target.value as "classic" | "party",
-                  }))
-                }
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-              >
-                <option value="classic">Classic</option>
-                <option value="party">Party</option>
-              </select>
-            </label>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => handleHostControl("shuffle")}
-              className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold text-(--app-text)"
-            >
-              Shuffle teams
-            </button>
-            <button
-              type="button"
-              onClick={() => handleHostControl("reset")}
-              className="w-full rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold text-(--app-text)"
-            >
-              Reset teams
-            </button>
-          </div>
-          {isOwner ? (
-            <button
-              type="button"
-              onClick={handleHostDraftApply}
-              disabled={hostActionPending}
-              className="mt-4 w-full rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-semibold text-(--app-text) disabled:opacity-60"
-            >
-              {hostActionPending ? "Applying..." : "Apply host settings"}
-            </button>
-          ) : null}
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
             Word pools
           </p>
           <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
             <p className="text-sm text-(--app-muted)">
-              Save a custom word pool for Farsi or English games. You must
-              provide the admin key to persist a pool and set it as the default.
+              Save a custom word pool for Farsi or English games. Saved pools
+              can be set as the default for future games.
             </p>
             <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
               <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
@@ -832,18 +600,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 placeholder="Enter one word per line, comma-separated, or semicolon-separated"
               />
             </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Admin key
-              </span>
-              <input
-                value={wordPoolAdminKey}
-                onChange={(event) => setWordPoolAdminKey(event.target.value)}
-                type="password"
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                placeholder="Required to save word pools"
-              />
-            </label>
+
             <button
               type="button"
               onClick={handleWordPoolSave}
@@ -881,15 +638,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       </div>,
       "Room settings",
     );
-  }, [
-    registerPopup,
-    room,
-    settingsForm,
-    hostControlDraft,
-    isOwner,
-    hostActionPending,
-    activeHostAction,
-  ]);
+  }, [registerPopup, room, settingsForm, isOwner, hostActionPending]);
 
   function handleStartGame() {
     if (!socket || !room || !user) {
@@ -1143,12 +892,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </div>
             </div>
 
-            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-3 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
-              <h2 className="text-center text-2xl font-black uppercase tracking-tight text-white">
-                Game settings
-              </h2>
+            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-4 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-2xl font-black uppercase tracking-tight text-white">
+                  Game settings
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => openPopup()}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#101720] px-4 py-2 text-sm font-semibold text-white"
+                >
+                  ⚙ Settings
+                </button>
+              </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-4">
                 <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black">
                   <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
                     Language
@@ -1191,24 +949,121 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     <option value="90">90s</option>
                   </select>
                 </label>
-              </div>
-            </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleResetTeams}
-                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
-              >
-                Reset teams
-              </button>
-              <button
-                type="button"
-                onClick={handleRandomizeTeams}
-                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
-              >
-                Randomize
-              </button>
+                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-3 text-left text-black">
+                  <span className="text-sm font-semibold uppercase tracking-[0.18em] text-black/80">
+                    Word pack
+                  </span>
+                  <select
+                    value={settingsForm.wordPack}
+                    onChange={(e) =>
+                      handleInlineUpdate("wordPack", e.target.value as any)
+                    }
+                    disabled={!isOwner}
+                    className="ml-4 appearance-none bg-transparent text-base font-semibold text-black/80"
+                  >
+                    <option value="classic">Classic</option>
+                    <option value="party">Party</option>
+                  </select>
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={handleResetTeams}
+                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+                  >
+                    Reset teams
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRandomizeTeams}
+                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+                  >
+                    Shuffle teams
+                  </button>
+                </div>
+
+                <div className="rounded-[18px] border border-white/10 bg-[#15181f] p-4">
+                  <p className="text-sm text-white/75">
+                    Room creator is admin. Save a custom word pool for this
+                    game.
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <label className="block text-sm text-white/80">
+                      Pool language
+                      <select
+                        value={wordPoolLanguage}
+                        onChange={(event) =>
+                          setWordPoolLanguage(
+                            event.target.value === "fa" ? "fa" : "en",
+                          )
+                        }
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
+                      >
+                        <option value="fa">Farsi</option>
+                        <option value="en">English</option>
+                      </select>
+                    </label>
+
+                    <label className="block text-sm text-white/80">
+                      Words
+                      <textarea
+                        value={wordPoolWords}
+                        onChange={(event) =>
+                          setWordPoolWords(event.target.value)
+                        }
+                        rows={6}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
+                        placeholder="Enter one word per line, comma-separated, or semicolon-separated"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleWordPoolSave}
+                      disabled={wordPoolSaving}
+                      className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {wordPoolSaving ? "Saving..." : "Save word pool"}
+                    </button>
+                  </div>
+
+                  {wordPools.length > 0 ? (
+                    <div className="mt-4 space-y-3 rounded-3xl border border-white/10 bg-(--app-background) p-4 text-sm text-(--app-text)">
+                      <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+                        Saved pools
+                      </p>
+                      {wordPools.map((pool) => (
+                        <div
+                          key={`${pool.name}-${pool.language}`}
+                          className="rounded-3xl border border-white/10 bg-(--app-surface) p-3"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-sm text-(--app-text)">
+                            <span>{pool.name}</span>
+                            <span className="rounded-full bg-(--app-border)/20 px-2 py-1 text-xs text-(--app-muted)">
+                              {pool.language.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-(--app-muted)">
+                            {pool.words.length} words •{" "}
+                            {pool.isDefault ? "Default" : "Saved"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSettingsSave}
+                  disabled={!isOwner || hostActionPending}
+                  className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {hostActionPending ? "Saving..." : "Save game settings"}
+                </button>
+              </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1223,13 +1078,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 >
                   <div className="mb-2 flex items-center justify-center gap-1">
                     {bluePlayers.slice(0, 4).map((p) => (
-                      <img
+                      <div
                         key={p.userId}
-                        alt={p.displayName}
                         title={p.displayName}
-                        src={getPlayerAvatarUrl(p)}
-                        className="h-7 w-7 rounded-full border border-white/20"
-                      />
+                        aria-label={p.displayName}
+                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                      >
+                        {avatarEmojiForPlayer(p)}
+                      </div>
                     ))}
                   </div>
                   <span className="block text-sm">Join team</span>
@@ -1247,13 +1103,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 >
                   <div className="mb-2 flex items-center justify-center gap-1">
                     {redPlayers.slice(0, 4).map((p) => (
-                      <img
+                      <div
                         key={p.userId}
-                        alt={p.displayName}
                         title={p.displayName}
-                        src={getPlayerAvatarUrl(p)}
-                        className="h-7 w-7 rounded-full border border-white/20"
-                      />
+                        aria-label={p.displayName}
+                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                      >
+                        {avatarEmojiForPlayer(p)}
+                      </div>
                     ))}
                   </div>
                   <span className="block text-sm">Join team</span>
@@ -1273,13 +1130,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 >
                   <div className="mb-2 flex items-center justify-center gap-1">
                     {bluePlayers.slice(0, 4).map((p) => (
-                      <img
+                      <div
                         key={p.userId}
-                        alt={p.displayName}
                         title={p.displayName}
-                        src={getPlayerAvatarUrl(p)}
-                        className="h-7 w-7 rounded-full border border-white/20"
-                      />
+                        aria-label={p.displayName}
+                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                      >
+                        {avatarEmojiForPlayer(p)}
+                      </div>
                     ))}
                   </div>
                   <span className="block text-sm">Join team</span>
@@ -1297,13 +1155,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 >
                   <div className="mb-2 flex items-center justify-center gap-1">
                     {redPlayers.slice(0, 4).map((p) => (
-                      <img
+                      <div
                         key={p.userId}
-                        alt={p.displayName}
                         title={p.displayName}
-                        src={getPlayerAvatarUrl(p)}
-                        className="h-7 w-7 rounded-full border border-white/20"
-                      />
+                        aria-label={p.displayName}
+                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                      >
+                        {avatarEmojiForPlayer(p)}
+                      </div>
                     ))}
                   </div>
                   <span className="block text-sm">Join team</span>

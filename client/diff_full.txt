@@ -1,0 +1,354 @@
+﻿diff --git a/client/src/pages/Lobby/Lobby.tsx b/client/src/pages/Lobby/Lobby.tsx
+index 2c54f44..9a87678 100644
+--- a/client/src/pages/Lobby/Lobby.tsx
++++ b/client/src/pages/Lobby/Lobby.tsx
+@@ -42,113 +42,12 @@ interface SettingsFormState {
+   maxPlayers: number;
+   allowSpectators: boolean;
+   privateRoom: boolean;
+-  gameMode: "standard" | "rush";
+-  timer: "none" | "30" | "60" | "90";
+-  language: "fa" | "en" | "es" | "he";
+-  wordPack: "classic" | "party";
+-}
+-
+-type HostControlAction =
+-  | "game-mode"
+-  | "timer"
+-  | "language"
+-  | "word-pack"
+-  | "shuffle"
+-  | "reset";
+-
+-function getReadinessIssues(room: Room | null): string[] {
+-  if (!room) {
+-    return [];
+-  }
+-
+-  const issues: string[] = [];
+-
+-  const activePlayers = room.players.filter((player) => player.team !== null);
+-  if (activePlayers.length < ROOM_MIN_PLAYERS) {
+-    issues.push(`At least ${ROOM_MIN_PLAYERS} players are required.`);
+-  }
+-
+-  if (!room.players.some((player) => player.team === "red")) {
+-    issues.push("At least one player must join the Red team.");
+-  }
+-
+-  if (!room.players.some((player) => player.team === "blue")) {
+-    issues.push("At least one player must join the Blue team.");
+-  }
+-
+-  const redSpymasters = room.players.filter(
+-    (player) => player.team === "red" && player.role === "spymaster",
+-  );
+-  const blueSpymasters = room.players.filter(
+-    (player) => player.team === "blue" && player.role === "spymaster",
+-  );
+-
+-  if (redSpymasters.length !== 1) {
+-    issues.push("Red team must have exactly one Spymaster.");
+-  }
+-
+-  if (blueSpymasters.length !== 1) {
+-    issues.push("Blue team must have exactly one Spymaster.");
++  function handleSettingsChange<K extends keyof SettingsFormState>(
++    field: K,
++    value: SettingsFormState[K],
++  ) {
++    setSettingsForm((current) => ({ ...current, [field]: value }));
+   }
+-
+-  room.players.forEach((player) => {
+-    if (!player.team && !room.settings.allowSpectators) {
+-      issues.push(`${player.displayName} must select a team.`);
+-    }
+-  });
+-
+-  return issues;
+-}
+-
+-export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+-  const { user } = useAuthContext();
+-  const { registerPopup, openPopup } = useHeaderPopup();
+-  const { room, loading, error, refreshLobby } = useLobby({ roomCode });
+-  const socket = useMemo(() => getSocketClient(), []);
+-  const [feedback, setFeedback] = useState<string | null>(null);
+-  const toast = useToast();
+-  const [activeHostAction, setActiveHostAction] =
+-    useState<HostControlAction | null>(null);
+-  const [hostActionPending, setHostActionPending] = useState(false);
+-  const [localRoom, setLocalRoom] = useState<Room | null>(null);
+-  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+-  const [avatarGenerating, setAvatarGenerating] = useState(false);
+-  const [wordPools, setWordPools] = useState<
+-    Array<{
+-      name: string;
+-      language: "fa" | "en";
+-      words: string[];
+-      isDefault: boolean;
+-      createdAt: string;
+-      updatedAt: string;
+-    }>
+-  >([]);
+-  const [wordPoolName, setWordPoolName] = useState("");
+-  const [wordPoolLanguage, setWordPoolLanguage] = useState<"fa" | "en">("fa");
+-  const [wordPoolWords, setWordPoolWords] = useState("");
+-  const [wordPoolAdminKey, setWordPoolAdminKey] = useState("");
+-  const [wordPoolSaving, setWordPoolSaving] = useState(false);
+-  const [hostControlDraft, setHostControlDraft] = useState<{
+-    gameMode: "standard" | "rush";
+-    timer: "none" | "30" | "60" | "90";
+-    language: "fa" | "en" | "es" | "he";
+-    wordPack: "classic" | "party";
+-  }>({
+-    gameMode: "standard",
+-    timer: "60",
+-    language: "en",
+-    wordPack: "classic",
+-  });
+-  const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
+-    maxPlayers: ROOM_MAX_PLAYERS,
+-    allowSpectators: false,
+-    privateRoom: false,
+-    gameMode: "standard",
+-    timer: "60",
+-    language: "en",
+-    wordPack: "classic",
+-  });
+-
+   useEffect(() => {
+     const displayRoom = localRoom ?? room;
+     if (displayRoom) {
+@@ -161,12 +60,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+         language: displayRoom.settings.language,
+         wordPack: displayRoom.settings.wordPack,
+       });
+-      setHostControlDraft({
+-        gameMode: displayRoom.settings.gameMode,
+-        timer: displayRoom.settings.timer,
+-        language: displayRoom.settings.language,
+-        wordPack: displayRoom.settings.wordPack,
+-      });
+     }
+   }, [room, localRoom]);
+ 
+@@ -377,26 +270,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+     toast.info("Transferring room ownership...");
+   }
+ 
+-  function handleHostControl(action: HostControlAction) {
+-    if (!room || !user) {
+-      toast.error("Socket connection is unavailable.");
+-      return;
+-    }
+-
+-    const labelMap: Record<HostControlAction, string> = {
+-      "game-mode": "Game mode",
+-      timer: "Timer",
+-      language: "Language",
+-      "word-pack": "Word pack",
+-      shuffle: "Shuffle teams",
+-      reset: "Reset teams",
+-    };
+-
+-    setActiveHostAction(action);
+-    toast.info(`${labelMap[action]} settings opened.`);
+-    openPopup();
+-  }
+-
+   async function handleWordPoolSave() {
+     if (!room || !user) {
+       setFeedback("Socket connection is unavailable.");
+@@ -413,11 +286,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+       return;
+     }
+ 
+-    if (!wordPoolAdminKey.trim()) {
+-      setFeedback("Admin key is required to save a word pool.");
+-      return;
+-    }
+-
+     setWordPoolSaving(true);
+     try {
+       const response = await fetch("/api/words/pools", {
+@@ -428,7 +296,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+           language: wordPoolLanguage,
+           words: wordPoolWords.split(/\r?\n|,|;|\t/).map((word) => word.trim()),
+           isDefault: true,
+-          adminKey: wordPoolAdminKey,
+         }),
+       });
+ 
+@@ -583,7 +450,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+       shuffle: "Shuffle teams",
+       reset: "Reset teams",
+     };
+-    toast.success(`${labelMap[selected]} settings sent to the room.`);
++    toast.success("Settings sent to the room.");
+   }
+ 
+   function handleSettingsChange<K extends keyof SettingsFormState>(
+@@ -1143,12 +1010,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+               </div>
+             </div>
+ 
+-            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-3 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
+-              <h2 className="text-center text-2xl font-black uppercase tracking-tight text-white">
+-                Game settings
+-              </h2>
++            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-4 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
++              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
++                <h2 className="text-2xl font-black uppercase tracking-tight text-white">
++                  Game settings
++                </h2>
++                <button
++                  type="button"
++                  onClick={() => openPopup()}
++                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#101720] px-4 py-2 text-sm font-semibold text-white"
++                >
++                  ΓÜÖ Settings
++                </button>
++              </div>
+ 
+-              <div className="mt-4 space-y-3">
++              <div className="mt-4 space-y-4">
+                 <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black">
+                   <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
+                     Language
+@@ -1191,24 +1067,117 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
+                     <option value="90">90s</option>
+                   </select>
+                 </label>
+-              </div>
+-            </div>
+ 
+-            <div className="mt-5 grid grid-cols-2 gap-3">
+-              <button
+-                type="button"
+-                onClick={handleResetTeams}
+-                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+-              >
+-                Reset teams
+-              </button>
+-              <button
+-                type="button"
+-                onClick={handleRandomizeTeams}
+-                className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+-              >
+-                Randomize
+-              </button>
++                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-3 text-left text-black">
++                  <span className="text-sm font-semibold uppercase tracking-[0.18em] text-black/80">
++                    Word pack
++                  </span>
++                  <select
++                    value={settingsForm.wordPack}
++                    onChange={(e) =>
++                      handleInlineUpdate("wordPack", e.target.value as any)
++                    }
++                    disabled={!isOwner}
++                    className="ml-4 appearance-none bg-transparent text-base font-semibold text-black/80"
++                  >
++                    <option value="classic">Classic</option>
++                    <option value="party">Party</option>
++                  </select>
++                </label>
++
++                <div className="grid gap-3 sm:grid-cols-2">
++                  <button
++                    type="button"
++                    onClick={handleResetTeams}
++                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
++                  >
++                    Reset teams
++                  </button>
++                  <button
++                    type="button"
++                    onClick={handleRandomizeTeams}
++                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
++                  >
++                    Shuffle teams
++                  </button>
++                </div>
++
++                <div className="rounded-[18px] border border-white/10 bg-[#15181f] p-4">
++                  <p className="text-sm text-white/75">
++                    Room creator is admin. Save a custom word pool for this game.
++                  </p>
++                  <div className="mt-4 space-y-4">
++                    <label className="block text-sm text-white/80">
++                      Pool language
++                      <select
++                        value={wordPoolLanguage}
++                        onChange={(event) =>
++                          setWordPoolLanguage(
++                            event.target.value === "fa" ? "fa" : "en",
++                          )
++                        }
++                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
++                      >
++                        <option value="fa">Farsi</option>
++                        <option value="en">English</option>
++                      </select>
++                    </label>
++
++                    <label className="block text-sm text-white/80">
++                      Words
++                      <textarea
++                        value={wordPoolWords}
++                        onChange={(event) => setWordPoolWords(event.target.value)}
++                        rows={6}
++                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
++                        placeholder="Enter one word per line, comma-separated, or semicolon-separated"
++                      />
++                    </label>
++
++                    <button
++                      type="button"
++                      onClick={handleWordPoolSave}
++                      disabled={wordPoolSaving}
++                      className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
++                    >
++                      {wordPoolSaving ? "Saving..." : "Save word pool"}
++                    </button>
++                  </div>
++
++                  {wordPools.length > 0 ? (
++                    <div className="mt-4 space-y-3 rounded-3xl border border-white/10 bg-(--app-background) p-4 text-sm text-(--app-text)">
++                      <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
++                        Saved pools
++                      </p>
++                      {wordPools.map((pool) => (
++                        <div
++                          key={`${pool.name}-${pool.language}`}
++                          className="rounded-3xl border border-white/10 bg-(--app-surface) p-3"
++                        >
++                          <div className="flex items-center justify-between gap-2 text-sm text-(--app-text)">
++                            <span>{pool.name}</span>
++                            <span className="rounded-full bg-(--app-border)/20 px-2 py-1 text-xs text-(--app-muted)">
++                              {pool.language.toUpperCase()}
++                            </span>
++                          </div>
++                          <p className="mt-2 text-xs text-(--app-muted)">
++                            {pool.words.length} words ΓÇó {pool.isDefault ? "Default" : "Saved"}
++                          </p>
++                        </div>
++                      ))}
++                    </div>
++                  ) : null}
++                </div>
++
++                <button
++                  type="button"
++                  onClick={handleSettingsSave}
++                  disabled={!isOwner || hostActionPending}
++                  className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
++                >
++                  {hostActionPending ? "Saving..." : "Save game settings"}
++                </button>
++              </div>
+             </div>
+ 
+             <div className="mt-5 grid grid-cols-2 gap-3">
