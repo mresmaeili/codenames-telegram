@@ -390,13 +390,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 wordPoolWords={wordPoolWords}
                 wordPoolSaving={wordPoolSaving}
                 wordPools={wordPools}
-                onWordPoolLanguageChange={(language) => setWordPoolLanguage(language)}
+                onWordPoolLanguageChange={(language) =>
+                  setWordPoolLanguage(language)
+                }
                 onWordPoolWordsChange={setWordPoolWords}
                 onWordPoolSave={handleWordPoolSave}
                 onResetTeams={handleResetTeams}
                 onRandomizeTeams={handleRandomizeTeams}
                 onSaveSettings={handleSettingsSave}
               />
+            </div>
 
             <LobbyAssignmentsPanel
               bluePlayers={bluePlayers}
@@ -418,5 +421,3 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     </PageContainer>
   );
 }
-
-
