@@ -38,23 +38,7 @@ export function SettingsPopup({
           </button>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2 rounded-3xl bg-(--app-surface) p-3 text-sm text-(--app-muted)">
-          {[
-            { label: "Admin", active: true },
-            { label: "Player", active: false },
-            { label: "Preferences", active: false },
-            { label: "Accessibility", active: false },
-          ].map((tab) => (
-            <button
-              key={tab.label}
-              type="button"
-              disabled={!tab.active}
-              className={`rounded-full px-3 py-2 font-semibold ${tab.active ? "bg-(--app-background) text-(--app-text) shadow-sm" : "bg-transparent text-(--app-muted) opacity-70"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Tabs removed — settings displayed via registered popup content only */}
 
         <div className="space-y-3">{children}</div>
       </div>

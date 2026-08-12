@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
+import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
@@ -103,23 +104,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
   const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
+  const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [feedback, setFeedback] = useState<string | null>(null);
   const toast = useToast();
   const [hostActionPending, setHostActionPending] = useState(false);
   const [avatarGenerating, setAvatarGenerating] = useState(false);
-  const [wordPools, setWordPools] = useState<
-    Array<{
-      name: string;
-      language: "fa" | "en";
-      words: string[];
-      isDefault: boolean;
-      createdAt: string;
-      updatedAt: string;
-    }>
-  >([]);
-  const [wordPoolLanguage, setWordPoolLanguage] = useState<"fa" | "en">("fa");
-  const [wordPoolWords, setWordPoolWords] = useState("");
-  const [wordPoolSaving, setWordPoolSaving] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: 16,
     allowSpectators: false,
@@ -129,6 +118,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     language: "en",
     wordPack: "classic",
   });
+  const [settingsPopupAction, setSettingsPopupAction] =
+    useState<HostControlAction | null>(null);
 
   useEffect(() => {
     if (!room) {
@@ -137,27 +128,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     setSettingsForm(room.settings);
   }, [room]);
-
-  useEffect(() => {
-    async function loadWordPools() {
-      try {
-        const response = await fetch("/api/words/pools");
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = (await response.json()) as {
-          pools?: typeof wordPools;
-        };
-
-        setWordPools(payload.pools ?? []);
-      } catch {
-        // Ignore fetch errors for optional word pool loading.
-      }
-    }
-
-    void loadWordPools();
-  }, []);
 
   const currentPlayer = room?.players.find(
     (player) => player.telegramId === user?.telegramId,
@@ -235,63 +205,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast.info("Adding bot to the room...");
   }
 
-  async function handleWordPoolSave() {
-    if (!wordPoolWords.trim()) {
-      toast.error("Enter pool words before saving.");
-      return;
-    }
+  function handleOpenSettingsPopup(action: HostControlAction) {
+    setSettingsPopupAction(action);
+    openPopup();
+  }
 
-    const words = wordPoolWords
-      .split(/[,;\n]+/)
-      .map((word) => word.trim())
-      .filter(Boolean);
-
-    if (words.length < 25) {
-      toast.error("At least 25 words are required.");
-      return;
-    }
-
-    setWordPoolSaving(true);
-
-    try {
-      const response = await fetch("/api/words/pools", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: `Custom pool ${new Date().toISOString().slice(0, 10)}`,
-          language: wordPoolLanguage,
-          words,
-          isDefault: false,
-          adminKey: "",
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        const message =
-          payload && typeof payload.message === "string"
-            ? payload.message
-            : "Unable to save word pool.";
-        toast.error(message);
-        return;
-      }
-
-      toast.success("Word pool saved successfully.");
-      setWordPoolWords("");
-      const fetchResponse = await fetch("/api/words/pools");
-      if (fetchResponse.ok) {
-        const payload = (await fetchResponse.json()) as {
-          pools?: typeof wordPools;
-        };
-        setWordPools(payload.pools ?? []);
-      }
-    } catch {
-      toast.error("Unable to save word pool.");
-    } finally {
-      setWordPoolSaving(false);
-    }
+  function handleCloseSettingsPopup() {
+    setSettingsPopupAction(null);
+    closePopup();
   }
 
   function handleSettingsSave() {
@@ -314,6 +235,157 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast.info("Saving game settings...");
     window.setTimeout(() => setHostActionPending(false), 1200);
   }
+
+  useEffect(() => {
+    if (!settingsPopupAction || !room) {
+      return;
+    }
+
+    const titleMap: Record<HostControlAction, string> = {
+      "game-mode": "Game mode",
+      timer: "Timer",
+      language: "Language",
+      "word-pack": "Word pack",
+      shuffle: "Shuffle teams",
+      reset: "Reset teams",
+    };
+
+    const title = titleMap[settingsPopupAction] ?? "Setting";
+
+    registerPopup(
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+            {title}
+          </div>
+          <button
+            type="button"
+            onClick={handleCloseSettingsPopup}
+            className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
+          >
+            Close
+          </button>
+        </div>
+
+        {!isOwner ? (
+          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
+            Only the room owner can change settings.
+          </div>
+        ) : null}
+
+        {settingsPopupAction === "language" ? (
+          <div className="space-y-3">
+            {[
+              { value: "en", label: "English" },
+              { value: "fa", label: "Farsi" },
+              { value: "es", label: "Spanish" },
+              { value: "he", label: "Hebrew" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setSettingsForm((current) => ({
+                    ...current,
+                    language: option.value as SettingsFormState["language"],
+                  }))
+                }
+                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
+                  settingsForm.language === option.value
+                    ? "border-[#2cc86c] bg-white/10 text-white"
+                    : "border-white/10 bg-(--app-background) text-(--app-text)"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : settingsPopupAction === "timer" ? (
+          <div className="space-y-3">
+            {[
+              { value: "none", label: "OFF" },
+              { value: "30", label: "30s" },
+              { value: "60", label: "60s" },
+              { value: "90", label: "90s" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setSettingsForm((current) => ({
+                    ...current,
+                    timer: option.value as SettingsFormState["timer"],
+                  }))
+                }
+                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
+                  settingsForm.timer === option.value
+                    ? "border-[#2cc86c] bg-white/10 text-white"
+                    : "border-white/10 bg-(--app-background) text-(--app-text)"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : settingsPopupAction === "word-pack" ? (
+          <div className="space-y-3">
+            {[
+              { value: "classic", label: "Classic" },
+              { value: "party", label: "Party" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setSettingsForm((current) => ({
+                    ...current,
+                    wordPack: option.value as SettingsFormState["wordPack"],
+                  }))
+                }
+                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
+                  settingsForm.wordPack === option.value
+                    ? "border-[#2cc86c] bg-white/10 text-white"
+                    : "border-white/10 bg-(--app-background) text-(--app-text)"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              handleSettingsSave();
+              handleCloseSettingsPopup();
+            }}
+            disabled={!isOwner}
+            className="flex-1 rounded-full bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Save settings
+          </button>
+          <button
+            type="button"
+            onClick={handleCloseSettingsPopup}
+            className="flex-1 rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold"
+          >
+            Close
+          </button>
+        </div>
+      </div>,
+      title,
+    );
+  }, [
+    registerPopup,
+    settingsPopupAction,
+    settingsForm,
+    isOwner,
+    room,
+    handleSettingsSave,
+    handleCloseSettingsPopup,
+  ]);
 
   function handleAssignmentChange(
     nextTeam: "blue" | "red",
@@ -526,18 +598,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 settingsForm={settingsForm}
                 isOwner={isOwner}
                 hostActionPending={hostActionPending}
-                wordPoolLanguage={wordPoolLanguage}
-                wordPoolWords={wordPoolWords}
-                wordPoolSaving={wordPoolSaving}
-                wordPools={wordPools}
-                onWordPoolLanguageChange={(language) =>
-                  setWordPoolLanguage(language)
-                }
-                onWordPoolWordsChange={setWordPoolWords}
-                onWordPoolSave={handleWordPoolSave}
                 onResetTeams={handleResetTeams}
                 onRandomizeTeams={handleRandomizeTeams}
                 onSaveSettings={handleSettingsSave}
+                onOpenLanguageSettings={() =>
+                  handleOpenSettingsPopup("language")
+                }
+                onOpenTimerSettings={() => handleOpenSettingsPopup("timer")}
+                onOpenWordPackSettings={() =>
+                  handleOpenSettingsPopup("word-pack")
+                }
               />
             </div>
 
