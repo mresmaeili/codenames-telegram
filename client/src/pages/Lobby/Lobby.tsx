@@ -3,12 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
-import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
+import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
+import { LobbySettingsPanel } from "./LobbySettingsPanel";
 import { ROOM_MIN_PLAYERS } from "../../../../shared/src/constants/room";
 import type { PlayerRole, Room, Team } from "../../../../shared/src/types/room";
 
@@ -36,7 +37,7 @@ interface LobbyPageProps {
   onGameStart: () => void;
 }
 
-interface SettingsFormState {
+export interface SettingsFormState {
   maxPlayers: number;
   allowSpectators: boolean;
   privateRoom: boolean;
@@ -100,7 +101,6 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
-  const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -119,7 +119,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       updatedAt: string;
     }>
   >([]);
-  const [wordPoolName, setWordPoolName] = useState("");
   const [wordPoolLanguage, setWordPoolLanguage] = useState<"fa" | "en">("fa");
   const [wordPoolWords, setWordPoolWords] = useState("");
   const [wordPoolSaving, setWordPoolSaving] = useState(false);
@@ -132,445 +131,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     language: "en",
     wordPack: "classic",
   });
-
-  useEffect(() => {
-    const displayRoom = localRoom ?? room;
-    if (displayRoom) {
-      setSettingsForm({
-        maxPlayers: displayRoom.settings.maxPlayers,
-        allowSpectators: displayRoom.settings.allowSpectators,
-        privateRoom: displayRoom.settings.privateRoom,
-        gameMode: displayRoom.settings.gameMode,
-        timer: displayRoom.settings.timer,
-        language: displayRoom.settings.language,
-        wordPack: displayRoom.settings.wordPack,
-      });
-    }
-  }, [room, localRoom]);
-
-  useEffect(() => {
-    if (!socket) {
-      return;
-    }
-
-    function handleRoomError(payload: { message?: unknown }) {
-      if (payload && typeof payload.message === "string") {
-        setFeedback(payload.message);
-        toast.error(payload.message);
-        setHostActionPending(false);
-        setLocalRoom(null);
-      }
-    }
-
-    function handleRoomStarting(room: Room) {
-      if (room.status === "playing") {
-        onGameStart();
-      }
-      // any room update from the server should clear pending host actions
-      setHostActionPending(false);
-      setLocalRoom(null);
-      // show success when server confirms settings/room updates
-      toast.success("Room updated.");
-    }
-
-    socket.on("room:error", handleRoomError);
-    socket.on("room:updated", handleRoomStarting);
-    return () => {
-      socket.off("room:error", handleRoomError);
-      socket.off("room:updated", handleRoomStarting);
-    };
-  }, [socket, onGameStart]);
-
-  useEffect(() => {
-    if (!socket || !room || !user || hasJoinedRoom) {
-      return;
-    }
-
-    if (socket.connected) {
-      socket.emit("room:join", {
-        roomCode: room.roomCode,
-        telegramId: user.telegramId,
-        displayName: user.firstName,
-      });
-      setHasJoinedRoom(true);
-    }
-  }, [socket, room, user, hasJoinedRoom]);
-
-  useEffect(() => {
-    void fetchWordPools();
-  }, []);
-
-  function handleLeave() {
-    if (!socket || !room) {
-      onLeave();
-      return;
-    }
-
-    const leavingPlayer = room.players.find(
-      (player) => player.telegramId === user?.telegramId,
-    );
-
-    socket.emit("room:leave", {
-      roomCode: room.roomCode,
-      userId: leavingPlayer?.userId ?? user?.telegramId?.toString() ?? "",
-    });
-    onLeave();
-  }
-
-  function handleAssignmentChange(
-    nextTeam: AssignmentTeam,
-    nextRole: PlayerRole,
-  ) {
-    if (!socket || !room || !user) {
-      toast.error("Socket connection is unavailable.");
-      return;
-    }
-
-    socket.emit("room:updateTeam", {
-      roomCode: room.roomCode,
-      telegramId: user.telegramId,
-      team: nextTeam,
-      role: nextRole,
-    });
-
-    setFeedback(
-      nextTeam
-        ? `Updated assignment to ${nextTeam} • ${nextRole}.`
-        : "Updated assignment to Spectator.",
-    );
-  }
-
-  function handleSettingsSave() {
-    if (!socket || !room || !user) {
-      setFeedback("Socket connection is unavailable.");
-      return;
-    }
-    // basic validation
-    if (
-      typeof settingsForm.allowSpectators !== "boolean" ||
-      typeof settingsForm.privateRoom !== "boolean"
-    ) {
-      setFeedback("Invalid settings values.");
-      return;
-    }
-
-    setHostActionPending(true);
-    // optimistic update: show the pending settings immediately in the UI
-    if (room) {
-      setLocalRoom({
-        ...room,
-        settings: {
-          maxPlayers: settingsForm.maxPlayers,
-          allowSpectators: settingsForm.allowSpectators,
-          privateRoom: settingsForm.privateRoom,
-          gameMode: settingsForm.gameMode,
-          timer: settingsForm.timer,
-          language: settingsForm.language,
-          wordPack: settingsForm.wordPack,
-        },
-      });
-    }
-    socket.emit("room:updateSettings", {
-      roomCode: room.roomCode,
-      ownerTelegramId: user.telegramId,
-      settings: {
-        maxPlayers: settingsForm.maxPlayers,
-        allowSpectators: settingsForm.allowSpectators,
-        privateRoom: settingsForm.privateRoom,
-        gameMode: settingsForm.gameMode,
-        timer: settingsForm.timer,
-        language: settingsForm.language,
-        wordPack: settingsForm.wordPack,
-      },
-    });
-
-    toast.info("Updating room settings...");
-  }
-
-  async function handleInlineUpdate<K extends keyof SettingsFormState>(
-    field: K,
-    value: SettingsFormState[K],
-  ) {
-    if (!socket || !room || !user) {
-      toast.error("Socket connection is unavailable.");
-      return;
-    }
-
-    if (!isOwner) {
-      toast.error("Only the room owner can change this setting.");
-      return;
-    }
-
-    const nextSettings: SettingsFormState = {
-      ...settingsForm,
-      [field]: value,
-    } as SettingsFormState;
-
-    setSettingsForm(nextSettings);
-    // optimistic UI
-    setLocalRoom((current) =>
-      current && room
-        ? {
-            ...room,
-            settings: nextSettings,
-          }
-        : current,
-    );
-
-    socket.emit("room:updateSettings", {
-      roomCode: room.roomCode,
-      ownerTelegramId: user.telegramId,
-      settings: nextSettings,
-    });
-
-    toast.info("Updating room settings...");
-  }
-
-  function handleTransferOwnership(targetTelegramId: number) {
-    if (!socket || !room || !user) {
-      toast.error("Socket connection is unavailable.");
-      return;
-    }
-
-    socket.emit("room:transferOwner", {
-      roomCode: room.roomCode,
-      ownerTelegramId: user.telegramId,
-      targetTelegramId,
-    });
-    toast.info("Transferring room ownership...");
-  }
-
-  async function handleWordPoolSave() {
-    if (!room || !user) {
-      setFeedback("Socket connection is unavailable.");
-      return;
-    }
-
-    if (!wordPoolWords.trim()) {
-      setFeedback("Enter at least 25 words for the pool.");
-      return;
-    }
-
-    setWordPoolSaving(true);
-    try {
-      const response = await fetch("/api/words/pools", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: wordPoolName || "Custom pool",
-          language: wordPoolLanguage,
-          words: wordPoolWords.split(/\r?\n|,|;|\t/).map((word) => word.trim()),
-          isDefault: true,
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "Unable to save word pool.");
-      }
-
-      setWordPoolName("");
-      setWordPoolWords("");
-      setFeedback("Word pool saved successfully.");
-      toast.success("Word pool saved.");
-
-      if (Array.isArray(payload.pool?.words)) {
-        setWordPools((current) => [
-          {
-            name: String(payload.pool.name ?? wordPoolName),
-            language: payload.pool.language === "fa" ? "fa" : "en",
-            words: payload.pool.words.map(String),
-            isDefault: Boolean(payload.pool.isDefault),
-            createdAt: String(
-              payload.pool.createdAt ?? new Date().toISOString(),
-            ),
-            updatedAt: String(
-              payload.pool.updatedAt ?? new Date().toISOString(),
-            ),
-          },
-          ...current.filter((pool) => pool.name !== payload.pool.name),
-        ]);
-      } else {
-        void fetchWordPools();
-      }
-    } catch (error) {
-      setFeedback(
-        error instanceof Error ? error.message : "Unable to save word pool.",
-      );
-      toast.error(
-        error instanceof Error ? error.message : "Unable to save word pool.",
-      );
-    } finally {
-      setWordPoolSaving(false);
-    }
-  }
-
-  async function fetchWordPools() {
-    try {
-      const response = await fetch("/api/words/pools");
-      if (!response.ok) {
-        return;
-      }
-
-      const payload = await response.json();
-      if (Array.isArray(payload.pools)) {
-        setWordPools(
-          payload.pools.map((pool: any) => ({
-            name: String(pool.name ?? ""),
-            language: pool.language === "fa" ? "fa" : "en",
-            words: Array.isArray(pool.words) ? pool.words.map(String) : [],
-            isDefault: Boolean(pool.isDefault),
-            createdAt: String(pool.createdAt ?? ""),
-            updatedAt: String(pool.updatedAt ?? ""),
-          })),
-        );
-      }
-    } catch {
-      // ignore load errors
-    }
-  }
-
-  function handleSettingsChange<K extends keyof SettingsFormState>(
-    field: K,
-    value: SettingsFormState[K],
-  ) {
-    setSettingsForm((current) => ({ ...current, [field]: value }));
-  }
-
-  const currentPlayer = room?.players.find(
-    (player) => player.telegramId === user?.telegramId,
-  );
-  const ownerPlayers =
-    room?.players.filter((player) => room.ownerIds?.includes(player.userId)) ??
-    [];
-  const ownerPlayer = ownerPlayers[0] ?? null;
-  const isOwner = Boolean(
-    room && room.ownerIds?.includes(currentPlayer?.userId ?? ""),
-  );
-
-  useEffect(() => {
-    if (!room) {
-      return;
-    }
-
-    registerPopup(
-      <div className="space-y-5">
-        <div>
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-              Game settings
-            </p>
-            <button
-              type="button"
-              onClick={closePopup}
-              className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
-            >
-              Close
-            </button>
-          </div>
-          <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
-            <div className="mt-2">
-              {/* Removed: Maximum players, Allow spectators, Private room controls */}
-            </div>
-            {isOwner ? (
-              <button
-                type="button"
-                onClick={handleSettingsSave}
-                disabled={hostActionPending}
-                className="w-full rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-              >
-                {hostActionPending ? "Saving..." : "Save settings"}
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-            Word pools
-          </p>
-          <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
-            <p className="text-sm text-(--app-muted)">
-              Save a custom word pool for Farsi or English games. Saved pools
-              can be set as the default for future games.
-            </p>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Pool name
-              </span>
-              <input
-                value={wordPoolName}
-                onChange={(event) => setWordPoolName(event.target.value)}
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                placeholder="e.g. Farsi default pack"
-              />
-            </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Language
-              </span>
-              <select
-                value={wordPoolLanguage}
-                onChange={(event) =>
-                  setWordPoolLanguage(event.target.value === "fa" ? "fa" : "en")
-                }
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-              >
-                <option value="fa">Farsi</option>
-                <option value="en">English</option>
-              </select>
-            </label>
-            <label className="block rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                Words
-              </span>
-              <textarea
-                value={wordPoolWords}
-                onChange={(event) => setWordPoolWords(event.target.value)}
-                rows={6}
-                className="w-full rounded-2xl border border-(--app-border) bg-(--app-surface) px-3 py-2 text-(--app-text)"
-                placeholder="Enter one word per line, comma-separated, or semicolon-separated"
-              />
-            </label>
-
-            <button
-              type="button"
-              onClick={handleWordPoolSave}
-              disabled={wordPoolSaving}
-              className="w-full rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) disabled:opacity-60"
-            >
-              {wordPoolSaving ? "Saving..." : "Save word pool"}
-            </button>
-            {wordPools.length > 0 ? (
-              <div className="space-y-3 rounded-3xl border border-(--app-border) bg-(--app-background) p-4 text-sm text-(--app-text)">
-                <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                  Saved pools
-                </p>
-                {wordPools.map((pool) => (
-                  <div
-                    key={`${pool.name}-${pool.language}`}
-                    className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3"
-                  >
-                    <div className="flex items-center justify-between gap-2 text-sm text-(--app-text)">
-                      <span>{pool.name}</span>
-                      <span className="rounded-full bg-(--app-border)/20 px-2 py-1 text-xs text-(--app-muted)">
-                        {pool.language.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-(--app-muted)">
-                      {pool.words.length} words •{" "}
-                      {pool.isDefault ? "Default" : "Saved"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>,
-      "Room settings",
-    );
-  }, [registerPopup, room, settingsForm, isOwner, hostActionPending]);
 
   function handleStartGame() {
     if (!socket || !room || !user) {
@@ -743,16 +303,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         ) : room ? (
           <>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                aria-label="Room settings"
-                onClick={() => openPopup()}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-transparent text-3xl text-white"
-              >
-                ⚙
-              </button>
-            </div>
+            {/* Header gear removed — settings open via in-page '⚙ Settings' button below */}
 
             <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -829,302 +380,29 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 <h2 className="text-2xl font-black uppercase tracking-tight text-white">
                   Game settings
                 </h2>
-                <button
-                  type="button"
-                  onClick={() => openPopup()}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#101720] px-4 py-2 text-sm font-semibold text-white"
-                >
-                  ⚙ Settings
-                </button>
               </div>
 
-              <div className="mt-4 space-y-4">
-                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-3 text-left text-black">
-                  <span className="rounded-md bg-[#efe9dc] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
-                    Language
-                  </span>
-                  <select
-                    value={settingsForm.language}
-                    onChange={(e) =>
-                      handleInlineUpdate("language", e.target.value as any)
-                    }
-                    disabled={!isOwner}
-                    className="ml-4 appearance-none bg-transparent text-base font-semibold text-black/80"
-                  >
-                    <option value="fa">Farsi</option>
-                    <option value="en">English</option>
-                    <option value="es">Spanish</option>
-                    <option value="he">Hebrew</option>
-                  </select>
-                </label>
+              <LobbySettingsPanel
+                settingsForm={settingsForm}
+                isOwner={isOwner}
+                hostActionPending={hostActionPending}
+                wordPoolLanguage={wordPoolLanguage}
+                wordPoolWords={wordPoolWords}
+                wordPoolSaving={wordPoolSaving}
+                wordPools={wordPools}
+                onWordPoolLanguageChange={(language) => setWordPoolLanguage(language)}
+                onWordPoolWordsChange={setWordPoolWords}
+                onWordPoolSave={handleWordPoolSave}
+                onResetTeams={handleResetTeams}
+                onRandomizeTeams={handleRandomizeTeams}
+                onSaveSettings={handleSettingsSave}
+              />
 
-                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-3 text-left text-white">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f1ec] text-lg text-black">
-                      ⏱
-                    </div>
-                    <span className="text-xl font-black uppercase text-white">
-                      Timer
-                    </span>
-                  </div>
-                  <select
-                    value={settingsForm.timer}
-                    onChange={(e) =>
-                      handleInlineUpdate("timer", e.target.value as any)
-                    }
-                    disabled={!isOwner}
-                    className="ml-4 appearance-none bg-transparent text-lg font-bold text-white"
-                  >
-                    <option value="none">OFF</option>
-                    <option value="30">30s</option>
-                    <option value="60">60s</option>
-                    <option value="90">90s</option>
-                  </select>
-                </label>
-
-                <label className="flex w-full items-center justify-between rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-3 text-left text-black">
-                  <span className="text-sm font-semibold uppercase tracking-[0.18em] text-black/80">
-                    Word pack
-                  </span>
-                  <select
-                    value={settingsForm.wordPack}
-                    onChange={(e) =>
-                      handleInlineUpdate("wordPack", e.target.value as any)
-                    }
-                    disabled={!isOwner}
-                    className="ml-4 appearance-none bg-transparent text-base font-semibold text-black/80"
-                  >
-                    <option value="classic">Classic</option>
-                    <option value="party">Party</option>
-                  </select>
-                </label>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={handleResetTeams}
-                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
-                  >
-                    Reset teams
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRandomizeTeams}
-                    className="rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
-                  >
-                    Shuffle teams
-                  </button>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-[#15181f] p-4">
-                  <p className="text-sm text-white/75">
-                    Room creator is admin. Save a custom word pool for this
-                    game.
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    <label className="block text-sm text-white/80">
-                      Pool language
-                      <select
-                        value={wordPoolLanguage}
-                        onChange={(event) =>
-                          setWordPoolLanguage(
-                            event.target.value === "fa" ? "fa" : "en",
-                          )
-                        }
-                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
-                      >
-                        <option value="fa">Farsi</option>
-                        <option value="en">English</option>
-                      </select>
-                    </label>
-
-                    <label className="block text-sm text-white/80">
-                      Words
-                      <textarea
-                        value={wordPoolWords}
-                        onChange={(event) =>
-                          setWordPoolWords(event.target.value)
-                        }
-                        rows={6}
-                        className="mt-2 w-full rounded-2xl border border-white/10 bg-(--app-background) px-3 py-2 text-(--app-text)"
-                        placeholder="Enter one word per line, comma-separated, or semicolon-separated"
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleWordPoolSave}
-                      disabled={wordPoolSaving}
-                      className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                    >
-                      {wordPoolSaving ? "Saving..." : "Save word pool"}
-                    </button>
-                  </div>
-
-                  {wordPools.length > 0 ? (
-                    <div className="mt-4 space-y-3 rounded-3xl border border-white/10 bg-(--app-background) p-4 text-sm text-(--app-text)">
-                      <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-                        Saved pools
-                      </p>
-                      {wordPools.map((pool) => (
-                        <div
-                          key={`${pool.name}-${pool.language}`}
-                          className="rounded-3xl border border-white/10 bg-(--app-surface) p-3"
-                        >
-                          <div className="flex items-center justify-between gap-2 text-sm text-(--app-text)">
-                            <span>{pool.name}</span>
-                            <span className="rounded-full bg-(--app-border)/20 px-2 py-1 text-xs text-(--app-muted)">
-                              {pool.language.toUpperCase()}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-xs text-(--app-muted)">
-                            {pool.words.length} words •{" "}
-                            {pool.isDefault ? "Default" : "Saved"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSettingsSave}
-                  disabled={!isOwner || hostActionPending}
-                  className="w-full rounded-full border border-white/20 bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-                >
-                  {hostActionPending ? "Saving..." : "Save game settings"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
-                  Operatives
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("blue", "operative")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
-                >
-                  <div className="mb-2 flex items-center justify-center gap-3">
-                    {bluePlayers.slice(0, 4).map((p) => (
-                      <div
-                        key={p.userId}
-                        className="flex flex-col items-center"
-                      >
-                        <img
-                          src={avatarUrlForPlayer(p)}
-                          alt={p.displayName}
-                          title={p.displayName}
-                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
-                        />
-                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
-                          {p.displayName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="block text-sm">Join team</span>
-                </button>
-              </section>
-
-              <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
-                  Operatives
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("red", "operative")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
-                >
-                  <div className="mb-2 flex items-center justify-center gap-3">
-                    {redPlayers.slice(0, 4).map((p) => (
-                      <div
-                        key={p.userId}
-                        className="flex flex-col items-center"
-                      >
-                        <img
-                          src={avatarUrlForPlayer(p)}
-                          alt={p.displayName}
-                          title={p.displayName}
-                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
-                        />
-                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
-                          {p.displayName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="block text-sm">Join team</span>
-                </button>
-              </section>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
-                  Spymasters
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("blue", "spymaster")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
-                >
-                  <div className="mb-2 flex items-center justify-center gap-3">
-                    {bluePlayers.slice(0, 4).map((p) => (
-                      <div
-                        key={p.userId}
-                        className="flex flex-col items-center"
-                      >
-                        <img
-                          src={avatarUrlForPlayer(p)}
-                          alt={p.displayName}
-                          title={p.displayName}
-                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
-                        />
-                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
-                          {p.displayName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="block text-sm">Join team</span>
-                </button>
-              </section>
-
-              <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
-                <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
-                  Spymasters
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleAssignmentChange("red", "spymaster")}
-                  className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
-                >
-                  <div className="mb-2 flex items-center justify-center gap-3">
-                    {redPlayers.slice(0, 4).map((p) => (
-                      <div
-                        key={p.userId}
-                        className="flex flex-col items-center"
-                      >
-                        <img
-                          src={avatarUrlForPlayer(p)}
-                          alt={p.displayName}
-                          title={p.displayName}
-                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
-                        />
-                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
-                          {p.displayName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="block text-sm">Join team</span>
-                </button>
-              </section>
-            </div>
+            <LobbyAssignmentsPanel
+              bluePlayers={bluePlayers}
+              redPlayers={redPlayers}
+              onAssignmentChange={handleAssignmentChange}
+            />
 
             <button
               type="button"
@@ -1140,3 +418,5 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     </PageContainer>
   );
 }
+
+

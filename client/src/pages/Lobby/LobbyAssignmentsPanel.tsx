@@ -1,0 +1,101 @@
+import { avatarUrlForPlayer } from "@/lib/avatar";
+import type { Room } from "../../../../shared/src/types/room";
+
+interface LobbyAssignmentsPanelProps {
+  bluePlayers: Room["players"];
+  redPlayers: Room["players"];
+  onAssignmentChange: (
+    nextTeam: "blue" | "red",
+    nextRole: "operative" | "spymaster",
+  ) => void;
+}
+
+function PlayerList({ players }: { players: Room["players"] }) {
+  return (
+    <div className="mb-2 flex items-center justify-center gap-3">
+      {players.slice(0, 4).map((player) => (
+        <div key={player.userId} className="flex flex-col items-center">
+          <img
+            src={avatarUrlForPlayer(player)}
+            alt={player.displayName}
+            title={player.displayName}
+            className="h-9 w-9 rounded-full border border-white/20 object-cover"
+          />
+          <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
+            {player.displayName}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function LobbyAssignmentsPanel({
+  bluePlayers,
+  redPlayers,
+  onAssignmentChange,
+}: LobbyAssignmentsPanelProps) {
+  return (
+    <>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+          <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
+            Operatives
+          </p>
+          <button
+            type="button"
+            onClick={() => onAssignmentChange("blue", "operative")}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+          >
+            <PlayerList players={bluePlayers} />
+            <span className="block text-sm">Join team</span>
+          </button>
+        </section>
+
+        <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+          <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
+            Operatives
+          </p>
+          <button
+            type="button"
+            onClick={() => onAssignmentChange("red", "operative")}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+          >
+            <PlayerList players={redPlayers} />
+            <span className="block text-sm">Join team</span>
+          </button>
+        </section>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <section className="rounded-3xl bg-[#2f7ec7] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+          <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
+            Spymasters
+          </p>
+          <button
+            type="button"
+            onClick={() => onAssignmentChange("blue", "spymaster")}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+          >
+            <PlayerList players={bluePlayers} />
+            <span className="block text-sm">Join team</span>
+          </button>
+        </section>
+
+        <section className="rounded-3xl bg-[#ef5b5b] p-3 text-white shadow-[0_8px_16px_rgba(0,0,0,0.2)]">
+          <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
+            Spymasters
+          </p>
+          <button
+            type="button"
+            onClick={() => onAssignmentChange("red", "spymaster")}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+          >
+            <PlayerList players={redPlayers} />
+            <span className="block text-sm">Join team</span>
+          </button>
+        </section>
+      </div>
+    </>
+  );
+}
