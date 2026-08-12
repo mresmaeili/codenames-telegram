@@ -21,9 +21,6 @@ function PlayerList({ players }: { players: Room["players"] }) {
             title={player.displayName}
             className="h-9 w-9 rounded-full border border-white/20 object-cover"
           />
-          <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
-            {player.displayName}
-          </span>
         </div>
       ))}
     </div>
@@ -45,9 +42,20 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <PlayerList players={bluePlayers} />
+
+            {bluePlayers.length > 0 && (
+              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-2 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
+                {bluePlayers.map((p) => (
+                  <span key={p.userId} className="truncate">
+                    {p.displayName}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <span className="block text-sm">Join team</span>
           </button>
         </section>
@@ -59,9 +67,20 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <PlayerList players={redPlayers} />
+
+            {redPlayers.length > 0 && (
+              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-2 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
+                {redPlayers.map((p) => (
+                  <span key={p.userId} className="truncate">
+                    {p.displayName}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <span className="block text-sm">Join team</span>
           </button>
         </section>

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useMemo,
   useState,
+  useEffect,
 } from "react";
 
 interface HeaderPopupContextValue {
@@ -41,6 +42,20 @@ export function HeaderPopupProvider({
   const closePopup = useCallback(() => {
     setOpen(false);
   }, []);
+
+  // Close popup on Escape key for better keyboard accessibility
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   const value = useMemo(
     () => ({

@@ -258,13 +258,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
             {title}
           </div>
-          <button
-            type="button"
-            onClick={handleCloseSettingsPopup}
-            className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
-          >
-            Close
-          </button>
         </div>
 
         {!isOwner ? (
@@ -354,26 +347,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              handleSettingsSave();
-              handleCloseSettingsPopup();
-            }}
-            disabled={!isOwner}
-            className="flex-1 rounded-full bg-[#2cc86c] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            Save settings
-          </button>
-          <button
-            type="button"
-            onClick={handleCloseSettingsPopup}
-            className="flex-1 rounded-full border border-(--app-border) px-4 py-3 text-sm font-semibold"
-          >
-            Close
-          </button>
-        </div>
+        {/* actions removed — settings are applied immediately on option click; use header Close to dismiss */}
       </div>,
       title,
     );
