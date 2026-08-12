@@ -236,6 +236,24 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     window.setTimeout(() => setHostActionPending(false), 1200);
   }
 
+  // Small editor used inside the word-pack popup — accepts extra words.
+  function WordPackEditor() {
+    const [text, setText] = useState("");
+    return (
+      <div className="space-y-3">
+        <div className="text-sm text-(--app-muted)">
+          Add extra words (one per line)
+        </div>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full min-h-30 rounded-lg border border-white/10 bg-(--app-background) p-3 text-sm text-(--app-text) placeholder:text-white/40"
+          placeholder={"Enter words, one per line..."}
+        />
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (!settingsPopupAction || !room) {
       return;
@@ -259,12 +277,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             {title}
           </div>
         </div>
-
-        {!isOwner ? (
-          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
-            Only the room owner can change settings.
-          </div>
-        ) : null}
 
         {settingsPopupAction === "language" ? (
           <div className="space-y-3">
@@ -321,30 +333,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             ))}
           </div>
         ) : settingsPopupAction === "word-pack" ? (
-          <div className="space-y-3">
-            {[
-              { value: "classic", label: "Classic" },
-              { value: "party", label: "Party" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setSettingsForm((current) => ({
-                    ...current,
-                    wordPack: option.value as SettingsFormState["wordPack"],
-                  }))
-                }
-                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
-                  settingsForm.wordPack === option.value
-                    ? "border-[#2cc86c] bg-white/10 text-white"
-                    : "border-white/10 bg-(--app-background) text-(--app-text)"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <WordPackEditor />
         ) : null}
 
         {/* actions removed — settings are applied immediately on option click; use header Close to dismiss */}
@@ -454,7 +443,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-[480px] bg-[#070b12] px-3 pb-0 pt-0 text-white">
+      <div className="mx-auto w-full max-w-120 bg-[#070b12] px-3 pb-0 pt-0 text-white">
         {feedback ? (
           <div className="mb-4">
             <StatusPanel
@@ -509,65 +498,31 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   >
                     Copy code
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleCopyInvite}
-                    className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white"
-                  >
-                    Copy invite
-                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dfe7ef] text-xl text-black">
-                  👤
-                </div>
-                <span className="text-base font-semibold text-white">
-                  {user?.firstName ?? ownerPlayer?.displayName ?? "Player"}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!user?.telegramId) return;
-                    setAvatarGenerating(true);
-                    try {
-                      const resp = await fetch("/api/avatars/ghibli", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ telegramId: user.telegramId }),
-                      });
-                      if (!resp.ok) {
-                        toast.error("Avatar generation request failed.");
-                      } else {
-                        toast.info(
-                          "Avatar generation requested. Refreshing lobby...",
-                        );
-                        refreshLobby();
-                      }
-                    } catch (e) {
-                      toast.error("Avatar generation failed.");
-                    } finally {
-                      setAvatarGenerating(false);
-                    }
-                  }}
-                  className="ml-2 inline-flex items-center gap-2 rounded-full bg-[#101720] px-3 py-1 text-sm text-white"
-                  disabled={avatarGenerating}
-                >
-                  {avatarGenerating ? "Generating..." : "Refresh avatar"}
-                </button>
+            <div className="mt-4">
+              <div className="flex items-center gap-2 overflow-x-auto py-2">
+                {room.players.map((p) => (
+                  <div
+                    key={p.userId}
+                    className="flex items-center gap-3 rounded-full bg-white/5 px-3 py-2"
+                  >
+                    <img
+                      src={avatarUrlForPlayer(p)}
+                      alt={p.displayName}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                    <span className="whitespace-nowrap text-sm font-semibold text-white">
+                      {p.displayName}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-4 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-white">
-                  Game settings
-                </h2>
-              </div>
-
               <LobbySettingsPanel
                 settingsForm={settingsForm}
                 isOwner={isOwner}
@@ -585,20 +540,66 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               />
             </div>
 
+            <div className="my-4 flex gap-3">
+              <button
+                type="button"
+                onClick={handleResetTeams}
+                className="flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+              >
+                Reset teams
+              </button>
+              <button
+                type="button"
+                onClick={handleRandomizeTeams}
+                className="flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+              >
+                Shuffle teams
+              </button>
+            </div>
+
             <LobbyAssignmentsPanel
               bluePlayers={bluePlayers}
               redPlayers={redPlayers}
               onAssignmentChange={handleAssignmentChange}
             />
 
-            <button
-              type="button"
-              onClick={handleStartGame}
-              disabled={!isOwner || !isReady || room.status !== "waiting"}
-              className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)] disabled:opacity-60"
-            >
-              Start game
-            </button>
+            {!isOwner || !isReady || room.status !== "waiting" ? (
+              <div className="mt-4">
+                <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-3 text-sm text-white/90">
+                  <div className="font-bold mb-2">Cannot start game</div>
+                  <ul className="list-disc pl-5 text-sm">
+                    {!isOwner && (
+                      <li>Only the room owner can start the game.</li>
+                    )}
+                    {room.status !== "waiting" && (
+                      <li>
+                        Room status is "{room.status}" (must be "waiting").
+                      </li>
+                    )}
+                    {!isReady &&
+                      readinessIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                  </ul>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleStartGame}
+                  disabled={!isOwner || !isReady || room.status !== "waiting"}
+                  className="mt-4 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)] disabled:opacity-60"
+                >
+                  Start game
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartGame}
+                className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)]"
+              >
+                Start game
+              </button>
+            )}
           </>
         ) : null}
       </div>
