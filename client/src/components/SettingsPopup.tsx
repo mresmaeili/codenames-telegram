@@ -19,13 +19,13 @@ export function SettingsPopup({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3">
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-xl rounded-4xl bg-[#0f172a] p-4 shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto border border-white/10">
+      <div className="relative w-full max-w-full sm:max-w-xl rounded-4xl bg-[#0f172a] p-4 sm:p-6 shadow-2xl max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto border border-white/10">
         <div className="mb-4 flex items-start justify-between gap-3">
           <GameHeader compact title={title} playerCount={playerCount} />
           <button
@@ -40,7 +40,7 @@ export function SettingsPopup({
 
         {/* Tabs removed — settings displayed via registered popup content only */}
 
-        <div className="space-y-3">{children}</div>
+        <div className="space-y-3 sm:space-y-4">{children}</div>
       </div>
     </div>
   );

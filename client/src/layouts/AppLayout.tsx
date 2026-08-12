@@ -8,23 +8,26 @@ import {
 } from "@/context/HeaderPopupContext";
 
 function HeaderControls() {
-  const { hasContent, openPopup, open, closePopup, content, title } =
-    useHeaderPopup();
+  // Keep header controls minimal; popup is rendered separately so it's not
+  // constrained by the header's layout/stacking context.
   return (
-    <>
-      <div className="flex w-full items-center justify-between">
-        <div />
+    <div className="flex w-full items-center justify-between">
+      <div />
+    </div>
+  );
+}
 
-        <SettingsPopup
-          open={open}
-          title={title}
-          onClose={closePopup}
-          playerCount={undefined}
-        >
-          {content}
-        </SettingsPopup>
-      </div>
-    </>
+function PopupRenderer() {
+  const { open, title, closePopup, content } = useHeaderPopup();
+  return (
+    <SettingsPopup
+      open={open}
+      title={title}
+      onClose={closePopup}
+      playerCount={undefined}
+    >
+      {content}
+    </SettingsPopup>
   );
 }
 
@@ -38,6 +41,9 @@ export function AppLayout({ children }: PropsWithChildren) {
               <HeaderControls />
             </div>
           </header>
+
+          {/* Render popup outside the header so fixed centering works correctly */}
+          <PopupRenderer />
 
           <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {children}
