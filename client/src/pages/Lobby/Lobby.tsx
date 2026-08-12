@@ -9,10 +9,7 @@ import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
-import {
-  ROOM_MAX_PLAYERS,
-  ROOM_MIN_PLAYERS,
-} from "../../../../shared/src/constants/room";
+import { ROOM_MIN_PLAYERS } from "../../../../shared/src/constants/room";
 import type { PlayerRole, Room, Team } from "../../../../shared/src/types/room";
 
 type AssignmentTeam = Team | null;
@@ -103,7 +100,7 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
-  const { registerPopup, openPopup } = useHeaderPopup();
+  const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -127,7 +124,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const [wordPoolWords, setWordPoolWords] = useState("");
   const [wordPoolSaving, setWordPoolSaving] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
-    maxPlayers: ROOM_MAX_PLAYERS,
+    maxPlayers: 16,
     allowSpectators: false,
     privateRoom: false,
     gameMode: "standard",
@@ -248,22 +245,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       setFeedback("Socket connection is unavailable.");
       return;
     }
-    // client-side validation
-    if (!Number.isInteger(settingsForm.maxPlayers)) {
-      setFeedback("Maximum players must be a whole number.");
-      return;
-    }
-
-    if (
-      settingsForm.maxPlayers < ROOM_MIN_PLAYERS ||
-      settingsForm.maxPlayers > ROOM_MAX_PLAYERS
-    ) {
-      setFeedback(
-        `Maximum players must be between ${ROOM_MIN_PLAYERS} and ${ROOM_MAX_PLAYERS}.`,
-      );
-      return;
-    }
-
+    // basic validation
     if (
       typeof settingsForm.allowSpectators !== "boolean" ||
       typeof settingsForm.privateRoom !== "boolean"
@@ -364,11 +346,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    if (!wordPoolName.trim()) {
-      setFeedback("Word pool name is required.");
-      return;
-    }
-
     if (!wordPoolWords.trim()) {
       setFeedback("Enter at least 25 words for the pool.");
       return;
@@ -380,7 +357,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: wordPoolName,
+          name: wordPoolName || "Custom pool",
           language: wordPoolLanguage,
           words: wordPoolWords.split(/\r?\n|,|;|\t/).map((word) => word.trim()),
           isDefault: true,
@@ -479,66 +456,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     registerPopup(
       <div className="space-y-5">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-            Game settings
-          </p>
-          <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
-            <label
-              className="block text-sm font-medium text-(--app-text)"
-              htmlFor="maxPlayers"
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+              Game settings
+            </p>
+            <button
+              type="button"
+              onClick={closePopup}
+              className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
             >
-              Maximum players
-            </label>
-            <input
-              id="maxPlayers"
-              type="number"
-              min={ROOM_MIN_PLAYERS}
-              max={ROOM_MAX_PLAYERS}
-              value={settingsForm.maxPlayers}
-              onChange={(event) => {
-                const nextValue = Number(event.target.value);
-                if (Number.isNaN(nextValue)) {
-                  return;
-                }
-                handleSettingsChange("maxPlayers", nextValue);
-              }}
-              disabled={!isOwner}
-              className="mt-2 w-full rounded-2xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
-            />
-            <div className="flex items-center justify-between gap-4 rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <span className="text-sm text-(--app-text)">
-                Allow spectators
-              </span>
-              <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                <input
-                  type="checkbox"
-                  checked={settingsForm.allowSpectators}
-                  disabled={!isOwner}
-                  onChange={(event) =>
-                    handleSettingsChange(
-                      "allowSpectators",
-                      event.target.checked,
-                    )
-                  }
-                  className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                />
-                {settingsForm.allowSpectators ? "On" : "Off"}
-              </label>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-3xl border border-(--app-border) bg-(--app-background) p-4">
-              <span className="text-sm text-(--app-text)">Private room</span>
-              <label className="inline-flex items-center gap-2 text-sm text-(--app-muted)">
-                <input
-                  type="checkbox"
-                  checked={settingsForm.privateRoom}
-                  disabled={!isOwner}
-                  onChange={(event) =>
-                    handleSettingsChange("privateRoom", event.target.checked)
-                  }
-                  className="h-4 w-4 rounded border border-(--app-border) bg-(--app-background) text-(--app-text)"
-                />
-                {settingsForm.privateRoom ? "Yes" : "No"}
-              </label>
+              Close
+            </button>
+          </div>
+          <div className="mt-4 space-y-4 rounded-4xl border border-(--app-border) bg-(--app-surface) p-4">
+            <div className="mt-2">
+              {/* Removed: Maximum players, Allow spectators, Private room controls */}
             </div>
             {isOwner ? (
               <button
@@ -1076,15 +1008,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onClick={() => handleAssignmentChange("blue", "operative")}
                   className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  <div className="mb-2 flex items-center justify-center gap-1">
+                  <div className="mb-2 flex items-center justify-center gap-3">
                     {bluePlayers.slice(0, 4).map((p) => (
                       <div
                         key={p.userId}
-                        title={p.displayName}
-                        aria-label={p.displayName}
-                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                        className="flex flex-col items-center"
                       >
-                        {avatarEmojiForPlayer(p)}
+                        <img
+                          src={avatarUrlForPlayer(p)}
+                          alt={p.displayName}
+                          title={p.displayName}
+                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
+                        />
+                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
+                          {p.displayName}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1101,15 +1039,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onClick={() => handleAssignmentChange("red", "operative")}
                   className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  <div className="mb-2 flex items-center justify-center gap-1">
+                  <div className="mb-2 flex items-center justify-center gap-3">
                     {redPlayers.slice(0, 4).map((p) => (
                       <div
                         key={p.userId}
-                        title={p.displayName}
-                        aria-label={p.displayName}
-                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                        className="flex flex-col items-center"
                       >
-                        {avatarEmojiForPlayer(p)}
+                        <img
+                          src={avatarUrlForPlayer(p)}
+                          alt={p.displayName}
+                          title={p.displayName}
+                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
+                        />
+                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
+                          {p.displayName}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1128,15 +1072,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onClick={() => handleAssignmentChange("blue", "spymaster")}
                   className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  <div className="mb-2 flex items-center justify-center gap-1">
+                  <div className="mb-2 flex items-center justify-center gap-3">
                     {bluePlayers.slice(0, 4).map((p) => (
                       <div
                         key={p.userId}
-                        title={p.displayName}
-                        aria-label={p.displayName}
-                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                        className="flex flex-col items-center"
                       >
-                        {avatarEmojiForPlayer(p)}
+                        <img
+                          src={avatarUrlForPlayer(p)}
+                          alt={p.displayName}
+                          title={p.displayName}
+                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
+                        />
+                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
+                          {p.displayName}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1153,15 +1103,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onClick={() => handleAssignmentChange("red", "spymaster")}
                   className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
                 >
-                  <div className="mb-2 flex items-center justify-center gap-1">
+                  <div className="mb-2 flex items-center justify-center gap-3">
                     {redPlayers.slice(0, 4).map((p) => (
                       <div
                         key={p.userId}
-                        title={p.displayName}
-                        aria-label={p.displayName}
-                        className="h-7 w-7 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-sm"
+                        className="flex flex-col items-center"
                       >
-                        {avatarEmojiForPlayer(p)}
+                        <img
+                          src={avatarUrlForPlayer(p)}
+                          alt={p.displayName}
+                          title={p.displayName}
+                          className="h-9 w-9 rounded-full border border-white/20 object-cover"
+                        />
+                        <span className="mt-1 text-xs text-white/90 max-w-[64px] truncate text-center">
+                          {p.displayName}
+                        </span>
                       </div>
                     ))}
                   </div>

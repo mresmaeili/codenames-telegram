@@ -53,7 +53,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   const [showKeycard, setShowKeycard] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const toast = useToast();
-  const { registerPopup } = useHeaderPopup();
+  const { registerPopup, closePopup } = useHeaderPopup();
   const [hideBoard, setHideBoard] = useState(() => {
     try {
       const raw = localStorage.getItem("codenames.hideBoard");
@@ -75,6 +75,14 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   const redSpymaster = state.room?.players.find(
     (player) => player.team === "red" && player.role === "spymaster",
   );
+  const blueOperatives =
+    state.room?.players.filter(
+      (p) => p.team === "blue" && p.role !== "spymaster",
+    ) ?? [];
+  const redOperatives =
+    state.room?.players.filter(
+      (p) => p.team === "red" && p.role !== "spymaster",
+    ) ?? [];
 
   async function loadGameData() {
     try {
@@ -430,33 +438,22 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
     registerPopup(
       <div className="space-y-3">
-        <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-          Room settings
+        <div className="flex items-center justify-between">
+          <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+            Room settings
+          </div>
+          <button
+            type="button"
+            onClick={closePopup}
+            className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
+          >
+            Close
+          </button>
         </div>
 
         {isRoomOwner ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Allow spectators</span>
-              <button
-                type="button"
-                onClick={handleToggleAllowSpectators}
-                className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
-              >
-                {state.room?.settings.allowSpectators ? "On" : "Off"}
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Private room</span>
-              <button
-                type="button"
-                onClick={handleTogglePrivateRoom}
-                className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
-              >
-                {state.room?.settings.privateRoom ? "Yes" : "No"}
-              </button>
-            </div>
+            {/* Allow spectators and Private room controls removed from popup */}
 
             <div className="flex gap-3">
               <button
@@ -518,32 +515,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     socket.emit("room:shuffleTeams", {
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
-    });
-  }
-
-  function handleToggleAllowSpectators() {
-    if (!socket || !state.room || !user) return;
-    const next = !state.room.settings.allowSpectators;
-    socket.emit("room:updateSettings", {
-      roomCode: state.room.roomCode,
-      ownerTelegramId: user.telegramId,
-      settings: {
-        ...state.room.settings,
-        allowSpectators: next,
-      },
-    });
-  }
-
-  function handleTogglePrivateRoom() {
-    if (!socket || !state.room || !user) return;
-    const next = !state.room.settings.privateRoom;
-    socket.emit("room:updateSettings", {
-      roomCode: state.room.roomCode,
-      ownerTelegramId: user.telegramId,
-      settings: {
-        ...state.room.settings,
-        privateRoom: next,
-      },
     });
   }
 
@@ -799,8 +770,28 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {blueCardsRemaining}
               </div>
-              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-2xl">
-                {blueSpymaster ? avatarEmojiForPlayer(blueSpymaster) : "🐟"}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center -space-x-2">
+                  {blueOperatives.slice(0, 3).map((p) => (
+                    <img
+                      key={p.userId}
+                      src={avatarUrlForPlayer(p)}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
+                    />
+                  ))}
+                  {blueOperatives.length === 0 ? (
+                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                      🐟
+                    </div>
+                  ) : null}
+                  {blueOperatives.length > 3 ? (
+                    <div className="ml-2 rounded-full bg-white/10 px-2 py-1 text-xs">
+                      +{blueOperatives.length - 3}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -826,8 +817,28 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
               <div className="text-5xl font-black leading-none">
                 {redCardsRemaining}
               </div>
-              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-2xl">
-                {redSpymaster ? avatarEmojiForPlayer(redSpymaster) : "🐙"}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center -space-x-2">
+                  {redOperatives.slice(0, 3).map((p) => (
+                    <img
+                      key={p.userId}
+                      src={avatarUrlForPlayer(p)}
+                      alt={p.displayName}
+                      title={p.displayName}
+                      className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
+                    />
+                  ))}
+                  {redOperatives.length === 0 ? (
+                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                      🐙
+                    </div>
+                  ) : null}
+                  {redOperatives.length > 3 ? (
+                    <div className="ml-2 rounded-full bg-white/10 px-2 py-1 text-xs">
+                      +{redOperatives.length - 3}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -838,13 +849,24 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
-            <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-xl">
-                {blueSpymaster ? avatarEmojiForPlayer(blueSpymaster) : "🐟"}
+            <div className="mt-3 flex items-center justify-center gap-3 relative">
+              <div className="relative flex items-center justify-center">
+                <div className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#9ef3ff] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
+                  {blueSpymaster ? (
+                    <img
+                      src={avatarUrlForPlayer(blueSpymaster)}
+                      alt={blueSpymaster.displayName}
+                      title={blueSpymaster.displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xl">🐟</span>
+                  )}
+                </div>
+                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
+                  {blueSpymaster?.displayName ?? "None"}
+                </div>
               </div>
-              <span className="text-sm font-bold">
-                {blueSpymaster?.displayName ?? "None"}
-              </span>
             </div>
           </div>
 
@@ -852,13 +874,24 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
-            <div className="mt-3 flex items-center justify-center gap-2 rounded-full bg-white/10 px-2 py-2">
-              <div className="h-8 w-8 overflow-hidden rounded-full border border-white/50 bg-white/10 flex items-center justify-center text-xl">
-                {redSpymaster ? avatarEmojiForPlayer(redSpymaster) : "🐙"}
+            <div className="mt-3 flex items-center justify-center gap-3 relative">
+              <div className="relative flex items-center justify-center">
+                <div className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#ffc3be] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
+                  {redSpymaster ? (
+                    <img
+                      src={avatarUrlForPlayer(redSpymaster)}
+                      alt={redSpymaster.displayName}
+                      title={redSpymaster.displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xl">🐙</span>
+                  )}
+                </div>
+                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
+                  {redSpymaster?.displayName ?? "None"}
+                </div>
               </div>
-              <span className="text-sm font-bold">
-                {redSpymaster?.displayName ?? "None"}
-              </span>
             </div>
           </div>
         </div>
