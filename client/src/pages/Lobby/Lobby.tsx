@@ -107,7 +107,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [optimisticAssignment, setOptimisticAssignment] = useState<{
-    telegramId: string;
+    telegramId: number;
     team: "blue" | "red";
     role: "operative" | "spymaster";
   } | null>(null);
