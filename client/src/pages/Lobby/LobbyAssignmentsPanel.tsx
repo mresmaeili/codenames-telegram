@@ -12,7 +12,7 @@ interface LobbyAssignmentsPanelProps {
 
 function PlayerList({ players }: { players: Room["players"] }) {
   return (
-    <div className="mb-2 flex items-center justify-center gap-3">
+    <div className="mb-2 flex items-center justify-center gap-3 pointer-events-none">
       {players.slice(0, 4).map((player) => (
         <div key={player.userId} className="flex flex-col items-center">
           <img
@@ -45,7 +45,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -61,7 +61,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -79,7 +79,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -95,7 +95,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
           >
             <span className="block text-sm">Join team</span>
           </button>

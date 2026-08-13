@@ -112,6 +112,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     role: "operative" | "spymaster";
   } | null>(null);
   const toast = useToast();
+  const [starting, setStarting] = useState(false);
   const [hostActionPending, setHostActionPending] = useState(false);
   const [avatarGenerating, setAvatarGenerating] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
@@ -133,6 +134,34 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     setSettingsForm(room.settings);
   }, [room]);
+
+  // If the room transitions to playing, notify parent to switch to game view.
+  useEffect(() => {
+    if (room && room.status === "playing") {
+      try {
+        onGameStart();
+      } catch {
+        // ignore
+      }
+    }
+  }, [room, onGameStart]);
+
+  // Clear starting state when server confirms game initialization
+  useEffect(() => {
+    if (starting && room && room.status === "playing") {
+      setStarting(false);
+    }
+  }, [starting, room]);
+
+  // Fallback: clear starting state if server doesn't respond within 12s
+  useEffect(() => {
+    if (!starting) return;
+    const timer = window.setTimeout(() => {
+      setStarting(false);
+      toast.error("Starting timed out. Server did not respond.");
+    }, 12000);
+    return () => window.clearTimeout(timer);
+  }, [starting, toast]);
 
   // Clear optimistic assignment once the server-side room reflects the change
   useEffect(() => {
@@ -169,7 +198,23 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       toast.error("Socket connection is unavailable.");
       return;
     }
+    if (!isOwner) {
+      toast.error("Only the room owner can start the game.");
+      return;
+    }
 
+    if (!canStart) {
+      // show specific readiness issues to guide the owner
+      if (readinessIssues.length > 0) {
+        toast.error(`Cannot start: ${readinessIssues.join("; ")}`);
+      } else {
+        toast.error("Cannot start the game. Please check room setup.");
+      }
+      return;
+    }
+
+    // show transient starting UI until server initializes the game
+    setStarting(true);
     socket.emit("room:start", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
@@ -540,6 +585,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         ) : null}
 
+        {starting ? (
+          <div className="mb-4">
+            <StatusPanel
+              title="Starting"
+              description="Initializing game..."
+              tone="info"
+            />
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="mb-4">
             <StatusPanel
@@ -652,43 +707,15 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               onAssignmentChange={handleAssignmentChange}
             />
 
-            {!isOwner || !canStart || room.status !== "waiting" ? (
-              <div className="mt-4">
-                <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-3 text-sm text-white/90">
-                  <div className="font-bold mb-2">Cannot start game</div>
-                  <ul className="list-disc pl-5 text-sm">
-                    {!isOwner && (
-                      <li>Only the room owner can start the game.</li>
-                    )}
-                    {room.status !== "waiting" && (
-                      <li>
-                        Room status is "{room.status}" (must be "waiting").
-                      </li>
-                    )}
-                    {!canStart &&
-                      readinessIssues.map((issue) => (
-                        <li key={issue}>{issue}</li>
-                      ))}
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleStartGame}
-                  disabled={!isOwner || !canStart || room.status !== "waiting"}
-                  className="mt-4 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)] disabled:opacity-60"
-                >
-                  Start game
-                </button>
-              </div>
-            ) : (
+            <div className="mt-4">
               <button
                 type="button"
                 onClick={handleStartGame}
-                className="mt-5 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)]"
+                className="mt-4 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)]"
               >
                 Start game
               </button>
-            )}
+            </div>
           </>
         ) : null}
       </div>
