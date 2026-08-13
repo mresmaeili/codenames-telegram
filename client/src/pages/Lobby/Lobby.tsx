@@ -106,6 +106,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [optimisticAssignment, setOptimisticAssignment] = useState<{
+    telegramId: string;
+    team: "blue" | "red";
+    role: "operative" | "spymaster";
+  } | null>(null);
   const toast = useToast();
   const [hostActionPending, setHostActionPending] = useState(false);
   const [avatarGenerating, setAvatarGenerating] = useState(false);
@@ -128,6 +133,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     setSettingsForm(room.settings);
   }, [room]);
+
+  // Clear optimistic assignment once the server-side room reflects the change
+  useEffect(() => {
+    if (!room || !optimisticAssignment) return;
+    const me = room.players.find(
+      (p) => p.telegramId === optimisticAssignment.telegramId,
+    );
+    if (
+      me &&
+      me.team === optimisticAssignment.team &&
+      me.role === optimisticAssignment.role
+    ) {
+      setOptimisticAssignment(null);
+    }
+  }, [room, optimisticAssignment]);
 
   const currentPlayer = room?.players.find(
     (player) => player.telegramId === user?.telegramId,
@@ -359,14 +379,22 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
+    // Optimistically update the current user's assignment so their avatar
+    // moves out of Spectators and into the chosen role immediately.
+    setOptimisticAssignment({
+      telegramId: user.telegramId,
+      team: nextTeam,
+      role: nextRole,
+    });
+
     socket.emit("room:updateTeam", {
       roomCode: room.roomCode,
       telegramId: user.telegramId,
       team: nextTeam,
       role: nextRole,
     });
-    // Request a fresh lobby state after emitting so the avatar appears
-    // in the role card as soon as the backend processes the change.
+
+    // Refresh authoritative lobby state afterwards.
     refreshLobby();
   }
 
@@ -397,6 +425,37 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const bluePlayers =
     room?.players.filter((player) => player.team === "blue") ?? [];
   const spectatorPlayers = room?.players.filter((player) => !player.team) ?? [];
+
+  // Apply optimistic assignment for the current user so their avatar moves
+  // immediately from spectators into the selected role card.
+  const displayBluePlayers = [...bluePlayers];
+  const displayRedPlayers = [...redPlayers];
+  let displaySpectatorPlayers = [...spectatorPlayers];
+
+  if (optimisticAssignment && room) {
+    const me = room.players.find(
+      (p) => p.telegramId === optimisticAssignment.telegramId,
+    );
+    if (me) {
+      const updated = {
+        ...me,
+        team: optimisticAssignment.team,
+        role: optimisticAssignment.role,
+      };
+      displaySpectatorPlayers = displaySpectatorPlayers.filter(
+        (p) => p.telegramId !== optimisticAssignment.telegramId,
+      );
+      if (optimisticAssignment.team === "blue") {
+        if (!displayBluePlayers.find((p) => p.userId === me.userId)) {
+          displayBluePlayers.push(updated);
+        }
+      } else {
+        if (!displayRedPlayers.find((p) => p.userId === me.userId)) {
+          displayRedPlayers.push(updated);
+        }
+      }
+    }
+  }
 
   const inviteUrl =
     typeof window !== "undefined" && room
@@ -501,43 +560,48 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           <>
             {/* Header gear removed — settings open via in-page '⚙ Settings' button below */}
 
-            <div className="mt-2 flex items-center justify-between px-2 py-1">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">
-                  Room code
-                </p>
-                <div className="text-lg font-black tracking-tight">
-                  {room.roomCode}
+            <div className="mt-2 w-full px-2">
+              <div className="flex items-center justify-between w-full bg-[#0b0f13] rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.18em] text-white/60 mb-0">
+                    Room code
+                  </p>
+                  <div className="text-base font-black tracking-tight">
+                    {room.roomCode}
+                  </div>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleCopyRoomCode}
+                    className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs font-semibold text-white"
+                  >
+                    Copy code
+                  </button>
                 </div>
               </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={handleCopyRoomCode}
-                  className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-xs font-semibold text-white"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
 
-            <div className="mt-2">
-              <div className="flex items-center gap-2 overflow-x-auto py-2">
-                {room.players.map((p) => (
-                  <div
-                    key={p.userId}
-                    className="flex items-center gap-3 rounded-full bg-white/5 px-3 py-2"
-                  >
-                    <img
-                      src={avatarUrlForPlayer(p)}
-                      alt={p.displayName}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                    <span className="whitespace-nowrap text-sm font-semibold text-white">
-                      {p.displayName}
-                    </span>
-                  </div>
-                ))}
+              <div className="mt-3">
+                <div className="text-xs uppercase tracking-[0.18em] text-white/60 text-center mb-2">
+                  Spectators
+                </div>
+                <div className="flex items-center justify-center gap-3 overflow-x-auto py-2">
+                  {displaySpectatorPlayers.map((p) => (
+                    <div
+                      key={p.userId}
+                      className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
+                    >
+                      <img
+                        src={avatarUrlForPlayer(p)}
+                        alt={p.displayName}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                      <span className="whitespace-nowrap text-xs font-semibold text-white">
+                        {p.displayName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -583,8 +647,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
 
             <LobbyAssignmentsPanel
-              bluePlayers={bluePlayers}
-              redPlayers={redPlayers}
+              bluePlayers={displayBluePlayers}
+              redPlayers={displayRedPlayers}
               onAssignmentChange={handleAssignmentChange}
             />
 
