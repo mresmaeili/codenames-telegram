@@ -365,7 +365,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       team: nextTeam,
       role: nextRole,
     });
-    toast.info(`Joining ${nextTeam} as ${nextRole}...`);
+    // UI now shows avatar in the role card; no toast notification needed
   }
 
   const readinessIssues = getReadinessIssues(room);
@@ -480,29 +480,27 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           <>
             {/* Header gear removed — settings open via in-page '⚙ Settings' button below */}
 
-            <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">
-                    Room code
-                  </p>
-                  <div className="text-xl font-black tracking-tight">
-                    {room.roomCode}
-                  </div>
+            <div className="mt-2 flex items-center justify-between px-2 py-1">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">
+                  Room code
+                </p>
+                <div className="text-lg font-black tracking-tight">
+                  {room.roomCode}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCopyRoomCode}
-                    className="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white"
-                  >
-                    Copy code
-                  </button>
-                </div>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={handleCopyRoomCode}
+                  className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-xs font-semibold text-white"
+                >
+                  Copy
+                </button>
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-2">
               <div className="flex items-center gap-2 overflow-x-auto py-2">
                 {room.players.map((p) => (
                   <div
@@ -522,23 +520,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               </div>
             </div>
 
-            <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-4 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
-              <LobbySettingsPanel
-                settingsForm={settingsForm}
-                isOwner={isOwner}
-                hostActionPending={hostActionPending}
-                onResetTeams={handleResetTeams}
-                onRandomizeTeams={handleRandomizeTeams}
-                onSaveSettings={handleSettingsSave}
-                onOpenLanguageSettings={() =>
-                  handleOpenSettingsPopup("language")
-                }
-                onOpenTimerSettings={() => handleOpenSettingsPopup("timer")}
-                onOpenWordPackSettings={() =>
-                  handleOpenSettingsPopup("word-pack")
-                }
-              />
-            </div>
+            <LobbySettingsPanel
+              settingsForm={settingsForm}
+              isOwner={isOwner}
+              hostActionPending={hostActionPending}
+              onResetTeams={handleResetTeams}
+              onRandomizeTeams={handleRandomizeTeams}
+              onSaveSettings={handleSettingsSave}
+              onOpenLanguageSettings={() => handleOpenSettingsPopup("language")}
+              onOpenTimerSettings={() => handleOpenSettingsPopup("timer")}
+              onOpenWordPackSettings={() =>
+                handleOpenSettingsPopup("word-pack")
+              }
+            />
 
             <div className="my-4 flex gap-3">
               <button

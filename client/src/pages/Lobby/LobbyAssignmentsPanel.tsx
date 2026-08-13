@@ -39,29 +39,14 @@ export function LobbyAssignmentsPanel({
           <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
             Operatives
           </p>
+          <PlayerList
+            players={bluePlayers.filter((p) => p.role === "operative")}
+          />
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
-            <PlayerList players={bluePlayers} />
-            {bluePlayers.filter((p) => p.role === "operative").length > 0 && (
-              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-3 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
-                {bluePlayers
-                  .filter((p) => p.role === "operative")
-                  .map((p) => (
-                    <div key={p.userId} className="flex items-center gap-2">
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        className="h-6 w-6 rounded-full object-cover"
-                      />
-                      <span className="truncate max-w-30">{p.displayName}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
-
             <span className="block text-sm">Join team</span>
           </button>
         </section>
@@ -70,29 +55,14 @@ export function LobbyAssignmentsPanel({
           <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
             Operatives
           </p>
+          <PlayerList
+            players={redPlayers.filter((p) => p.role === "operative")}
+          />
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
-            <PlayerList players={redPlayers} />
-            {redPlayers.filter((p) => p.role === "operative").length > 0 && (
-              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-3 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
-                {redPlayers
-                  .filter((p) => p.role === "operative")
-                  .map((p) => (
-                    <div key={p.userId} className="flex items-center gap-2">
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        className="h-6 w-6 rounded-full object-cover"
-                      />
-                      <span className="truncate max-w-30">{p.displayName}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
-
             <span className="block text-sm">Join team</span>
           </button>
         </section>
@@ -103,28 +73,14 @@ export function LobbyAssignmentsPanel({
           <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
             Spymasters
           </p>
+          <PlayerList
+            players={bluePlayers.filter((p) => p.role === "spymaster")}
+          />
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
-            <PlayerList players={bluePlayers} />
-            {bluePlayers.filter((p) => p.role === "spymaster").length > 0 && (
-              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-3 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
-                {bluePlayers
-                  .filter((p) => p.role === "spymaster")
-                  .map((p) => (
-                    <div key={p.userId} className="flex items-center gap-2">
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        className="h-6 w-6 rounded-full object-cover"
-                      />
-                      <span className="truncate max-w-30">{p.displayName}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
             <span className="block text-sm">Join team</span>
           </button>
         </section>
@@ -133,28 +89,14 @@ export function LobbyAssignmentsPanel({
           <p className="text-center text-xl font-black uppercase tracking-tight mt-2">
             Spymasters
           </p>
+          <PlayerList
+            players={redPlayers.filter((p) => p.role === "spymaster")}
+          />
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            className="relative mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
-            <PlayerList players={redPlayers} />
-            {redPlayers.filter((p) => p.role === "spymaster").length > 0 && (
-              <div className="absolute left-1/2 top-7 -translate-x-1/2 transform flex max-w-[88%] items-center justify-center gap-3 overflow-hidden rounded-full bg-white/10 px-3 py-2 text-sm font-bold text-white">
-                {redPlayers
-                  .filter((p) => p.role === "spymaster")
-                  .map((p) => (
-                    <div key={p.userId} className="flex items-center gap-2">
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        className="h-6 w-6 rounded-full object-cover"
-                      />
-                      <span className="truncate max-w-30">{p.displayName}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
             <span className="block text-sm">Join team</span>
           </button>
         </section>

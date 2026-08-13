@@ -33,8 +33,8 @@ export function LobbySettingsPanel({
   onOpenWordPackSettings,
 }: LobbySettingsPanelProps) {
   return (
-    <div className="mt-5 rounded-[28px] bg-[#4b4d51] p-4 shadow-[0_12px_20px_rgba(0,0,0,0.25)]">
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+    <div className="mt-5">
+      <div className="grid gap-3 sm:grid-cols-3">
         <button
           type="button"
           onClick={onOpenLanguageSettings}
