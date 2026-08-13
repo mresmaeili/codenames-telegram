@@ -11,6 +11,15 @@ interface LobbyAssignmentsPanelProps {
 }
 
 function PlayerList({ players }: { players: Room["players"] }) {
+  console.debug(
+    "PlayerList render",
+    players.map((p) => ({
+      id: p.userId,
+      name: p.displayName,
+      team: p.team,
+      role: p.role,
+    })),
+  );
   return (
     <div className="mb-2 flex items-center justify-center gap-3 pointer-events-none">
       {players.slice(0, 4).map((player) => (

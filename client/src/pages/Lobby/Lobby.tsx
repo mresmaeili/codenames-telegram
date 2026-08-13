@@ -426,6 +426,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     // Optimistically update the current user's assignment so their avatar
     // moves out of Spectators and into the chosen role immediately.
+    console.debug("optimistic assign:", {
+      telegramId: user.telegramId,
+      nextTeam,
+      nextRole,
+    });
     setOptimisticAssignment({
       telegramId: user.telegramId,
       team: nextTeam,
@@ -478,9 +483,15 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   let displaySpectatorPlayers = [...spectatorPlayers];
 
   if (optimisticAssignment && room) {
-    const me = room.players.find(
+    let me = room.players.find(
       (p) => p.telegramId === optimisticAssignment.telegramId,
     );
+    console.debug("apply optimistic: found me", me, optimisticAssignment);
+    if (!me) {
+      // fallback: use currentPlayer if available or construct a minimal temp player
+      me = room.players.find((p) => p.telegramId === user?.telegramId) ?? null;
+    }
+
     if (me) {
       const updated = {
         ...me,
@@ -491,16 +502,42 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         (p) => p.telegramId !== optimisticAssignment.telegramId,
       );
       if (optimisticAssignment.team === "blue") {
-        if (!displayBluePlayers.find((p) => p.userId === me.userId)) {
+        if (!displayBluePlayers.find((p) => p.userId === me!.userId)) {
           displayBluePlayers.push(updated);
         }
       } else {
-        if (!displayRedPlayers.find((p) => p.userId === me.userId)) {
+        if (!displayRedPlayers.find((p) => p.userId === me!.userId)) {
           displayRedPlayers.push(updated);
         }
       }
+    } else if (user) {
+      // Construct a minimal temporary player object for optimistic UI
+      const tempPlayer = {
+        userId: `temp-${user.telegramId}`,
+        telegramId: user.telegramId,
+        displayName: user.firstName,
+        photoUrl: user.photoUrl ?? null,
+        ghibliAvatarUrl: null,
+        team: optimisticAssignment.team,
+        role: optimisticAssignment.role,
+        joinedAt: new Date(),
+      };
+      displaySpectatorPlayers = displaySpectatorPlayers.filter(
+        (p) => p.telegramId !== optimisticAssignment.telegramId,
+      );
+      if (optimisticAssignment.team === "blue") {
+        displayBluePlayers.push(tempPlayer as any);
+      } else {
+        displayRedPlayers.push(tempPlayer as any);
+      }
     }
   }
+
+  console.debug("display lists", {
+    displayBluePlayersCount: displayBluePlayers.length,
+    displayRedPlayersCount: displayRedPlayers.length,
+    displaySpectatorPlayersCount: displaySpectatorPlayers.length,
+  });
 
   const inviteUrl =
     typeof window !== "undefined" && room
