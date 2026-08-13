@@ -365,11 +365,32 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       team: nextTeam,
       role: nextRole,
     });
-    // UI now shows avatar in the role card; no toast notification needed
+    // Request a fresh lobby state after emitting so the avatar appears
+    // in the role card as soon as the backend processes the change.
+    refreshLobby();
   }
 
   const readinessIssues = getReadinessIssues(room);
   const isReady = readinessIssues.length === 0;
+  // Allow starting when both teams have a spymaster and minimum players,
+  // even if there are no operatives. This supports the "two spymasters, no
+  // operatives" flow where the next screen will proceed.
+  const activePlayers =
+    room?.players.filter((player) => player.team !== null) ?? [];
+  const redSpymasters =
+    room?.players.filter(
+      (player) => player.team === "red" && player.role === "spymaster",
+    ) ?? [];
+  const blueSpymasters =
+    room?.players.filter(
+      (player) => player.team === "blue" && player.role === "spymaster",
+    ) ?? [];
+
+  const canStart =
+    isReady ||
+    (redSpymasters.length === 1 &&
+      blueSpymasters.length === 1 &&
+      activePlayers.length >= ROOM_MIN_PLAYERS);
   const devMode = isDevModeEnabled();
   const redPlayers =
     room?.players.filter((player) => player.team === "red") ?? [];
@@ -538,14 +559,24 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               <button
                 type="button"
                 onClick={handleResetTeams}
-                className="flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+                disabled={!isOwner}
+                className={`flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white ${
+                  isOwner
+                    ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                    : "opacity-60 cursor-not-allowed"
+                }`}
               >
                 Reset teams
               </button>
               <button
                 type="button"
                 onClick={handleRandomizeTeams}
-                className="flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white"
+                disabled={!isOwner}
+                className={`flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white ${
+                  isOwner
+                    ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                    : "opacity-60 cursor-not-allowed"
+                }`}
               >
                 Shuffle teams
               </button>
@@ -557,7 +588,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               onAssignmentChange={handleAssignmentChange}
             />
 
-            {!isOwner || !isReady || room.status !== "waiting" ? (
+            {!isOwner || !canStart || room.status !== "waiting" ? (
               <div className="mt-4">
                 <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-3 text-sm text-white/90">
                   <div className="font-bold mb-2">Cannot start game</div>
@@ -570,7 +601,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         Room status is "{room.status}" (must be "waiting").
                       </li>
                     )}
-                    {!isReady &&
+                    {!canStart &&
                       readinessIssues.map((issue) => (
                         <li key={issue}>{issue}</li>
                       ))}
@@ -579,7 +610,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 <button
                   type="button"
                   onClick={handleStartGame}
-                  disabled={!isOwner || !isReady || room.status !== "waiting"}
+                  disabled={!isOwner || !canStart || room.status !== "waiting"}
                   className="mt-4 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)] disabled:opacity-60"
                 >
                   Start game

@@ -19,7 +19,7 @@ function PlayerList({ players }: { players: Room["players"] }) {
             src={avatarUrlForPlayer(player)}
             alt={player.displayName}
             title={player.displayName}
-            className="h-9 w-9 rounded-full border border-white/20 object-cover"
+            className="h-9 w-9 rounded-full border border-white/20 object-cover pointer-events-none"
           />
         </div>
       ))}
@@ -45,7 +45,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -61,7 +61,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -79,7 +79,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <span className="block text-sm">Join team</span>
           </button>
@@ -95,7 +95,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
+            className="relative z-10 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white"
           >
             <span className="block text-sm">Join team</span>
           </button>

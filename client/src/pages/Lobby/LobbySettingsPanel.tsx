@@ -38,7 +38,12 @@ export function LobbySettingsPanel({
         <button
           type="button"
           onClick={onOpenLanguageSettings}
-          className="rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-5 text-left text-black transform transition duration-150 ease-out hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 cursor-pointer"
+          disabled={!isOwner}
+          className={`rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-5 text-left text-black transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+            isOwner
+              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed"
+          }`}
         >
           <div className="text-xs font-black uppercase tracking-[0.18em] text-[#5d5d5d]">
             Language
@@ -57,7 +62,12 @@ export function LobbySettingsPanel({
         <button
           type="button"
           onClick={onOpenTimerSettings}
-          className="rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-5 text-left text-white transform transition duration-150 ease-out hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 cursor-pointer"
+          disabled={!isOwner}
+          className={`rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-5 text-left text-white transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+            isOwner
+              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed"
+          }`}
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg text-black">
@@ -75,7 +85,12 @@ export function LobbySettingsPanel({
         <button
           type="button"
           onClick={onOpenWordPackSettings}
-          className="rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-5 text-left text-black transform transition duration-150 ease-out hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 cursor-pointer"
+          disabled={!isOwner}
+          className={`rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-5 text-left text-black transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+            isOwner
+              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed"
+          }`}
         >
           <div className="text-xs font-black uppercase tracking-[0.18em] text-[#5d5d5d]">
             Word pack
