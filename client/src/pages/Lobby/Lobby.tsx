@@ -561,12 +561,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             {/* Header gear removed — settings open via in-page '⚙ Settings' button below */}
 
             <div className="mt-2 w-full px-2">
-              <div className="flex items-center justify-between w-full bg-[#0b0f13] rounded-lg px-3 py-2">
-                <div>
+              <div className="w-full bg-[#0b0f13] rounded-lg px-3 py-2 flex items-center justify-center gap-4">
+                <div className="text-center">
                   <p className="text-[9px] uppercase tracking-[0.18em] text-white/60 mb-0">
                     Room code
                   </p>
-                  <div className="text-base font-black tracking-tight">
+                  <div className="text-xl font-black tracking-tight">
                     {room.roomCode}
                   </div>
                 </div>
@@ -574,7 +574,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   <button
                     type="button"
                     onClick={handleCopyRoomCode}
-                    className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs font-semibold text-white"
+                    className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-sm font-semibold text-white"
                   >
                     Copy code
                   </button>
