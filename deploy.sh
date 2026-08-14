@@ -47,7 +47,11 @@ success "Project root verified."
 PROJECT_ROOT="$(pwd)"
 info "Project root: ${PROJECT_ROOT}"
 
-# 2. Load environment variables from .env (production deployment)
+# 2. Clean workspace build artifacts
+info "Cleaning workspace build artifacts..."
+rm -rf node_modules .turbo
+
+# 3. Load environment variables from .env (production deployment)
 if [[ -f ".env" ]]; then
   info "Loading environment variables from .env..."
   # Use grep + export to safely load .env without bash syntax errors
@@ -60,9 +64,13 @@ else
   info "No .env file found; using system environment variables."
 fi
 
-# 3. Build the frontend
+# 4. Build the frontend
 info "Building frontend..."
 cd "${PROJECT_ROOT}/client"
+
+# Clean previous build artifacts
+info "Cleaning build artifacts..."
+rm -rf dist node_modules .turbo tsconfig.tsbuildinfo
 
 # Install dependencies idempotently
 info "Installing frontend dependencies (npm install)..."
@@ -74,14 +82,14 @@ VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://codenames.example.com}" \
 VITE_SOCKET_URL="${VITE_SOCKET_URL:-https://codenames.example.com}" \
 npm run build
 
-# 4. Verify client/dist/index.html exists
+# 5. Verify client/dist/index.html exists
 if [[ ! -f "dist/index.html" ]]; then
   error "Frontend build failed: 'client/dist/index.html' not found."
   exit 3
 fi
 success "Frontend built and 'dist/index.html' verified."
 
-# 5. Deploy the frontend
+# 6. Deploy the frontend
 TARGET_DIR="/var/www/codenames"
 info "Deploying frontend to ${TARGET_DIR}..."
 
@@ -101,9 +109,13 @@ sudo find "${TARGET_DIR}" -type f -exec chmod 644 {} +
 
 success "Frontend deployed to ${TARGET_DIR}."
 
-# 6. Build the backend
+# 7. Build the backend
 info "Building backend..."
 cd "${PROJECT_ROOT}/server"
+
+# Clean previous build artifacts
+info "Cleaning backend build artifacts..."
+rm -rf dist node_modules .turbo tsconfig.tsbuildinfo
 
 info "Installing backend dependencies (npm install)..."
 npm install --no-audit --no-fund
@@ -118,7 +130,7 @@ else
   info "No backend build script found; skipping build step."
 fi
 
-# 7. Restart only the backend with PM2 (verify pm2 exists and process state)
+# 8. Restart only the backend with PM2 (verify pm2 exists and process state)
 info "Ensuring PM2 is available on the system..."
 if ! command -v pm2 >/dev/null 2>&1; then
   error "pm2 is not installed or not on PATH. Install PM2 and ensure it's available.";
@@ -161,7 +173,7 @@ else
   fi
 fi
 
-# 8. Verify backend health (poll until healthy, up to timeout)
+# 9. Verify backend health (poll until healthy, up to timeout)
 info "Waiting for backend to become healthy at http://localhost:3001/health"
 START_TIME=$(date +%s)
 TIMEOUT=30
@@ -197,7 +209,7 @@ done
 TOTAL_ELAPSED=$ELAPSED
 info "Backend startup elapsed time: ${TOTAL_ELAPSED}s"
 
-# 9. Test Nginx configuration
+# 10. Test Nginx configuration
 info "Testing Nginx configuration (sudo nginx -t)..."
 if ! sudo nginx -t; then
   error "Nginx configuration test failed.";
@@ -205,7 +217,7 @@ if ! sudo nginx -t; then
 fi
 success "Nginx configuration test passed."
 
-# 10. Reload Nginx
+# 11. Reload Nginx
 info "Reloading Nginx (sudo systemctl reload nginx)..."
 if ! sudo systemctl reload nginx; then
   error "Failed to reload Nginx.";
@@ -213,7 +225,7 @@ if ! sudo systemctl reload nginx; then
 fi
 success "Nginx reloaded successfully."
 
-# 11. Deployment summary
+# 12. Deployment summary
 echo
 success "Deployment completed successfully."
 echo -e "${YELLOW}Summary:${NO_COLOR}"
