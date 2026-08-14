@@ -47,6 +47,18 @@ success "Project root verified."
 PROJECT_ROOT="$(pwd)"
 info "Project root: ${PROJECT_ROOT}"
 
+# 2. Load environment variables from .env (production deployment)
+if [[ -f ".env" ]]; then
+  info "Loading environment variables from .env..."
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+  success "Environment variables loaded."
+else
+  info "No .env file found; using system environment variables."
+fi
+
 # 3. Build the frontend
 info "Building frontend..."
 cd "${PROJECT_ROOT}/client"
@@ -55,7 +67,10 @@ cd "${PROJECT_ROOT}/client"
 info "Installing frontend dependencies (npm install)..."
 npm install --no-audit --no-fund
 
-info "Running frontend build (npm run build)..."
+info "Running frontend build with environment variables..."
+VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
+VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://codenames.example.com}" \
+VITE_SOCKET_URL="${VITE_SOCKET_URL:-https://codenames.example.com}" \
 npm run build
 
 # 4. Verify client/dist/index.html exists
@@ -202,6 +217,8 @@ echo
 success "Deployment completed successfully."
 echo -e "${YELLOW}Summary:${NO_COLOR}"
 echo "- Frontend deployed: ${TARGET_DIR}"
+echo "  - VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://codenames.example.com}"
+echo "  - VITE_SOCKET_URL: ${VITE_SOCKET_URL:-https://codenames.example.com}"
 echo "- Backend restarted: pm2 (codenames-server)"
 echo "- Health check: http://localhost:3001/health (OK)"
 echo "- Nginx reloaded"
