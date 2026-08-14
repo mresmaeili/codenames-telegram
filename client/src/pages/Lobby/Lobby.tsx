@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
+import { useSession } from "@/context/SessionContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
@@ -96,12 +97,14 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
+  const { session, updateSession } = useSession();
   const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const toast = useToast();
   const [starting, setStarting] = useState(false);
   const [hostActionPending, setHostActionPending] = useState(false);
+  const [assignmentPending, setAssignmentPending] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: 16,
     allowSpectators: false,
@@ -428,14 +431,41 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    socket.emit("room:updateTeam", {
-      roomCode: room.roomCode,
-      telegramId: user.telegramId,
-      team: nextTeam,
-      role: nextRole,
-    });
-    void refreshLobby();
+    if (assignmentPending) {
+      return;
+    }
+
+    setAssignmentPending(true);
     toast.info("Joining team...");
+
+    // Save the team/role choice to session for recovery after reconnect
+    updateSession({
+      roomCode: room.roomCode,
+      lastTeam: nextTeam,
+      lastRole: nextRole,
+      lastJoinedAt: new Date().toISOString(),
+    });
+
+    socket.emit(
+      "room:updateTeam",
+      {
+        roomCode: room.roomCode,
+        telegramId: user.telegramId,
+        team: nextTeam,
+        role: nextRole,
+      },
+      (ack?: { error?: string }) => {
+        if (ack?.error) {
+          toast.error(ack.error);
+          setAssignmentPending(false);
+          return;
+        }
+        // Wait a brief moment for the server to broadcast the update
+        setTimeout(() => {
+          void refreshLobby().finally(() => setAssignmentPending(false));
+        }, 200);
+      },
+    );
   }
 
   const readinessIssues = getReadinessIssues(room);
@@ -537,6 +567,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-120 bg-[#070b12] px-3 pb-0 pt-0 text-white">
+        <div className="sticky top-0 z-10 flex gap-2 py-2">
+          <button
+            type="button"
+            onClick={onLeave}
+            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 active:bg-white/30"
+          >
+            Exit
+          </button>
+        </div>
+
         {starting ? (
           <div className="mb-4">
             <StatusPanel
@@ -663,6 +703,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               bluePlayers={displayBluePlayers}
               redPlayers={displayRedPlayers}
               onAssignmentChange={handleAssignmentChange}
+              assignmentPending={assignmentPending}
             />
 
             <div className="mt-4">

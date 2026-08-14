@@ -668,6 +668,16 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-[560px] bg-[#0a63d4] px-3 pb-5 pt-3 text-white">
+        {" "}
+        <div className="sticky top-0 z-10 flex gap-2 py-2">
+          <button
+            type="button"
+            onClick={onLeave}
+            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 active:bg-white/30"
+          >
+            Exit
+          </button>
+        </div>{" "}
         {gameFinished ? (
           <EndGameModal
             title="Game complete"
@@ -677,7 +687,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             onRematch={isRoomOwner ? handleRematch : undefined}
           />
         ) : null}
-
         {devMode ? (
           <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -700,7 +709,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </div>
           </div>
         ) : null}
-
         {isReconnecting ? (
           <div className="mb-3">
             <StatusPanel
@@ -710,7 +718,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             />
           </div>
         ) : null}
-
         <div className="mb-3">
           <GameHeader
             room={state.room}
@@ -718,7 +725,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             playerCount={getPlayerCount(state.room)}
           />
         </div>
-
         <div className="mb-3 flex items-center justify-between gap-3">
           <button
             type="button"
@@ -740,7 +746,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             ⚙
           </button>
         </div>
-
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-3xl border border-white/10 bg-[#2d9bff] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
             <div className="flex items-center justify-between">
@@ -825,7 +830,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </div>
           </div>
         </div>
-
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="rounded-3xl border border-[#9ef3ff] bg-[#2ca4ff] p-2 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
@@ -877,11 +881,9 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </div>
           </div>
         </div>
-
         <div className="mt-4 text-center text-[22px] font-black uppercase tracking-tight text-white">
           Give your operatives a clue
         </div>
-
         <div className="mt-4 rounded-3xl border border-white/10 bg-[#0a63d4] p-2">
           <BoardGrid
             cards={state.game.board}
@@ -892,7 +894,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             hideWords={isViewerOperative ? hideBoard : false}
           />
         </div>
-
         {canSubmitHint ? (
           <form onSubmit={handleSubmitHint} className="mt-4 space-y-3">
             <div className="space-y-2">
@@ -974,7 +975,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             ) : null}
           </div>
         ) : null}
-
         {hintMessage ? (
           <div className="mt-3">
             <StatusPanel

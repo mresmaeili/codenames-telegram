@@ -8,6 +8,7 @@ interface LobbyAssignmentsPanelProps {
     nextTeam: "blue" | "red",
     nextRole: "operative" | "spymaster",
   ) => void;
+  assignmentPending?: boolean;
 }
 
 function PlayerList({ players }: { players: Room["players"] }) {
@@ -41,6 +42,7 @@ export function LobbyAssignmentsPanel({
   bluePlayers,
   redPlayers,
   onAssignmentChange,
+  assignmentPending = false,
 }: LobbyAssignmentsPanelProps) {
   return (
     <>
@@ -55,10 +57,11 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            disabled={assignmentPending}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            Join team
+            {assignmentPending ? "Joining..." : "Join team"}
           </button>
         </section>
 
@@ -72,10 +75,11 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            disabled={assignmentPending}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            Join team
+            {assignmentPending ? "Joining..." : "Join team"}
           </button>
         </section>
       </div>
@@ -91,10 +95,11 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            disabled={assignmentPending}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            Join team
+            {assignmentPending ? "Joining..." : "Join team"}
           </button>
         </section>
 
@@ -108,10 +113,11 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            disabled={assignmentPending}
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            Join team
+            {assignmentPending ? "Joining..." : "Join team"}
           </button>
         </section>
       </div>
