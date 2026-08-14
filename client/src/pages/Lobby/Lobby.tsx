@@ -591,22 +591,28 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 <div className="text-xs uppercase tracking-[0.18em] text-white/60 text-center mb-2">
                   Spectators
                 </div>
-                <div className="flex items-center justify-center gap-3 overflow-x-auto py-2">
-                  {displaySpectatorPlayers.map((p) => (
-                    <div
-                      key={p.userId}
-                      className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
-                    >
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                      <span className="whitespace-nowrap text-xs font-semibold text-white">
-                        {p.displayName}
-                      </span>
+                <div className="flex items-center justify-center gap-3 overflow-x-auto py-2 min-h-12">
+                  {displaySpectatorPlayers.length > 0 ? (
+                    displaySpectatorPlayers.map((p) => (
+                      <div
+                        key={p.userId}
+                        className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
+                      >
+                        <img
+                          src={avatarUrlForPlayer(p)}
+                          alt={p.displayName}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                        <span className="whitespace-nowrap text-xs font-semibold text-white">
+                          {p.displayName}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-white/40 italic">
+                      No spectators
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>

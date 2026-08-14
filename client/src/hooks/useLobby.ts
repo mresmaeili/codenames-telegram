@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function getFriendlyLobbyMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -34,6 +34,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     error: null,
   });
   const [refreshKey, setRefreshKey] = useState(0);
+  const listenerRegisteredRef = useRef(false);
 
   const socket = useMemo(() => getSocketClient(), []);
 
@@ -74,24 +75,33 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       }
     }
 
-    if (socket && user) {
-      // Ensure socket joins this room (may have missed connection event)
+    if (socket && user && !listenerRegisteredRef.current) {
+      // Join room on socket
       socket.emit("room:join", {
         roomCode,
         telegramId: user.telegramId,
         displayName: user.firstName,
       });
-      // Listen for room updates
+
+      // Register listener only once
       socket.on("room:updated", handleRoomUpdated);
+      listenerRegisteredRef.current = true;
     }
 
     return () => {
       isMounted = false;
-      if (socket) {
-        socket.off("room:updated", handleRoomUpdated);
-      }
     };
   }, [roomCode, socket, user, refreshKey]);
+
+  // Separate effect to clean up the socket listener when component unmounts
+  useEffect(() => {
+    return () => {
+      if (socket && listenerRegisteredRef.current) {
+        socket.off("room:updated");
+        listenerRegisteredRef.current = false;
+      }
+    };
+  }, [socket]);
 
   return {
     room: lobbyState.room,
