@@ -104,7 +104,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const toast = useToast();
   const [starting, setStarting] = useState(false);
   const [hostActionPending, setHostActionPending] = useState(false);
-  const [assignmentPending, setAssignmentPending] = useState(false);
+  const [pendingAssignment, setPendingAssignment] = useState<{
+    team: "blue" | "red";
+    role: "operative" | "spymaster";
+  } | null>(null);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: 16,
     allowSpectators: false,
@@ -431,14 +434,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    if (assignmentPending) {
+    const nextAssignment = { team: nextTeam, role: nextRole };
+    if (pendingAssignment) {
       return;
     }
 
-    setAssignmentPending(true);
+    setPendingAssignment(nextAssignment);
     toast.info("Joining team...");
 
-    // Save the team/role choice to session for recovery after reconnect
     updateSession({
       roomCode: room.roomCode,
       lastTeam: nextTeam,
@@ -457,15 +460,21 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       (ack?: { error?: string }) => {
         if (ack?.error) {
           toast.error(ack.error);
-          setAssignmentPending(false);
+          setPendingAssignment(null);
           return;
         }
-        // Wait a brief moment for the server to broadcast the update
-        setTimeout(() => {
-          void refreshLobby().finally(() => setAssignmentPending(false));
+
+        window.setTimeout(() => {
+          void refreshLobby().finally(() => setPendingAssignment(null));
         }, 200);
       },
     );
+
+    window.setTimeout(() => {
+      if (pendingAssignment) {
+        setPendingAssignment(null);
+      }
+    }, 5000);
   }
 
   const readinessIssues = getReadinessIssues(room);
@@ -703,7 +712,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               bluePlayers={displayBluePlayers}
               redPlayers={displayRedPlayers}
               onAssignmentChange={handleAssignmentChange}
-              assignmentPending={assignmentPending}
+              pendingAssignment={pendingAssignment}
             />
 
             <div className="mt-4">

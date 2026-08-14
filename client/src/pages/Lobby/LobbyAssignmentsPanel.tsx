@@ -8,7 +8,10 @@ interface LobbyAssignmentsPanelProps {
     nextTeam: "blue" | "red",
     nextRole: "operative" | "spymaster",
   ) => void;
-  assignmentPending?: boolean;
+  pendingAssignment?: {
+    team: "blue" | "red";
+    role: "operative" | "spymaster";
+  } | null;
 }
 
 function PlayerList({ players }: { players: Room["players"] }) {
@@ -42,7 +45,7 @@ export function LobbyAssignmentsPanel({
   bluePlayers,
   redPlayers,
   onAssignmentChange,
-  assignmentPending = false,
+  pendingAssignment = null,
 }: LobbyAssignmentsPanelProps) {
   return (
     <>
@@ -57,11 +60,17 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            disabled={assignmentPending}
+            disabled={
+              pendingAssignment?.team === "blue" &&
+              pendingAssignment?.role === "operative"
+            }
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            {assignmentPending ? "Joining..." : "Join team"}
+            {pendingAssignment?.team === "blue" &&
+            pendingAssignment?.role === "operative"
+              ? "Joining..."
+              : "Join team"}
           </button>
         </section>
 
@@ -75,11 +84,17 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            disabled={assignmentPending}
+            disabled={
+              pendingAssignment?.team === "red" &&
+              pendingAssignment?.role === "operative"
+            }
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            {assignmentPending ? "Joining..." : "Join team"}
+            {pendingAssignment?.team === "red" &&
+            pendingAssignment?.role === "operative"
+              ? "Joining..."
+              : "Join team"}
           </button>
         </section>
       </div>
@@ -95,11 +110,17 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            disabled={assignmentPending}
+            disabled={
+              pendingAssignment?.team === "blue" &&
+              pendingAssignment?.role === "spymaster"
+            }
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            {assignmentPending ? "Joining..." : "Join team"}
+            {pendingAssignment?.team === "blue" &&
+            pendingAssignment?.role === "spymaster"
+              ? "Joining..."
+              : "Join team"}
           </button>
         </section>
 
@@ -113,11 +134,17 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            disabled={assignmentPending}
+            disabled={
+              pendingAssignment?.team === "red" &&
+              pendingAssignment?.role === "spymaster"
+            }
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
-            {assignmentPending ? "Joining..." : "Join team"}
+            {pendingAssignment?.team === "red" &&
+            pendingAssignment?.role === "spymaster"
+              ? "Joining..."
+              : "Join team"}
           </button>
         </section>
       </div>

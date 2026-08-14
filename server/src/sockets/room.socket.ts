@@ -201,35 +201,43 @@ export function registerRoomSocketHandlers(
     }
   });
 
-  socket.on("room:updateTeam", async (payload: UpdateTeamSocketPayload) => {
-    try {
-      if (
-        typeof payload.roomCode !== "string" ||
-        typeof payload.telegramId !== "number" ||
-        !(typeof payload.team === "string" || payload.team === null) ||
-        typeof payload.role !== "string"
-      ) {
-        socket.emit("room:error", {
-          message: "Invalid room assignment payload.",
+  socket.on(
+    "room:updateTeam",
+    async (
+      payload: UpdateTeamSocketPayload,
+      callback?: (response?: { error?: string }) => void,
+    ) => {
+      try {
+        if (
+          typeof payload.roomCode !== "string" ||
+          typeof payload.telegramId !== "number" ||
+          !(typeof payload.team === "string" || payload.team === null) ||
+          typeof payload.role !== "string"
+        ) {
+          const message = "Invalid room assignment payload.";
+          socket.emit("room:error", { message });
+          callback?.({ error: message });
+          return;
+        }
+
+        const room = await updateRoomPlayerAssignment({
+          roomCode: payload.roomCode,
+          telegramId: payload.telegramId,
+          team: payload.team,
+          role: payload.role,
         });
-        return;
+
+        socket.emit("room:updated", room);
+        io.to(room.roomCode).emit("room:updated", room);
+        callback?.({});
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Team assignment failed.";
+        socket.emit("room:error", { message });
+        callback?.({ error: message });
       }
-
-      const room = await updateRoomPlayerAssignment({
-        roomCode: payload.roomCode,
-        telegramId: payload.telegramId,
-        team: payload.team,
-        role: payload.role,
-      });
-
-      socket.emit("room:updated", room);
-      io.to(room.roomCode).emit("room:updated", room);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Team assignment failed.";
-      socket.emit("room:error", { message });
-    }
-  });
+    },
+  );
 
   socket.on(
     "room:transferOwner",
