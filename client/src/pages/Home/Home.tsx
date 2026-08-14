@@ -31,7 +31,13 @@ interface RoomResponse {
 
 export function HomePage() {
   const { user, loading, error } = useAuthContext();
-  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(() => {
+    try {
+      return window.localStorage.getItem("codenames.lastRoomCode");
+    } catch {
+      return null;
+    }
+  });
   const [formValue, setFormValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -55,11 +61,23 @@ export function HomePage() {
 
   useEffect(() => {
     if (!roomCode) {
+      try {
+        window.localStorage.removeItem("codenames.lastRoomCode");
+      } catch {
+        // ignored in restricted browser contexts
+      }
+
       const params = new URLSearchParams(window.location.search);
       params.delete("room");
       const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
       window.history.replaceState(null, "", nextUrl);
       return;
+    }
+
+    try {
+      window.localStorage.setItem("codenames.lastRoomCode", roomCode);
+    } catch {
+      // ignored in restricted browser contexts
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -99,6 +117,15 @@ export function HomePage() {
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("room:updated", handleRoomUpdated);
+
+    // If socket is already connected, ensure we join the room immediately
+    if (socket.connected && roomCode && user) {
+      socket.emit("room:join", {
+        roomCode,
+        telegramId: user.telegramId,
+        displayName: user.firstName,
+      });
+    }
 
     return () => {
       socket.off("connect", handleConnect);

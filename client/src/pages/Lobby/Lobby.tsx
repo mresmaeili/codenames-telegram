@@ -96,7 +96,7 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
-  const { room, loading, error } = useLobby({ roomCode });
+  const { room, loading, error, refreshLobby } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const toast = useToast();
@@ -171,10 +171,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   );
 
   const isOwner = Boolean(
-    hasValidOwnershipInfo &&
     currentPlayer &&
-    ownerPlayer &&
-    currentPlayer.telegramId === ownerPlayer.telegramId,
+    room &&
+    (room.ownerId === currentPlayer.telegramId ||
+      room.ownerIds.includes(currentPlayer.telegramId)),
   );
 
   function handleStartGame() {
@@ -434,6 +434,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       team: nextTeam,
       role: nextRole,
     });
+    void refreshLobby();
     toast.info("Joining team...");
   }
 
