@@ -102,15 +102,10 @@ function getReadinessIssues(room: Room | null): string[] {
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
-  const { room, loading, error, refreshLobby } = useLobby({ roomCode });
+  const { room, loading, error } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [optimisticAssignment, setOptimisticAssignment] = useState<{
-    telegramId: number;
-    team: "blue" | "red";
-    role: "operative" | "spymaster";
-  } | null>(null);
   const toast = useToast();
   const [starting, setStarting] = useState(false);
   const [hostActionPending, setHostActionPending] = useState(false);
@@ -163,21 +158,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     return () => window.clearTimeout(timer);
   }, [starting, toast]);
 
-  // Clear optimistic assignment once the server-side room reflects the change
-  useEffect(() => {
-    if (!room || !optimisticAssignment) return;
-    const me = room.players.find(
-      (p) => p.telegramId === optimisticAssignment.telegramId,
-    );
-    if (
-      me &&
-      me.team === optimisticAssignment.team &&
-      me.role === optimisticAssignment.role
-    ) {
-      setOptimisticAssignment(null);
-    }
-  }, [room, optimisticAssignment]);
-
   const currentPlayer = room?.players.find(
     (player) => player.telegramId === user?.telegramId,
   );
@@ -189,8 +169,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   const isOwner = Boolean(
     currentPlayer &&
-    (room?.ownerId === currentPlayer.userId ||
-      room?.ownerIds?.includes(currentPlayer.userId)),
+    ownerPlayer &&
+    currentPlayer.telegramId === ownerPlayer.telegramId,
   );
 
   function handleStartGame() {
@@ -424,28 +404,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    // Optimistically update the current user's assignment so their avatar
-    // moves out of Spectators and into the chosen role immediately.
-    console.debug("optimistic assign:", {
-      telegramId: user.telegramId,
-      nextTeam,
-      nextRole,
-    });
-    setOptimisticAssignment({
-      telegramId: user.telegramId,
-      team: nextTeam,
-      role: nextRole,
-    });
-
     socket.emit("room:updateTeam", {
       roomCode: room.roomCode,
       telegramId: user.telegramId,
       team: nextTeam,
       role: nextRole,
     });
-
-    // Refresh authoritative lobby state afterwards.
-    refreshLobby();
   }
 
   const readinessIssues = getReadinessIssues(room);
@@ -476,68 +440,9 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     room?.players.filter((player) => player.team === "blue") ?? [];
   const spectatorPlayers = room?.players.filter((player) => !player.team) ?? [];
 
-  // Apply optimistic assignment for the current user so their avatar moves
-  // immediately from spectators into the selected role card.
-  const displayBluePlayers = [...bluePlayers];
-  const displayRedPlayers = [...redPlayers];
-  let displaySpectatorPlayers = [...spectatorPlayers];
-
-  if (optimisticAssignment && room) {
-    let me = room.players.find(
-      (p) => p.telegramId === optimisticAssignment.telegramId,
-    );
-    console.debug("apply optimistic: found me", me, optimisticAssignment);
-    if (!me) {
-      // fallback: use currentPlayer if available or construct a minimal temp player
-      me = room.players.find((p) => p.telegramId === user?.telegramId) ?? null;
-    }
-
-    if (me) {
-      const updated = {
-        ...me,
-        team: optimisticAssignment.team,
-        role: optimisticAssignment.role,
-      };
-      displaySpectatorPlayers = displaySpectatorPlayers.filter(
-        (p) => p.telegramId !== optimisticAssignment.telegramId,
-      );
-      if (optimisticAssignment.team === "blue") {
-        if (!displayBluePlayers.find((p) => p.userId === me!.userId)) {
-          displayBluePlayers.push(updated);
-        }
-      } else {
-        if (!displayRedPlayers.find((p) => p.userId === me!.userId)) {
-          displayRedPlayers.push(updated);
-        }
-      }
-    } else if (user) {
-      // Construct a minimal temporary player object for optimistic UI
-      const tempPlayer = {
-        userId: `temp-${user.telegramId}`,
-        telegramId: user.telegramId,
-        displayName: user.firstName,
-        photoUrl: user.photoUrl ?? null,
-        ghibliAvatarUrl: null,
-        team: optimisticAssignment.team,
-        role: optimisticAssignment.role,
-        joinedAt: new Date(),
-      };
-      displaySpectatorPlayers = displaySpectatorPlayers.filter(
-        (p) => p.telegramId !== optimisticAssignment.telegramId,
-      );
-      if (optimisticAssignment.team === "blue") {
-        displayBluePlayers.push(tempPlayer as any);
-      } else {
-        displayRedPlayers.push(tempPlayer as any);
-      }
-    }
-  }
-
-  console.debug("display lists", {
-    displayBluePlayersCount: displayBluePlayers.length,
-    displayRedPlayersCount: displayRedPlayers.length,
-    displaySpectatorPlayersCount: displaySpectatorPlayers.length,
-  });
+  const displayBluePlayers = bluePlayers;
+  const displayRedPlayers = redPlayers;
+  const displaySpectatorPlayers = spectatorPlayers;
 
   const inviteUrl =
     typeof window !== "undefined" && room
