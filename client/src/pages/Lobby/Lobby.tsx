@@ -439,6 +439,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
+    const currentAssignment = currentPlayer
+      ? { team: currentPlayer.team, role: currentPlayer.role }
+      : null;
+
+    if (
+      currentAssignment &&
+      currentAssignment.team === nextAssignment.team &&
+      currentAssignment.role === nextAssignment.role
+    ) {
+      toast.info("You are already on this team.");
+      return;
+    }
+
     setPendingAssignment(nextAssignment);
     toast.info("Joining team...");
 
@@ -457,24 +470,20 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         team: nextTeam,
         role: nextRole,
       },
-      (ack?: { error?: string }) => {
+      async (ack?: { error?: string }) => {
         if (ack?.error) {
           toast.error(ack.error);
           setPendingAssignment(null);
           return;
         }
 
-        window.setTimeout(() => {
-          void refreshLobby().finally(() => setPendingAssignment(null));
-        }, 200);
+        try {
+          await refreshLobby();
+        } finally {
+          setPendingAssignment(null);
+        }
       },
     );
-
-    window.setTimeout(() => {
-      if (pendingAssignment) {
-        setPendingAssignment(null);
-      }
-    }, 5000);
   }
 
   const readinessIssues = getReadinessIssues(room);

@@ -47,6 +47,8 @@ export function LobbyAssignmentsPanel({
   onAssignmentChange,
   pendingAssignment = null,
 }: LobbyAssignmentsPanelProps) {
+  const isAssignmentPending = pendingAssignment !== null;
+
   return (
     <>
       <div className="mt-5 grid grid-cols-2 gap-3">
@@ -60,10 +62,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            disabled={
-              pendingAssignment?.team === "blue" &&
-              pendingAssignment?.role === "operative"
-            }
+            disabled={isAssignmentPending}
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
@@ -84,10 +83,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            disabled={
-              pendingAssignment?.team === "red" &&
-              pendingAssignment?.role === "operative"
-            }
+            disabled={isAssignmentPending}
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
@@ -110,10 +106,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            disabled={
-              pendingAssignment?.team === "blue" &&
-              pendingAssignment?.role === "spymaster"
-            }
+            disabled={isAssignmentPending}
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
@@ -134,10 +127,7 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            disabled={
-              pendingAssignment?.team === "red" &&
-              pendingAssignment?.role === "spymaster"
-            }
+            disabled={isAssignmentPending}
             className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
