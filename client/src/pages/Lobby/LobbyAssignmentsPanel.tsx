@@ -45,9 +45,10 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
-            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            style={{ WebkitUserSelect: "none" }}
           >
-            <span className="block text-sm">Join team</span>
+            Join team
           </button>
         </section>
 
@@ -61,9 +62,10 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
-            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            style={{ WebkitUserSelect: "none" }}
           >
-            <span className="block text-sm">Join team</span>
+            Join team
           </button>
         </section>
       </div>
@@ -79,9 +81,10 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
-            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            style={{ WebkitUserSelect: "none" }}
           >
-            <span className="block text-sm">Join team</span>
+            Join team
           </button>
         </section>
 
@@ -95,9 +98,10 @@ export function LobbyAssignmentsPanel({
           <button
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
-            className="relative z-30 mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-3 text-base font-black uppercase tracking-[0.08em] text-white pointer-events-auto"
+            className="mt-3 w-full rounded-full bg-[#2cc86c] px-3 py-4 text-base font-black uppercase tracking-[0.08em] text-white active:bg-[#24a85a] active:shadow-inner hover:shadow-lg touch-manipulation select-none"
+            style={{ WebkitUserSelect: "none" }}
           >
-            <span className="block text-sm">Join team</span>
+            Join team
           </button>
         </section>
       </div>

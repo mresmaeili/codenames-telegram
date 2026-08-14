@@ -39,10 +39,10 @@ export function LobbySettingsPanel({
           type="button"
           onClick={onOpenLanguageSettings}
           disabled={!isOwner}
-          className={`rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-5 text-left text-black transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+          className={`rounded-[18px] border border-white/20 bg-[#d8d0bd] px-4 py-6 text-left text-black active:bg-white/80 ${
             isOwner
-              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              : "opacity-60 cursor-not-allowed"
+              ? "hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed pointer-events-none"
           }`}
         >
           <div className="text-xs font-black uppercase tracking-[0.18em] text-[#5d5d5d]">
@@ -63,10 +63,10 @@ export function LobbySettingsPanel({
           type="button"
           onClick={onOpenTimerSettings}
           disabled={!isOwner}
-          className={`rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-5 text-left text-white transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+          className={`rounded-[18px] border border-white/20 bg-[#c6c9cd] px-4 py-6 text-left text-white active:bg-white/70 ${
             isOwner
-              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              : "opacity-60 cursor-not-allowed"
+              ? "hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed pointer-events-none"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -86,10 +86,10 @@ export function LobbySettingsPanel({
           type="button"
           onClick={onOpenWordPackSettings}
           disabled={!isOwner}
-          className={`rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-5 text-left text-black transform transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2cc86c]/30 ${
+          className={`rounded-[18px] border border-white/20 bg-[#cbd4d9] px-4 py-6 text-left text-black active:bg-white/80 ${
             isOwner
-              ? "hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              : "opacity-60 cursor-not-allowed"
+              ? "hover:shadow-md cursor-pointer"
+              : "opacity-60 cursor-not-allowed pointer-events-none"
           }`}
         >
           <div className="text-xs font-black uppercase tracking-[0.18em] text-[#5d5d5d]">

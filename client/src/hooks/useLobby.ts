@@ -8,6 +8,7 @@ function getFriendlyLobbyMessage(error: unknown): string {
   return "We could not load this lobby. Please try again in a moment.";
 }
 
+import { useAuthContext } from "@/context/AuthContext";
 import { getSocketClient } from "@/socket/client";
 import type {
   Room,
@@ -26,6 +27,7 @@ interface LobbyHookOptions {
 }
 
 export function useLobby({ roomCode }: LobbyHookOptions) {
+  const { user } = useAuthContext();
   const [lobbyState, setLobbyState] = useState<LobbyState>({
     room: null,
     loading: Boolean(roomCode),
@@ -72,7 +74,14 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       }
     }
 
-    if (socket) {
+    if (socket && user) {
+      // Ensure socket joins this room (may have missed connection event)
+      socket.emit("room:join", {
+        roomCode,
+        telegramId: user.telegramId,
+        displayName: user.firstName,
+      });
+      // Listen for room updates
       socket.on("room:updated", handleRoomUpdated);
     }
 
@@ -82,7 +91,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         socket.off("room:updated", handleRoomUpdated);
       }
     };
-  }, [roomCode, socket, refreshKey]);
+  }, [roomCode, socket, user, refreshKey]);
 
   return {
     room: lobbyState.room,
