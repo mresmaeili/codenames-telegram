@@ -50,9 +50,10 @@ info "Project root: ${PROJECT_ROOT}"
 # 2. Load environment variables from .env (production deployment)
 if [[ -f ".env" ]]; then
   info "Loading environment variables from .env..."
+  # Use grep + export to safely load .env without bash syntax errors
   set -a
   # shellcheck disable=SC1091
-  source .env
+  eval "$(grep -v '^\s*#' .env | grep -v '^\s*$' | sed 's/^/export /')"
   set +a
   success "Environment variables loaded."
 else
