@@ -48,13 +48,7 @@ export interface SettingsFormState {
   wordPack: "classic" | "party";
 }
 
-type HostControlAction =
-  | "game-mode"
-  | "timer"
-  | "language"
-  | "word-pack"
-  | "shuffle"
-  | "reset";
+type HostControlAction = "game-mode" | "timer" | "language" | "word-pack";
 
 function getReadinessIssues(room: Room | null): string[] {
   if (!room) {
@@ -105,11 +99,9 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { room, loading, error } = useLobby({ roomCode });
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
-  const [feedback, setFeedback] = useState<string | null>(null);
   const toast = useToast();
   const [starting, setStarting] = useState(false);
   const [hostActionPending, setHostActionPending] = useState(false);
-  const [avatarGenerating, setAvatarGenerating] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     maxPlayers: 16,
     allowSpectators: false,
@@ -241,7 +233,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   function handleAddBot() {
     if (!socket || !room) {
-      setFeedback("Socket connection is unavailable.");
+      toast.error("Socket connection is unavailable.");
       return;
     }
 
@@ -282,20 +274,32 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     window.setTimeout(() => setHostActionPending(false), 1200);
   }
 
-  // Small editor used inside the word-pack popup — accepts extra words.
+  // Small editor used inside the word-pack popup — select pack type.
   function WordPackEditor() {
-    const [text, setText] = useState("");
     return (
       <div className="space-y-3">
-        <div className="text-sm text-(--app-muted)">
-          Add extra words (one per line)
-        </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="w-full min-h-30 rounded-lg border border-white/10 bg-(--app-background) p-3 text-sm text-(--app-text) placeholder:text-white/40"
-          placeholder={"Enter words, one per line..."}
-        />
+        {[
+          { value: "classic", label: "Classic Pack" },
+          { value: "party", label: "Party Pack" },
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() =>
+              setSettingsForm((current) => ({
+                ...current,
+                wordPack: option.value as SettingsFormState["wordPack"],
+              }))
+            }
+            className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
+              settingsForm.wordPack === option.value
+                ? "border-[#2cc86c] bg-white/10 text-white"
+                : "border-white/10 bg-(--app-background) text-(--app-text)"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
     );
   }
@@ -310,8 +314,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       timer: "Timer",
       language: "Language",
       "word-pack": "Word pack",
-      shuffle: "Shuffle teams",
-      reset: "Reset teams",
     };
 
     const title = titleMap[settingsPopupAction] ?? "Setting";
@@ -382,7 +384,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           <WordPackEditor />
         ) : null}
 
-        {/* actions removed — settings are applied immediately on option click; use header Close to dismiss */}
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={handleSettingsSave}
+            disabled={hostActionPending || !isOwner}
+            className="flex-1 rounded-full bg-[#2cc86c] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {hostActionPending ? "Saving..." : "Save Settings"}
+          </button>
+        </div>
       </div>,
       title,
     );
@@ -392,6 +403,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     settingsForm,
     isOwner,
     room,
+    hostActionPending,
     handleSettingsSave,
     handleCloseSettingsPopup,
   ]);
@@ -401,7 +413,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     nextRole: "operative" | "spymaster",
   ) {
     if (!socket || !room || !user) {
-      setFeedback("Socket connection is unavailable.");
+      toast.error("Socket connection is unavailable.");
       return;
     }
 
@@ -411,6 +423,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       team: nextTeam,
       role: nextRole,
     });
+    toast.info("Joining team...");
   }
 
   const readinessIssues = getReadinessIssues(room);
@@ -512,22 +525,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-120 bg-[#070b12] px-3 pb-0 pt-0 text-white">
-        {feedback ? (
-          <div className="mb-4">
-            <StatusPanel
-              title="Update"
-              description={feedback}
-              tone={
-                feedback.toLowerCase().includes("error") ||
-                feedback.toLowerCase().includes("could not") ||
-                feedback.toLowerCase().includes("failed")
-                  ? "error"
-                  : "success"
-              }
-            />
-          </div>
-        ) : null}
-
         {starting ? (
           <div className="mb-4">
             <StatusPanel

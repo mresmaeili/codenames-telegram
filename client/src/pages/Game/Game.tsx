@@ -731,24 +731,6 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             </span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="relative rounded-full border border-white/75 bg-[#1f5fae] px-4 py-2 text-base font-black tracking-tight text-white"
-            >
-              News
-              <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#ff3b30] text-[10px] text-white">
-                25
-              </span>
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-white/75 bg-[#1f5fae] px-4 py-2 text-base font-black tracking-tight text-white"
-            >
-              Rules
-            </button>
-          </div>
-
           <button
             type="button"
             className="flex h-11 w-11 items-center justify-center rounded-full border border-white/75 bg-[#1f5fae] text-2xl text-white"
@@ -911,40 +893,87 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           />
         </div>
 
-        <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
-          <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
-            {state.game.currentHintWord ?? "YOUR CLUE"}
+        {canSubmitHint ? (
+          <form onSubmit={handleSubmitHint} className="mt-4 space-y-3">
+            <div className="space-y-2">
+              <label
+                htmlFor="hintWord"
+                className="text-xs uppercase tracking-[0.18em] text-white/70"
+              >
+                Hint Word
+              </label>
+              <input
+                id="hintWord"
+                type="text"
+                value={hintDraft.word}
+                onChange={(e) =>
+                  setHintDraft((current) => ({
+                    ...current,
+                    word: e.target.value,
+                  }))
+                }
+                placeholder="Enter one word (no spaces)"
+                disabled={hintSubmitting}
+                className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="hintNumber"
+                className="text-xs uppercase tracking-[0.18em] text-white/70"
+              >
+                Number of Cards (1-25)
+              </label>
+              <input
+                id="hintNumber"
+                type="number"
+                min="1"
+                max="25"
+                value={hintDraft.number}
+                onChange={(e) =>
+                  setHintDraft((current) => ({
+                    ...current,
+                    number: e.target.value,
+                  }))
+                }
+                placeholder="How many cards?"
+                disabled={hintSubmitting}
+                className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={
+                  hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
+                }
+                className="flex-1 rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+              >
+                {hintSubmitting ? "Submitting..." : "Submit Hint"}
+              </button>
+            </div>
+          </form>
+        ) : hasActiveHint ? (
+          <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
+            <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
+              {state.game.currentHintWord} ({state.game.currentHintNumber})
+            </div>
+            {isActiveOperative ? (
+              <button
+                type="button"
+                onClick={handlePassTurn}
+                disabled={!canPassTurn || hintSubmitting}
+                aria-label="Pass turn"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffb84d] text-xl font-bold text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
+              >
+                ⏭
+              </button>
+            ) : null}
           </div>
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl text-white"
-            onClick={() =>
-              setHintDraft((current) => ({
-                ...current,
-                word: current.word || "",
-              }))
-            }
-          >
-            −
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmitHintClick}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#24d16b] text-2xl font-black text-white"
-            aria-label="Submit clue"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            onClick={handlePassTurn}
-            disabled={!canPassTurn || hintSubmitting}
-            aria-label="Pass turn"
-            className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#ffb84d] text-xl font-bold text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
-          >
-            ⏭
-          </button>
-        </div>
+        ) : null}
 
         {hintMessage ? (
           <div className="mt-3">
