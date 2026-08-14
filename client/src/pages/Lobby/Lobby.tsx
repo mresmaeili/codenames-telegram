@@ -164,7 +164,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   const ownerPlayer = room?.players.find(
     (player) =>
-      player.userId === room.ownerId || room.ownerIds?.includes(player.userId),
+      player.telegramId === room.ownerId ||
+      room.ownerIds?.includes(player.telegramId),
   );
 
   const isOwner = Boolean(

@@ -58,8 +58,11 @@ async function serializeRoom(room: RoomDocument): Promise<LobbyRoomSnapshot> {
   return {
     id: room._id.toString(),
     roomCode: room.roomCode,
-    ownerId: room.ownerId,
-    ownerIds: Array.isArray(room.ownerIds) ? room.ownerIds : [room.ownerId],
+    ownerId: Number(room.ownerId),
+    ownerIds: (Array.isArray(room.ownerIds)
+      ? room.ownerIds
+      : [room.ownerId]
+    ).map((id) => Number(id)),
     players: playersWithPhotos,
     status: room.status,
     settings: room.settings,

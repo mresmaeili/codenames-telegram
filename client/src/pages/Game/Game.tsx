@@ -427,7 +427,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     state.room.players.some(
       (player) =>
         player.telegramId === user?.telegramId &&
-        state.room?.ownerIds?.includes(player.userId),
+        state.room?.ownerIds?.includes(player.telegramId),
     ),
   );
 

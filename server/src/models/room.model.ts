@@ -110,11 +110,11 @@ const roomSchema = new Schema<RoomDocument>(
       index: true,
     },
     ownerId: {
-      type: String,
+      type: Number,
       required: true,
     },
     ownerIds: {
-      type: [String],
+      type: [Number],
       required: true,
       default: [],
     },

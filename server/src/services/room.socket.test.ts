@@ -309,7 +309,8 @@ test("registerRoomSocketHandlers accepts a rematch request from the room owner",
 
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: "owner-id",
+    ownerId: 1,
+    ownerIds: [1],
     players: [
       {
         userId: "owner-id",

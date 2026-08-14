@@ -24,7 +24,8 @@ test("createRoom creates a waiting room with default settings", async () => {
   roomRepository.create = async (room) => {
     const created = createRoomDocument({
       roomCode: room.roomCode ?? "ABC123",
-      ownerId: room.ownerId ?? "owner-id",
+      ownerId: room.ownerId ?? 1,
+      ownerIds: room.ownerIds ?? [1],
       players: room.players ?? [],
       status: room.status ?? "waiting",
       settings: room.settings ?? {
@@ -53,6 +54,8 @@ test("createRoom creates a waiting room with default settings", async () => {
     assert.equal(room.settings.maxPlayers, ROOM_MAX_PLAYERS);
     assert.equal(room.settings.allowSpectators, false);
     assert.equal(room.settings.privateRoom, false);
+    assert.equal(room.ownerId, 1);
+    assert.deepEqual(room.ownerIds, [1]);
     assert.equal(room.players.length, 1);
     assert.equal(room.players[0]?.role, "operative");
   } finally {
@@ -166,8 +169,8 @@ test("updateRoomSettings allows the room creator to make the room public", async
 
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: "1",
-    ownerIds: ["1"],
+    ownerId: 1,
+    ownerIds: [1],
     settings: {
       maxPlayers: 4,
       allowSpectators: false,
@@ -320,7 +323,8 @@ test("transferRoomOwnership promotes a player inside the room to owner", async (
   ).findOne;
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: "owner-id",
+    ownerId: 1,
+    ownerIds: [1],
     status: "waiting",
     players: [
       {
@@ -363,9 +367,9 @@ test("transferRoomOwnership promotes a player inside the room to owner", async (
       targetTelegramId: 2,
     });
 
-    assert.equal(updatedRoom.ownerId, "owner-id");
-    assert.deepEqual(updatedRoom.ownerIds, ["owner-id", "guest-id"]);
-    assert.deepEqual(room.ownerIds, ["owner-id", "guest-id"]);
+    assert.equal(updatedRoom.ownerId, 1);
+    assert.deepEqual(updatedRoom.ownerIds, [1, 2]);
+    assert.deepEqual(room.ownerIds, [1, 2]);
   } finally {
     roomRepository.findByCode = originalFindByCode;
     (
@@ -382,8 +386,8 @@ test("shuffleRoomTeams fans the room into red and blue assignments", async () =>
 
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: "owner-id",
-    ownerIds: ["owner-id"],
+    ownerId: 1,
+    ownerIds: [1],
     status: "waiting",
     players: [
       {
@@ -461,8 +465,8 @@ test("resetRoomTeams restores active players to a clean team allocation", async 
 
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: "owner-id",
-    ownerIds: ["owner-id"],
+    ownerId: 1,
+    ownerIds: [1],
     status: "waiting",
     players: [
       {
@@ -534,7 +538,8 @@ test("updateRoomSettings validates the room settings payload", async () => {
   ).findById;
   const room = createRoomDocument({
     status: "waiting",
-    ownerId: "owner-id",
+    ownerId: 1,
+    ownerIds: [1],
   });
 
   roomRepository.findByCode = async () => room;
@@ -596,7 +601,8 @@ test("updateRoomSettings accepts valid settings and persists them", async () => 
 
   const room = createRoomDocument({
     status: "waiting",
-    ownerId: "owner-id",
+    ownerId: 1,
+    ownerIds: [1],
   });
 
   roomRepository.findByCode = async () => room;

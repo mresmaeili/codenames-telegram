@@ -26,8 +26,8 @@ export interface RoomSettings {
 export interface Room {
   id?: string;
   roomCode: string;
-  ownerId: string;
-  ownerIds: string[];
+  ownerId: number;
+  ownerIds: number[];
   players: RoomPlayer[];
   status: RoomStatus;
   settings: RoomSettings;

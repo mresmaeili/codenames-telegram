@@ -7,8 +7,8 @@ export function createRoomDocument(
   const room = {
     _id: "room-id" as unknown as RoomDocument["_id"],
     roomCode: "ABC123",
-    ownerId: "owner-id",
-    ownerIds: ["owner-id"],
+    ownerId: 1,
+    ownerIds: [1],
     players: [
       {
         userId: "owner-id",

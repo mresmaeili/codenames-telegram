@@ -628,7 +628,7 @@ export function registerRoomSocketHandlers(
       const owner = room.players.find(
         (player) =>
           player.telegramId === payload.ownerTelegramId &&
-          room.ownerIds.includes(player.userId),
+          room.ownerIds.includes(player.telegramId),
       );
       if (!owner) {
         socket.emit("room:error", {

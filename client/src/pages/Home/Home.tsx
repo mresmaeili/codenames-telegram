@@ -11,7 +11,8 @@ import { getSocketClient } from "@/socket/client";
 interface RoomResponse {
   id?: string;
   roomCode: string;
-  ownerId: string;
+  ownerId: number;
+  ownerIds: number[];
   players: Array<{
     userId: string;
     telegramId: number;

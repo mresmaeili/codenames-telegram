@@ -28,8 +28,8 @@ export interface CreateRoomInput {
 export interface CreateRoomResult {
   id: string;
   roomCode: string;
-  ownerId: string;
-  ownerIds: string[];
+  ownerId: number;
+  ownerIds: number[];
   players: RoomPlayer[];
   status: RoomStatus;
   settings: RoomSettings;
@@ -268,9 +268,13 @@ async function assertRoomOwner(
     ? room.ownerIds
     : [room.ownerId];
 
+  if (ownerIds.includes(ownerTelegramId) || room.ownerId === ownerTelegramId) {
+    return;
+  }
+
   const ownerUser = await UserModel.findOne({ telegramId: ownerTelegramId });
   if (!ownerUser) {
-    const directOwner = room.players.find(
+    const directOwner = room.players.some(
       (player) => player.telegramId === ownerTelegramId,
     );
     if (!directOwner) {
@@ -279,17 +283,11 @@ async function assertRoomOwner(
     return;
   }
 
-  const ownerUserId = ownerUser._id.toString();
-  const matchingOwnerId =
-    ownerIds.includes(ownerUserId) ||
-    room.ownerId === ownerUserId ||
-    room.players.some(
-      (player) =>
-        player.telegramId === ownerTelegramId &&
-        (player.userId === ownerUserId || player.userId === room.ownerId),
-    );
+  const isOwnerPlayer = room.players.some(
+    (player) => player.telegramId === ownerTelegramId,
+  );
 
-  if (!matchingOwnerId) {
+  if (!isOwnerPlayer) {
     throw new Error("Only the room owner can change this room.");
   }
 }
@@ -383,8 +381,11 @@ async function serializeRoom(room: RoomDocument): Promise<CreateRoomResult> {
   return {
     id: room._id.toString(),
     roomCode: room.roomCode,
-    ownerId: room.ownerId,
-    ownerIds: Array.isArray(room.ownerIds) ? room.ownerIds : [room.ownerId],
+    ownerId: Number(room.ownerId),
+    ownerIds: (Array.isArray(room.ownerIds)
+      ? room.ownerIds
+      : [room.ownerId]
+    ).map((id) => Number(id)),
     players: playersWithPhotos,
     status: room.status,
     settings: room.settings,
@@ -402,8 +403,8 @@ export async function createRoom(
   const initialPlayer = buildInitialPlayer(input);
   const initialRoom: Partial<Room> = {
     roomCode,
-    ownerId: input.ownerId,
-    ownerIds: [input.ownerId],
+    ownerId: input.ownerTelegramId,
+    ownerIds: [input.ownerTelegramId],
     players: [initialPlayer],
     status: "waiting" as RoomStatus,
     settings: createDefaultSettings(),
@@ -595,8 +596,8 @@ export async function transferRoomOwnership(
   const ownerIds = Array.isArray(room.ownerIds)
     ? room.ownerIds
     : [room.ownerId];
-  if (!ownerIds.includes(targetPlayer.userId)) {
-    ownerIds.push(targetPlayer.userId);
+  if (!ownerIds.includes(targetPlayer.telegramId)) {
+    ownerIds.push(targetPlayer.telegramId);
   }
 
   room.ownerIds = ownerIds;

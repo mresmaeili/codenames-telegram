@@ -31,7 +31,8 @@ test("POST /api/rooms returns 201 for a valid room creation request", async () =
   roomRepository.create = async (room) =>
     createRoomDocument({
       roomCode: room.roomCode ?? "ABC123",
-      ownerId: room.ownerId ?? "owner-id",
+      ownerId: room.ownerId ?? 1,
+      ownerIds: room.ownerIds ?? [1],
       players: room.players ?? [],
       status: room.status ?? "waiting",
       settings: room.settings ?? {
