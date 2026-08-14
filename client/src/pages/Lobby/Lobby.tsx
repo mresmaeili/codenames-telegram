@@ -154,13 +154,24 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     (player) => player.telegramId === user?.telegramId,
   );
 
+  // Check if room has valid ownership info
+  const hasValidOwnershipInfo = Boolean(
+    room &&
+    Number.isInteger(room.ownerId) &&
+    room.ownerId > 0 &&
+    Array.isArray(room.ownerIds) &&
+    room.ownerIds.length > 0,
+  );
+
   const ownerPlayer = room?.players.find(
     (player) =>
-      player.telegramId === room.ownerId ||
-      room.ownerIds?.includes(player.telegramId),
+      hasValidOwnershipInfo &&
+      (player.telegramId === room.ownerId ||
+        room.ownerIds?.includes(player.telegramId)),
   );
 
   const isOwner = Boolean(
+    hasValidOwnershipInfo &&
     currentPlayer &&
     ownerPlayer &&
     currentPlayer.telegramId === ownerPlayer.telegramId,

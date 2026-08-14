@@ -11,16 +11,26 @@ interface LobbyAssignmentsPanelProps {
 }
 
 function PlayerList({ players }: { players: Room["players"] }) {
+  if (players.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="mb-2 flex items-center justify-center gap-3 pointer-events-none">
-      {players.slice(0, 4).map((player) => (
-        <div key={player.userId} className="flex flex-col items-center">
+    <div className="my-3 flex flex-wrap items-center justify-center gap-2">
+      {players.map((player) => (
+        <div
+          key={player.userId}
+          className="flex flex-col items-center gap-1 rounded-full bg-white/10 px-2 py-1"
+        >
           <img
             src={avatarUrlForPlayer(player)}
             alt={player.displayName}
             title={player.displayName}
-            className="h-9 w-9 rounded-full border border-white/20 object-cover pointer-events-none"
+            className="h-10 w-10 rounded-full border border-white/30 object-cover"
           />
+          <span className="text-xs font-semibold text-white whitespace-nowrap">
+            {player.displayName}
+          </span>
         </div>
       ))}
     </div>

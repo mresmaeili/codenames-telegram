@@ -378,14 +378,30 @@ async function serializeRoom(room: RoomDocument): Promise<CreateRoomResult> {
     };
   });
 
+  // Ensure ownerId is a valid number
+  const ownerId = Number(room.ownerId);
+  if (!Number.isInteger(ownerId) || ownerId <= 0) {
+    throw new Error(
+      `Invalid ownerId in room ${room.roomCode}: ${room.ownerId}`,
+    );
+  }
+
+  // Ensure ownerIds is always a valid array of numbers
+  let ownerIds: number[] = [];
+  if (Array.isArray(room.ownerIds) && room.ownerIds.length > 0) {
+    ownerIds = room.ownerIds
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+  }
+  if (ownerIds.length === 0) {
+    ownerIds = [ownerId];
+  }
+
   return {
     id: room._id.toString(),
     roomCode: room.roomCode,
-    ownerId: Number(room.ownerId),
-    ownerIds: (Array.isArray(room.ownerIds)
-      ? room.ownerIds
-      : [room.ownerId]
-    ).map((id) => Number(id)),
+    ownerId,
+    ownerIds,
     players: playersWithPhotos,
     status: room.status,
     settings: room.settings,
