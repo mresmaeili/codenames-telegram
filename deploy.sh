@@ -51,6 +51,11 @@ info "Project root: ${PROJECT_ROOT}"
 info "Cleaning workspace build artifacts..."
 rm -rf node_modules .turbo
 
+# Install root workspace dependencies first (monorepo setup)
+info "Installing root workspace dependencies..."
+cd "${PROJECT_ROOT}"
+npm install --no-audit --no-fund
+
 # 3. Load environment variables from .env (production deployment)
 if [[ -f ".env" ]]; then
   info "Loading environment variables from .env..."
@@ -68,13 +73,9 @@ fi
 info "Building frontend..."
 cd "${PROJECT_ROOT}/client"
 
-# Clean previous build artifacts
-info "Cleaning build artifacts..."
-rm -rf dist node_modules .turbo tsconfig.tsbuildinfo
-
-# Install dependencies idempotently
-info "Installing frontend dependencies (npm install)..."
-npm install --no-audit --no-fund
+# Clean only local build artifacts (node_modules already clean from root)
+info "Cleaning client build artifacts..."
+rm -rf dist .turbo tsconfig.tsbuildinfo
 
 info "Running frontend build with environment variables..."
 VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
@@ -113,12 +114,9 @@ success "Frontend deployed to ${TARGET_DIR}."
 info "Building backend..."
 cd "${PROJECT_ROOT}/server"
 
-# Clean previous build artifacts
+# Clean only local build artifacts (node_modules already clean from root)
 info "Cleaning backend build artifacts..."
-rm -rf dist node_modules .turbo tsconfig.tsbuildinfo
-
-info "Installing backend dependencies (npm install)..."
-npm install --no-audit --no-fund
+rm -rf dist .turbo tsconfig.tsbuildinfo
 
 # Check if package.json defines a build script
 HAS_BUILD_SCRIPT=$(node -e "const pkg=require('./package.json'); console.log(Boolean(pkg.scripts && pkg.scripts.build))")
