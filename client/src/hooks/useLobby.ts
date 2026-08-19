@@ -9,6 +9,7 @@ function getFriendlyLobbyMessage(error: unknown): string {
 }
 
 import { useAuthContext } from "@/context/AuthContext";
+import { apiUrl } from "@/config/env";
 import { getSocketClient } from "@/socket/client";
 import type {
   Room,
@@ -50,7 +51,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         error: null,
       }));
 
-      const response = await fetch(`/api/rooms/${roomCode}`);
+      const response = await fetch(apiUrl(`/api/rooms/${roomCode}`));
       if (!response.ok) {
         throw new Error(
           "This room could not be found. Please check the code and try again.",

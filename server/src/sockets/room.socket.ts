@@ -71,6 +71,11 @@ interface ResetRoomTeamsSocketPayload {
   ownerTelegramId?: unknown;
 }
 
+interface ResetGameSocketPayload {
+  roomCode?: unknown;
+  ownerTelegramId?: unknown;
+}
+
 interface LeaveRoomSocketPayload {
   roomCode?: unknown;
   userId?: unknown;
@@ -668,6 +673,52 @@ export function registerRoomSocketHandlers(
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Room rematch failed.";
+      socket.emit("room:error", { message });
+    }
+  });
+
+  socket.on("room:resetGame", async (payload: ResetGameSocketPayload) => {
+    try {
+      if (
+        typeof payload.roomCode !== "string" ||
+        typeof payload.ownerTelegramId !== "number"
+      ) {
+        socket.emit("room:error", { message: "Invalid game reset payload." });
+        return;
+      }
+
+      const normalizedRoomCode = payload.roomCode.toUpperCase();
+      const room = await roomRepository.findByCode(normalizedRoomCode);
+      if (!room) {
+        socket.emit("room:error", { message: "Room not found." });
+        return;
+      }
+
+      const isOwner = room.ownerIds.includes(payload.ownerTelegramId);
+      if (!isOwner) {
+        socket.emit("room:error", {
+          message: "Only the room owner can reset the game.",
+        });
+        return;
+      }
+
+      const existingGame = await gameRepository.findByRoomId(
+        room._id.toString(),
+      );
+      if (existingGame) {
+        await GameModel.deleteOne({ _id: existingGame._id }).exec();
+      }
+
+      room.status = "waiting";
+      const updatedRoom = await room.save();
+
+      io.to(normalizedRoomCode).emit("room:reset", {
+        roomCode: normalizedRoomCode,
+      });
+      io.to(normalizedRoomCode).emit("room:updated", updatedRoom);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Game reset failed.";
       socket.emit("room:error", { message });
     }
   });

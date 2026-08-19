@@ -22,7 +22,20 @@ export function createApp() {
   app.use(express.json());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: (origin, callback) => {
+        const allowedOrigins = new Set([
+          env.CORS_ORIGIN,
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+        ]);
+
+        if (!origin || allowedOrigins.has(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(null, false);
+      },
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
     }),

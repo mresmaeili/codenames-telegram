@@ -58,6 +58,7 @@ test("createRoom creates a waiting room with default settings", async () => {
     assert.deepEqual(room.ownerIds, [1]);
     assert.equal(room.players.length, 1);
     assert.equal(room.players[0]?.role, "operative");
+    assert.equal(room.settings.language, "fa");
   } finally {
     roomRepository.create = originalCreate;
     roomRepository.findByCode = originalFindByCode;
@@ -617,7 +618,7 @@ test("updateRoomSettings accepts valid settings and persists them", async () => 
       maxPlayers: ROOM_MAX_PLAYERS,
       allowSpectators: true,
       privateRoom: false,
-      gameMode: "rush" as const,
+      gameMode: "standard" as const,
       timer: "30" as const,
       language: "es" as const,
       wordPack: "party" as const,
@@ -632,7 +633,7 @@ test("updateRoomSettings accepts valid settings and persists them", async () => 
     assert.equal(updated.settings.maxPlayers, settings.maxPlayers);
     assert.equal(updated.settings.allowSpectators, settings.allowSpectators);
     assert.equal(updated.settings.privateRoom, settings.privateRoom);
-    assert.equal(updated.settings.gameMode, settings.gameMode);
+    assert.equal(updated.settings.gameMode, "standard");
     assert.equal(updated.settings.timer, settings.timer);
     assert.equal(updated.settings.language, settings.language);
     assert.equal(updated.settings.wordPack, settings.wordPack);

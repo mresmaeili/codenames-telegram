@@ -22,3 +22,10 @@ export const env = {
   DEBUG_AUTH_HASH: (importMetaEnv as any).VITE_DEBUG_AUTH_HASH === "true",
   DEV_MODE: (importMetaEnv as any).VITE_DEV_MODE === "true",
 };
+
+export function apiUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const baseUrl = env.API_BASE_URL.replace(/\/$/, "");
+
+  return `${baseUrl}${normalizedPath}`;
+}

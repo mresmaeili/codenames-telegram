@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { apiUrl } from "@/config/env";
 import { GamePage } from "@/pages/Game";
 import { LobbyPage } from "@/pages/Lobby";
 import { getSocketClient } from "@/socket/client";
@@ -60,6 +61,30 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const hasExplicitRoom = Boolean(
+      new URLSearchParams(window.location.search).get("room"),
+    );
+
+    try {
+      const storedUserId = window.localStorage.getItem(
+        "codenames.lastRoomUserId",
+      );
+
+      if (!hasExplicitRoom && storedUserId !== String(user.telegramId)) {
+        window.localStorage.removeItem("codenames.lastRoomCode");
+        setRoomCode(null);
+        setActiveView("home");
+      }
+    } catch {
+      // ignored in restricted browser contexts
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (!roomCode) {
       try {
         window.localStorage.removeItem("codenames.lastRoomCode");
@@ -76,6 +101,12 @@ export function HomePage() {
 
     try {
       window.localStorage.setItem("codenames.lastRoomCode", roomCode);
+      if (user) {
+        window.localStorage.setItem(
+          "codenames.lastRoomUserId",
+          String(user.telegramId),
+        );
+      }
     } catch {
       // ignored in restricted browser contexts
     }
@@ -156,7 +187,7 @@ export function HomePage() {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/rooms", {
+      const response = await fetch(apiUrl("/api/rooms"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,7 +228,7 @@ export function HomePage() {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/rooms/join", {
+      const response = await fetch(apiUrl("/api/rooms/join"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -254,6 +285,7 @@ export function HomePage() {
           setRoomCode(null);
           setActiveView("home");
         }}
+        onReturnToLobby={() => setActiveView("lobby")}
       />
     );
   }

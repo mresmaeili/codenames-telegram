@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { buildGameBoard, buildGameView } from "./game.service.js";
+import { DEFAULT_FARSI_WORDS } from "./word.service.js";
 
 test("buildGameView returns a public board for operatives and a colorized board for spymasters", () => {
   const board = [
@@ -115,6 +116,14 @@ test("buildGameBoard creates 25 unique cards with the expected color distributio
   assert.equal(colorCounts.blue, 8);
   assert.equal(colorCounts.neutral, 7);
   assert.equal(colorCounts.assassin, 1);
+});
+
+test("buildGameBoard selects 25 unique Persian words from the default pool", () => {
+  const board = buildGameBoard(DEFAULT_FARSI_WORDS, "blue");
+
+  assert.equal(board.length, 25);
+  assert.equal(new Set(board.map((card) => card.word)).size, 25);
+  assert.ok(board.every((card) => DEFAULT_FARSI_WORDS.includes(card.word)));
 });
 
 test("buildGameBoard creates 25 unique cards with the expected color distribution when blue starts", () => {

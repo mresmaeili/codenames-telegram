@@ -84,7 +84,7 @@ function createDefaultSettings(): RoomSettings {
     privateRoom: false,
     gameMode: "standard",
     timer: "60",
-    language: "en",
+    language: "fa",
     wordPack: "classic",
   };
 }
@@ -229,8 +229,8 @@ function validateRoomSettings(settings: RoomSettings): void {
     throw new Error("Private room must be a boolean.");
   }
 
-  if (settings.gameMode !== "standard" && settings.gameMode !== "rush") {
-    throw new Error("Invalid game mode.");
+  if (settings.gameMode !== "standard") {
+    throw new Error("Classic game mode is the only supported mode.");
   }
 
   if (
@@ -372,7 +372,12 @@ async function serializeRoom(room: RoomDocument): Promise<CreateRoomResult> {
       ghibliAvatarUrl: null,
     };
     return {
-      ...p,
+      userId: p.userId,
+      telegramId: p.telegramId,
+      displayName: p.displayName,
+      team: p.team,
+      role: p.role,
+      joinedAt: p.joinedAt,
       photoUrl: mapped.photoUrl,
       ghibliAvatarUrl: mapped.ghibliAvatarUrl,
     };
@@ -456,16 +461,16 @@ export async function joinRoom(
     throw new Error("Room not found.");
   }
 
-  if (room.status !== "waiting") {
-    throw new Error("Room is not accepting players.");
-  }
-
   const alreadyJoined = room.players.some(
     (player) => player.telegramId === input.telegramId,
   );
 
   if (alreadyJoined) {
     return await serializeRoom(room);
+  }
+
+  if (room.status !== "waiting") {
+    throw new Error("Room is not accepting players.");
   }
 
   if (room.settings.privateRoom) {

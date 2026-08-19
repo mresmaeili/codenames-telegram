@@ -6,6 +6,7 @@ import { EndGameModal } from "@/components/EndGameModal";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
+import { apiUrl } from "@/config/env";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
@@ -21,6 +22,7 @@ import type { Room } from "@/../shared/src/types/room";
 interface GamePageProps {
   roomCode: string;
   onLeave: () => void;
+  onReturnToLobby: () => void;
 }
 
 interface GamePageState {
@@ -34,7 +36,11 @@ function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
 
-export function GamePage({ roomCode, onLeave }: GamePageProps) {
+export function GamePage({
+  roomCode,
+  onLeave,
+  onReturnToLobby,
+}: GamePageProps) {
   const { user } = useAuthContext();
   const [state, setState] = useState<GamePageState>({
     room: null,
@@ -86,7 +92,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
   async function loadGameData() {
     try {
-      const roomResponse = await fetch(`/api/rooms/${roomCode}`);
+      const roomResponse = await fetch(apiUrl(`/api/rooms/${roomCode}`));
       if (!roomResponse.ok) {
         throw new Error("Unable to load the game board.");
       }
@@ -100,7 +106,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             )?.role ?? "operative")
           : "operative";
       const gameUrl = `/api/games/${roomCode}${viewerTelegramId === undefined ? "" : `?telegramId=${viewerTelegramId}`}`;
-      const gameResponse = await fetch(gameUrl);
+      const gameResponse = await fetch(apiUrl(gameUrl));
 
       if (!gameResponse.ok) {
         throw new Error("Unable to load the game board.");
@@ -163,6 +169,10 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     if (socket) {
       const handleRoomUpdated = (room: Room) => {
         if (isMounted) {
+          if (room.status === "waiting") {
+            onReturnToLobby();
+            return;
+          }
           setState((current) => ({ ...current, room, error: null }));
         }
       };
@@ -177,8 +187,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
       const handleGameReset = () => {
         if (isMounted) {
-          setHintMessage("Room reset detected. Reloading state...");
-          void loadGameData();
+          onReturnToLobby();
         }
       };
 
@@ -386,7 +395,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     return () => {
       isMounted = false;
     };
-  }, [roomCode, socket, user?.telegramId]);
+  }, [onReturnToLobby, roomCode, socket, user?.telegramId]);
 
   const viewerPlayer = state.room?.players.find(
     (player) => player.telegramId === user?.telegramId,
@@ -414,6 +423,7 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     state.game?.remainingGuesses > 0;
   const canPassTurn = isActiveOperative && state.game?.status === "active";
   const gameFinished = state.game?.status === "finished";
+  const roomSettings = state.room?.settings;
   const completionSummary = gameFinished
     ? state.game?.completionReason === "assassin-revealed"
       ? `${state.game.winningTeam ?? "The opposing team"} wins after the assassin was revealed.`
@@ -519,16 +529,17 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
   }
 
   function handleReturnToLobby() {
-    onLeave();
+    onReturnToLobby();
   }
 
   function handleRematch() {
-    if (!state.room || !user?.telegramId || !socket) {
+    const activeSocket = getSocketClient();
+    if (!state.room || !user?.telegramId || !activeSocket) {
       setHintMessage("Unable to request a rematch.");
       return;
     }
 
-    socket.emit("room:rematch", {
+    activeSocket.emit("room:resetGame", {
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
     });
@@ -552,11 +563,12 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
     setHintMessage(null);
 
     try {
-      if (!socket) {
+      const activeSocket = getSocketClient();
+      if (!activeSocket) {
         throw new Error("Socket connection is unavailable.");
       }
 
-      socket.emit("game:hint", {
+      activeSocket.emit("game:hint", {
         gameId: state.game.id ?? state.game.roomId,
         roomCode: roomCode.toUpperCase(),
         telegramId: user.telegramId,
@@ -599,12 +611,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
       return;
     }
 
-    if (!socket) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket) {
       setHintMessage("Socket connection is unavailable.");
       return;
     }
 
-    socket.emit("game:select", {
+    activeSocket.emit("game:select", {
       gameId: state.game.id ?? state.game.roomId,
       roomCode: roomCode.toUpperCase(),
       telegramId: user.telegramId,
@@ -617,12 +630,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
       return;
     }
 
-    if (!socket) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket) {
       setHintMessage("Socket connection is unavailable.");
       return;
     }
 
-    socket.emit("game:pass", {
+    activeSocket.emit("game:pass", {
       gameId: state.game.id ?? state.game.roomId,
       roomCode: roomCode.toUpperCase(),
       telegramId: user.telegramId,
@@ -725,6 +739,20 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
             playerCount={getPlayerCount(state.room)}
           />
         </div>
+        {roomSettings ? (
+          <div className="mb-3 grid grid-cols-2 gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
+              Timer:{" "}
+              {roomSettings.timer === "none" ? "Off" : `${roomSettings.timer}s`}
+            </div>
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
+              Language: {roomSettings.language}
+            </div>
+            <div className="rounded-2xl bg-white/10 px-3 py-2">
+              Pack: {roomSettings.wordPack}
+            </div>
+          </div>
+        ) : null}
         <div className="mb-3 flex items-center justify-between gap-3">
           <button
             type="button"
@@ -882,7 +910,13 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
           </div>
         </div>
         <div className="mt-4 text-center text-[22px] font-black uppercase tracking-tight text-white">
-          Give your operatives a clue
+          {isViewerSpymaster
+            ? "Give your operatives a clue"
+            : isViewerOperative
+              ? hasActiveHint
+                ? "Pick a word"
+                : "Wait for your spymaster's clue"
+              : "Watch the turn"}
         </div>
         <div className="mt-4 rounded-3xl border border-white/10 bg-[#0a63d4] p-2">
           <BoardGrid
@@ -947,7 +981,8 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
 
             <div className="flex gap-2 pt-2">
               <button
-                type="submit"
+                type="button"
+                onClick={handleSubmitHintClick}
                 disabled={
                   hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
                 }
@@ -973,6 +1008,10 @@ export function GamePage({ roomCode, onLeave }: GamePageProps) {
                 ⏭
               </button>
             ) : null}
+          </div>
+        ) : isActiveOperative ? (
+          <div className="mt-4 rounded-3xl bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white/80">
+            Your spymaster has not given a clue yet.
           </div>
         ) : null}
         {hintMessage ? (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
@@ -49,7 +49,7 @@ export interface SettingsFormState {
   wordPack: "classic" | "party";
 }
 
-type HostControlAction = "game-mode" | "timer" | "language" | "word-pack";
+type HostControlAction = "timer" | "language" | "word-pack";
 
 function getReadinessIssues(room: Room | null): string[] {
   if (!room) {
@@ -114,7 +114,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     privateRoom: false,
     gameMode: "standard",
     timer: "60",
-    language: "en",
+    language: "fa",
     wordPack: "classic",
   });
   const [settingsPopupAction, setSettingsPopupAction] =
@@ -184,7 +184,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   );
 
   function handleStartGame() {
-    if (!socket || !room || !user) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
       toast.error("Socket connection is unavailable.");
       return;
     }
@@ -205,7 +206,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     // show transient starting UI until server initializes the game
     setStarting(true);
-    socket.emit("room:start", {
+    activeSocket.emit("room:start", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
     });
@@ -213,7 +214,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   }
 
   function handleResetTeams() {
-    if (!socket || !room || !user) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
       toast.error("Socket connection is unavailable.");
       return;
     }
@@ -223,7 +225,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    socket.emit("room:resetTeams", {
+    activeSocket.emit("room:resetTeams", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
     });
@@ -231,7 +233,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   }
 
   function handleRandomizeTeams() {
-    if (!socket || !room || !user) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
       toast.error("Socket connection is unavailable.");
       return;
     }
@@ -241,7 +244,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    socket.emit("room:shuffleTeams", {
+    activeSocket.emit("room:shuffleTeams", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
     });
@@ -249,12 +252,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   }
 
   function handleAddBot() {
-    if (!socket || !room) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room) {
       toast.error("Socket connection is unavailable.");
       return;
     }
 
-    socket.emit("room:addBot", {
+    activeSocket.emit("room:addBot", {
       roomCode: room.roomCode,
     });
     toast.info("Adding bot to the room...");
@@ -265,13 +269,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     openPopup();
   }
 
-  function handleCloseSettingsPopup() {
+  const handleCloseSettingsPopup = useCallback(() => {
     setSettingsPopupAction(null);
     closePopup();
-  }
+  }, [closePopup]);
 
-  function handleSettingsSave() {
-    if (!socket || !room || !user) {
+  const handleSettingsSave = useCallback(() => {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
       toast.error("Socket connection is unavailable.");
       return;
     }
@@ -282,14 +287,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
 
     setHostActionPending(true);
-    socket.emit("room:updateSettings", {
+    activeSocket.emit("room:updateSettings", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
       settings: settingsForm,
     });
     toast.info("Saving game settings...");
     window.setTimeout(() => setHostActionPending(false), 1200);
-  }
+  }, [isOwner, room, settingsForm, socket, toast, user]);
 
   // Small editor used inside the word-pack popup — select pack type.
   function WordPackEditor() {
@@ -327,7 +332,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
 
     const titleMap: Record<HostControlAction, string> = {
-      "game-mode": "Game mode",
       timer: "Timer",
       language: "Language",
       "word-pack": "Word pack",
@@ -429,7 +433,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     nextTeam: "blue" | "red",
     nextRole: "operative" | "spymaster",
   ) {
-    if (!socket || !room || !user) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
       toast.error("Socket connection is unavailable.");
       return;
     }
@@ -462,7 +467,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       lastJoinedAt: new Date().toISOString(),
     });
 
-    socket.emit(
+    activeSocket.emit(
       "room:updateTeam",
       {
         roomCode: room.roomCode,

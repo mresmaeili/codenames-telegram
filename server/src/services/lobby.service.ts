@@ -47,7 +47,12 @@ async function serializeRoom(room: RoomDocument): Promise<LobbyRoomSnapshot> {
       ghibliAvatarUrl: null,
     };
     return {
-      ...p,
+      userId: p.userId,
+      telegramId: p.telegramId,
+      displayName: p.displayName,
+      team: p.team,
+      role: p.role,
+      joinedAt: p.joinedAt,
       photoUrl: mapped.photoUrl,
       ghibliAvatarUrl: mapped.ghibliAvatarUrl,
     };

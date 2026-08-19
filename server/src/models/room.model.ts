@@ -85,7 +85,7 @@ const roomSettingsSchema = new Schema<RoomSettings>(
       type: String,
       required: true,
       enum: ["fa", "en", "es", "he"],
-      default: "en",
+      default: "fa",
     },
     wordPack: {
       type: String,

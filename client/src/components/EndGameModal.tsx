@@ -46,7 +46,7 @@ export function EndGameModal({
           onClick={onReturnToLobby}
           className="mt-3 w-full rounded-full border border-(--app-border) bg-(--app-background) px-4 py-3 text-sm font-medium text-(--app-text) transition hover:bg-(--app-surface)"
         >
-          Return to lobby
+          Return home
         </button>
       </div>
     </div>
