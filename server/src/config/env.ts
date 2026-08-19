@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config as loadDotenv } from "dotenv";
+
+loadDotenv({ path: [".env", "../.env"] });
 
 function parsePort(value: string | undefined) {
   const fallbackPort = 3001;

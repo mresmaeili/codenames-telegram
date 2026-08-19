@@ -70,6 +70,40 @@ test("buildGameView returns a public board for operatives and a colorized board 
   ]);
 });
 
+test("buildGameView reveals the full board to operatives after game completion", () => {
+  const board = [
+    { word: "alpha", color: "red" as const, revealed: false },
+    { word: "bravo", color: "blue" as const, revealed: true },
+  ];
+
+  const finishedView = buildGameView({
+    roomId: "room-1",
+    status: "finished",
+    board,
+    startingTeam: "blue",
+    currentTurn: "red",
+    remainingGuesses: 0,
+    currentHintWord: null,
+    currentHintNumber: null,
+    hintSubmittedAt: null,
+    hintHistory: [],
+    selectedCardId: null,
+    selectedByPlayerId: null,
+    selectedAt: null,
+    winningTeam: "blue",
+    completionReason: "all-blue-cards-revealed",
+    completedAt: new Date("2024-01-01T00:00:00.000Z"),
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2024-01-01T00:00:00.000Z"),
+    role: "operative",
+  });
+
+  assert.deepEqual(finishedView.board, [
+    { word: "alpha", revealed: false, color: "red" },
+    { word: "bravo", revealed: true, color: "blue" },
+  ]);
+});
+
 test("buildGameBoard creates 25 unique cards with the expected color distribution when red starts", () => {
   const board = buildGameBoard(
     [

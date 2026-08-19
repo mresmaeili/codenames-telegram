@@ -8,6 +8,7 @@ import { roomRepository } from "../repositories/room.repository.js";
 import { RoomModel } from "../models/room.model.js";
 import { GameModel } from "../models/game.model.js";
 import { UserModel } from "../models/user.model.js";
+import { WordPoolModel } from "../models/word.model.js";
 
 test("registerRoomSocketHandlers handles duplicate room joins without crashing", async () => {
   const originalFindByCode = roomRepository.findByCode;
@@ -278,12 +279,13 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
   RoomModel.findOne = originalRoomFindOne;
 });
 
-test("registerRoomSocketHandlers accepts a rematch request from the room owner", async () => {
+test("registerRoomSocketHandlers accepts an owner rematch request and initializes a new game", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindByRoomId = gameRepository.findByRoomId;
   const originalCreate = gameRepository.create;
   const originalDeleteOne = GameModel.deleteOne;
   const originalRoomFindOne = RoomModel.findOne;
+  const originalWordPoolFindOne = WordPoolModel.findOne;
 
   const emitted: Array<{ event: string; payload: unknown }> = [];
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
@@ -309,8 +311,8 @@ test("registerRoomSocketHandlers accepts a rematch request from the room owner",
 
   const room = createRoomDocument({
     roomCode: "ABC123",
-    ownerId: 1,
-    ownerIds: [1],
+    ownerId: 10,
+    ownerIds: [10],
     players: [
       {
         userId: "owner-id",
@@ -371,6 +373,8 @@ test("registerRoomSocketHandlers accepts a rematch request from the room owner",
     return findByRoomIdCallCount === 1 ? (game as any) : undefined;
   };
   RoomModel.findOne = () => ({ exec: async () => room }) as any;
+  WordPoolModel.findOne = () =>
+    ({ lean: () => ({ exec: async () => null }) }) as any;
   GameModel.deleteOne = () => ({ exec: async () => ({}) }) as any;
   gameRepository.create = async () => newGame as any;
 
@@ -395,10 +399,15 @@ test("registerRoomSocketHandlers accepts a rematch request from the room owner",
     (initializedEvent?.payload as { status: string }).status,
     "active",
   );
+  assert.equal(
+    (initializedEvent?.payload as { gameId: string }).gameId,
+    "new-game-id",
+  );
 
   roomRepository.findByCode = originalFindByCode;
   gameRepository.findByRoomId = originalFindByRoomId;
   RoomModel.findOne = originalRoomFindOne;
+  WordPoolModel.findOne = originalWordPoolFindOne;
   gameRepository.create = originalCreate;
   GameModel.deleteOne = originalDeleteOne;
 });

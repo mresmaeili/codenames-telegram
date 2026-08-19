@@ -94,12 +94,14 @@ interface SelectionSocketPayload {
   roomCode?: unknown;
   telegramId?: unknown;
   cardId?: unknown;
+  confirm?: unknown;
 }
 
 interface PassSocketPayload {
   gameId?: unknown;
   roomCode?: unknown;
   telegramId?: unknown;
+  timeout?: unknown;
 }
 
 interface AddBotSocketPayload {
@@ -894,23 +896,60 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      const selectionResult = applyCardSelection({
-        game: {
-          status: game.status,
-          currentTurn: game.currentTurn,
-          remainingGuesses: game.remainingGuesses,
-          currentHintWord: game.currentHintWord ?? null,
-          currentHintNumber: game.currentHintNumber ?? null,
-          hintSubmittedAt: game.hintSubmittedAt ?? null,
-          board: game.board,
-          selectedCardId: game.selectedCardId ?? null,
-          selectedByPlayerId: game.selectedByPlayerId ?? null,
-          selectedAt: game.selectedAt ?? null,
-        },
-        room: { players: room.players },
-        senderTelegramId: payload.telegramId,
-        cardId: payload.cardId,
-      });
+      const selectionResult =
+        payload.confirm === true && game.selectedCardId === payload.cardId
+          ? {
+              game: {
+                status: game.status,
+                currentTurn: game.currentTurn,
+                remainingGuesses: game.remainingGuesses,
+                currentHintWord: game.currentHintWord ?? null,
+                currentHintNumber: game.currentHintNumber ?? null,
+                hintSubmittedAt: game.hintSubmittedAt ?? null,
+                board: game.board,
+                selectedCardId: game.selectedCardId ?? null,
+                selectedByPlayerId: game.selectedByPlayerId ?? null,
+                selectedAt: game.selectedAt ?? null,
+              },
+            }
+          : applyCardSelection({
+              game: {
+                status: game.status,
+                currentTurn: game.currentTurn,
+                remainingGuesses: game.remainingGuesses,
+                currentHintWord: game.currentHintWord ?? null,
+                currentHintNumber: game.currentHintNumber ?? null,
+                hintSubmittedAt: game.hintSubmittedAt ?? null,
+                board: game.board,
+                selectedCardId: game.selectedCardId ?? null,
+                selectedByPlayerId: game.selectedByPlayerId ?? null,
+                selectedAt: game.selectedAt ?? null,
+              },
+              room: { players: room.players },
+              senderTelegramId: payload.telegramId,
+              cardId: payload.cardId,
+            });
+
+      if (payload.confirm === false) {
+        const selectedGame = await gameRepository.update(payload.gameId, {
+          selectedCardId: selectionResult.game.selectedCardId,
+          selectedByPlayerId: selectionResult.game.selectedByPlayerId,
+          selectedAt: selectionResult.game.selectedAt,
+        });
+
+        if (!selectedGame) {
+          socket.emit("game:error", { message: "Unable to select card." });
+          return;
+        }
+
+        io.to(payload.roomCode.toUpperCase()).emit("game:selected", {
+          gameId: selectedGame._id.toString(),
+          selectedCardId: selectedGame.selectedCardId,
+          selectedByPlayerId: selectedGame.selectedByPlayerId,
+          selectedAt: selectedGame.selectedAt,
+        });
+        return;
+      }
 
       const revealResult = applyCardReveal({
         game: selectionResult.game,

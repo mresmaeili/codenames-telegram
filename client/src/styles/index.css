@@ -1,25 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --app-bg: var(--tg-bg-color, #051428);
-  --app-surface: var(--tg-secondary-bg-color, #0b1f3f);
+  --app-bg: var(--tg-bg-color, #0b69ad);
+  --app-surface: var(--tg-secondary-bg-color, #155f9f);
   --app-text: var(--tg-text-color, #f8fafc);
   --app-muted: var(--tg-hint-color, #a5b4fc);
   --app-border: var(--tg-section-separator-color, rgba(148, 163, 184, 0.22));
-  --app-accent: #22c55e;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  --app-accent: #6ee51b;
+  font-family: "Arial Narrow", Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: #f8fafc;
-  background:
-    radial-gradient(circle at top, rgba(59, 130, 246, 0.22), transparent 45%),
-    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  background: #0b69ad;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

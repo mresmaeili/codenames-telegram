@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BoardGrid } from "@/components/BoardGrid";
 import { GameHeader } from "@/components/GameHeader";
-import { EndGameModal } from "@/components/EndGameModal";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
@@ -68,6 +67,61 @@ export function GamePage({
       return false;
     }
   });
+  const [turnSecondsRemaining, setTurnSecondsRemaining] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    const timerSetting = state.room?.settings.timer;
+    const duration =
+      timerSetting && timerSetting !== "none" ? Number(timerSetting) : null;
+    const viewerPlayer = state.room?.players.find(
+      (player) => player.telegramId === user?.telegramId,
+    );
+    const isActiveOperative =
+      viewerPlayer?.team === state.game?.currentTurn &&
+      viewerPlayer?.role === "operative";
+
+    if (
+      !duration ||
+      !state.game ||
+      state.game.status !== "active" ||
+      !isActiveOperative
+    ) {
+      setTurnSecondsRemaining(null);
+      return;
+    }
+
+    setTurnSecondsRemaining(duration);
+    const interval = window.setInterval(() => {
+      setTurnSecondsRemaining((current) => {
+        if (current === null || current <= 1) {
+          window.clearInterval(interval);
+          const activeSocket = getSocketClient();
+          if (activeSocket && state.game && user?.telegramId) {
+            activeSocket.emit("game:pass", {
+              gameId: state.game.id ?? state.game.roomId,
+              roomCode: roomCode.toUpperCase(),
+              telegramId: user.telegramId,
+              timeout: true,
+            });
+          }
+          return duration;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [
+    roomCode,
+    state.game?.currentTurn,
+    state.game?.hintSubmittedAt,
+    state.game?.status,
+    state.room?.settings.timer,
+    state.room?.players,
+    user?.telegramId,
+  ]);
 
   const blueCardsRemaining =
     state.game?.board.filter((card) => card.color === "blue" && !card.revealed)
@@ -245,6 +299,30 @@ export function GamePage({
         }
       };
 
+      const handleSelected = (payload: {
+        gameId: string;
+        selectedCardId: string | null;
+        selectedByPlayerId: string | null;
+        selectedAt: string | null;
+      }) => {
+        if (isMounted) {
+          setState((current) => ({
+            ...current,
+            game: current.game
+              ? {
+                  ...current.game,
+                  selectedCardId: payload.selectedCardId,
+                  selectedByPlayerId: payload.selectedByPlayerId,
+                  selectedAt: payload.selectedAt
+                    ? new Date(payload.selectedAt)
+                    : null,
+                }
+              : current.game,
+            error: null,
+          }));
+        }
+      };
+
       const handleRevealed = (payload: {
         gameId: string;
         board: GameView["board"];
@@ -373,6 +451,7 @@ export function GamePage({
       socket.on("game:initialized", handleGameInitialized);
       socket.on("game:keycard", handleKeycardReveal);
       socket.on("game:hinted", handleHinted);
+      socket.on("game:selected", handleSelected);
       socket.on("game:revealed", handleRevealed);
       socket.on("game:passed", handlePassed);
       socket.on("game:error", handleGameError);
@@ -386,6 +465,7 @@ export function GamePage({
         socket.off("game:initialized", handleGameInitialized);
         socket.off("game:keycard", handleKeycardReveal);
         socket.off("game:hinted", handleHinted);
+        socket.off("game:selected", handleSelected);
         socket.off("game:revealed", handleRevealed);
         socket.off("game:passed", handlePassed);
         socket.off("game:error", handleGameError);
@@ -491,12 +571,6 @@ export function GamePage({
       "Room settings",
     );
   }, [registerPopup, isRoomOwner, state.room]);
-
-  const endGameSummary = gameFinished
-    ? isRoomOwner
-      ? "You can start a rematch now to keep the same room and players."
-      : "Ask the room owner to start the rematch when you're ready."
-    : null;
 
   const isViewerSpymaster = Boolean(
     state.room &&
@@ -622,7 +696,40 @@ export function GamePage({
       roomCode: roomCode.toUpperCase(),
       telegramId: user.telegramId,
       cardId: String(cardIndex),
+      confirm: false,
     });
+  }
+
+  function handleConfirmSelection() {
+    if (!state.game || !user?.telegramId || !state.game.selectedCardId) {
+      return;
+    }
+
+    const activeSocket = getSocketClient();
+    if (!activeSocket) {
+      setHintMessage("Socket connection is unavailable.");
+      return;
+    }
+
+    activeSocket.emit("game:select", {
+      gameId: state.game.id ?? state.game.roomId,
+      roomCode: roomCode.toUpperCase(),
+      telegramId: user.telegramId,
+      cardId: state.game.selectedCardId,
+      confirm: true,
+    });
+  }
+
+  function handleConfirmCard(cardIndex: number) {
+    if (
+      !state.game ||
+      !user?.telegramId ||
+      state.game.selectedCardId !== String(cardIndex)
+    ) {
+      return;
+    }
+
+    handleConfirmSelection();
   }
 
   function handlePassTurn() {
@@ -681,7 +788,7 @@ export function GamePage({
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-[560px] bg-[#0a63d4] px-3 pb-5 pt-3 text-white">
+      <div className="mx-auto w-full max-w-[600px] bg-[#0b69ad] px-2 pb-4 pt-2 text-white">
         {" "}
         <div className="sticky top-0 z-10 flex gap-2 py-2">
           <button
@@ -692,15 +799,6 @@ export function GamePage({
             Exit
           </button>
         </div>{" "}
-        {gameFinished ? (
-          <EndGameModal
-            title="Game complete"
-            description={completionSummary ?? "The game has finished."}
-            summary={endGameSummary ?? undefined}
-            onReturnToLobby={handleReturnToLobby}
-            onRematch={isRoomOwner ? handleRematch : undefined}
-          />
-        ) : null}
         {devMode ? (
           <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -739,12 +837,40 @@ export function GamePage({
             playerCount={getPlayerCount(state.room)}
           />
         </div>
+        {gameFinished ? (
+          <div className="mb-3 rounded-3xl border border-white/20 bg-black/20 p-4">
+            <p className="text-lg font-black uppercase tracking-tight">
+              Game complete
+            </p>
+            <p className="mt-1 text-sm text-white/80">
+              {completionSummary ?? "All cards are revealed."}
+            </p>
+            {isRoomOwner ? (
+              <button
+                type="button"
+                onClick={handleRematch}
+                className="mt-3 w-full rounded-full bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0a63d4]"
+              >
+                Reset game and return to lobby
+              </button>
+            ) : (
+              <p className="mt-3 text-sm text-white/70">
+                Waiting for the room admin to reset the game.
+              </p>
+            )}
+          </div>
+        ) : null}
         {roomSettings ? (
           <div className="mb-3 grid grid-cols-2 gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
             <div className="rounded-2xl bg-white/10 px-3 py-2">
               Timer:{" "}
               {roomSettings.timer === "none" ? "Off" : `${roomSettings.timer}s`}
             </div>
+            {turnSecondsRemaining !== null ? (
+              <div className="rounded-2xl bg-white/10 px-3 py-2">
+                Turn left: {turnSecondsRemaining}s
+              </div>
+            ) : null}
             <div className="rounded-2xl bg-white/10 px-3 py-2">
               Language: {roomSettings.language}
             </div>
@@ -774,8 +900,8 @@ export function GamePage({
             ⚙
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-3xl border border-white/10 bg-[#2d9bff] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
+          <div className="col-start-1 row-start-1 rounded-[12px] border-2 border-[#76f21b] bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -811,18 +937,30 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-[#6f7277] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+          <div className="col-start-2 row-span-2 row-start-1 h-[212px] overflow-y-auto rounded-[12px] border-2 border-[#777] bg-[#3e3e3e] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
               Game log
             </div>
-            <div className="mt-3 rounded-2xl bg-black/65 p-2 text-center text-[10px] text-white/80">
-              {state.game.currentHintWord
-                ? `${state.game.currentHintWord} (${state.game.currentHintNumber})`
-                : "No hint yet"}
+            <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
+              {state.game.hintHistory.length > 0 ? (
+                state.game.hintHistory.map((hint, index) => (
+                  <div
+                    key={`${hint.word}-${hint.submittedAt}-${index}`}
+                    className="rounded-lg bg-black/55 px-2 py-1.5"
+                  >
+                    <span className="font-black uppercase">{hint.word}</span>
+                    <span className="ml-1 font-black">{hint.number}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg bg-black/55 px-2 py-1.5 text-center">
+                  No hint yet
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-[#ef5c48] p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)]">
+          <div className="col-start-3 row-start-1 rounded-[12px] border-2 border-[#e88963] bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -857,9 +995,7 @@ export function GamePage({
               </div>
             </div>
           </div>
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <div className="rounded-3xl border border-[#9ef3ff] bg-[#2ca4ff] p-2 text-white">
+          <div className="col-start-1 row-start-2 rounded-[12px] border-2 border-[#23d4ff] bg-[#168fc5] p-1.5 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -884,7 +1020,7 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#ffc3be] bg-[#ef5c48] p-2 text-white">
+          <div className="col-start-3 row-start-2 rounded-[12px] border-2 border-[#f39b84] bg-[#c94b3b] p-1.5 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -909,7 +1045,7 @@ export function GamePage({
             </div>
           </div>
         </div>
-        <div className="mt-4 text-center text-[22px] font-black uppercase tracking-tight text-white">
+        <div className="mt-3 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-none tracking-tight text-white">
           {isViewerSpymaster
             ? "Give your operatives a clue"
             : isViewerOperative
@@ -918,16 +1054,28 @@ export function GamePage({
                 : "Wait for your spymaster's clue"
               : "Watch the turn"}
         </div>
-        <div className="mt-4 rounded-3xl border border-white/10 bg-[#0a63d4] p-2">
+        <div className="mt-2 rounded-[10px] border border-white/15 bg-[#0879b8] p-1.5">
           <BoardGrid
             cards={state.game.board}
             role={state.game.role}
             selectedCardId={state.game.selectedCardId}
             canSelectCard={canSelectCard}
             onSelectCard={handleSelectCard}
+            onConfirmCard={handleConfirmCard}
             hideWords={isViewerOperative ? hideBoard : false}
           />
         </div>
+        {isActiveOperative && state.game.selectedCardId !== null ? (
+          <div className="mt-3 rounded-3xl bg-black/35 p-3">
+            <button
+              type="button"
+              onClick={handleConfirmSelection}
+              className="w-full rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-lg"
+            >
+              Confirm selected word
+            </button>
+          </div>
+        ) : null}
         {canSubmitHint ? (
           <form onSubmit={handleSubmitHint} className="mt-4 space-y-3">
             <div className="space-y-2">

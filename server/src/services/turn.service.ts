@@ -92,10 +92,27 @@ export function applyTurnOutcome(
   const revealedCardColor = context.revealedCardColor;
 
   if (revealedCardColor === context.game.currentTurn) {
+    const remainingGuesses = Math.max(0, context.game.remainingGuesses - 1);
+    if (remainingGuesses === 0) {
+      return {
+        game: {
+          ...context.game,
+          currentTurn: getOpposingTeam(context.game.currentTurn),
+          remainingGuesses: 0,
+          currentHintWord: null,
+          currentHintNumber: null,
+          hintSubmittedAt: null,
+          selectedCardId: null,
+          selectedByPlayerId: null,
+          selectedAt: null,
+        },
+      };
+    }
+
     return {
       game: {
         ...context.game,
-        remainingGuesses: Math.max(0, context.game.remainingGuesses - 1),
+        remainingGuesses,
         selectedCardId: null,
         selectedByPlayerId: null,
         selectedAt: null,
@@ -123,7 +140,13 @@ export function applyTurnOutcome(
     return {
       game: {
         ...context.game,
-        status: "finished",
+        remainingGuesses: 0,
+        currentHintWord: null,
+        currentHintNumber: null,
+        hintSubmittedAt: null,
+        selectedCardId: null,
+        selectedByPlayerId: null,
+        selectedAt: null,
       },
     };
   }

@@ -11,6 +11,7 @@ interface BoardGridProps {
   selectedCardId?: string | null;
   canSelectCard?: boolean;
   onSelectCard?: (cardIndex: number) => void;
+  onConfirmCard?: (cardIndex: number) => void;
   hideWords?: boolean;
 }
 
@@ -20,10 +21,11 @@ export function BoardGrid({
   selectedCardId,
   canSelectCard = false,
   onSelectCard,
+  onConfirmCard,
   hideWords = false,
 }: BoardGridProps) {
   return (
-    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+    <div className="grid grid-cols-5 gap-1.5">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -55,7 +57,12 @@ export function BoardGrid({
                 onSelectCard(index);
               }
             }}
-            className={`block w-full min-h-[5.5rem] rounded-3xl transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
+            onDoubleClick={() => {
+              if (isSelectable && onConfirmCard) {
+                onConfirmCard(index);
+              }
+            }}
+            className={`block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
             disabled={!isSelectable}
           >
             <BoardCard

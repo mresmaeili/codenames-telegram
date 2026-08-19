@@ -146,7 +146,10 @@ export function buildGameView(input: {
       (card): PublicCard => ({
         word: card.word,
         revealed: card.revealed,
-        color: card.revealed ? (card.color ?? null) : null,
+        color:
+          input.status === "finished" || card.revealed
+            ? (card.color ?? null)
+            : null,
       }),
     ),
   };
