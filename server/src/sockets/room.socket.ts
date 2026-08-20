@@ -5,6 +5,8 @@ import {
   createRoom,
   joinRoom,
   resetRoomTeams,
+  assignRoomPlayer,
+  setRoomAdmin,
   shuffleRoomTeams,
   startRoom,
   transferRoomOwnership,
@@ -59,6 +61,21 @@ interface TransferHostSocketPayload {
   roomCode?: unknown;
   ownerTelegramId?: unknown;
   targetTelegramId?: unknown;
+}
+
+interface SetRoomAdminSocketPayload {
+  roomCode?: unknown;
+  creatorTelegramId?: unknown;
+  targetTelegramId?: unknown;
+  isAdmin?: unknown;
+}
+
+interface AssignRoomPlayerSocketPayload {
+  roomCode?: unknown;
+  actorTelegramId?: unknown;
+  targetTelegramId?: unknown;
+  team?: unknown;
+  role?: unknown;
 }
 
 interface ShuffleRoomTeamsSocketPayload {
@@ -272,6 +289,71 @@ export function registerRoomSocketHandlers(
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Host transfer failed.";
+        socket.emit("room:error", { message });
+      }
+    },
+  );
+
+  socket.on("room:setAdmin", async (payload: SetRoomAdminSocketPayload) => {
+    try {
+      if (
+        typeof payload.roomCode !== "string" ||
+        typeof payload.creatorTelegramId !== "number" ||
+        typeof payload.targetTelegramId !== "number" ||
+        typeof payload.isAdmin !== "boolean"
+      ) {
+        socket.emit("room:error", {
+          message: "Invalid admin assignment payload.",
+        });
+        return;
+      }
+
+      const room = await setRoomAdmin({
+        roomCode: payload.roomCode,
+        creatorTelegramId: payload.creatorTelegramId,
+        targetTelegramId: payload.targetTelegramId,
+        isAdmin: payload.isAdmin,
+      });
+
+      socket.emit("room:updated", room);
+      io.to(room.roomCode).emit("room:updated", room);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Admin assignment failed.";
+      socket.emit("room:error", { message });
+    }
+  });
+
+  socket.on(
+    "room:assignPlayer",
+    async (payload: AssignRoomPlayerSocketPayload) => {
+      try {
+        if (
+          typeof payload.roomCode !== "string" ||
+          typeof payload.actorTelegramId !== "number" ||
+          typeof payload.targetTelegramId !== "number" ||
+          !(typeof payload.team === "string" || payload.team === null) ||
+          typeof payload.role !== "string"
+        ) {
+          socket.emit("room:error", {
+            message: "Invalid player assignment payload.",
+          });
+          return;
+        }
+
+        const room = await assignRoomPlayer({
+          roomCode: payload.roomCode,
+          actorTelegramId: payload.actorTelegramId,
+          targetTelegramId: payload.targetTelegramId,
+          team: payload.team,
+          role: payload.role,
+        });
+
+        socket.emit("room:updated", room);
+        io.to(room.roomCode).emit("room:updated", room);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Player assignment failed.";
         socket.emit("room:error", { message });
       }
     },

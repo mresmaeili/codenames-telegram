@@ -74,3 +74,37 @@ test("validateCardSelection rejects a guess when no remaining guesses are availa
   assert.equal(validation.ok, false);
   assert.equal(validation.error, "No remaining guesses are available.");
 });
+
+test("validateCardSelection rejects a stale duplicate selection", () => {
+  const validation = validateCardSelection({
+    game: {
+      status: "active",
+      currentTurn: "blue",
+      remainingGuesses: 2,
+      currentHintWord: "forest",
+      currentHintNumber: 2,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+      board: [{ word: "alpha", color: "blue", revealed: false }],
+      selectedCardId: "0",
+      selectedByPlayerId: "user-1",
+      selectedAt: new Date("2024-01-01T00:00:00.000Z"),
+    },
+    room: {
+      players: [
+        {
+          userId: "user-1",
+          telegramId: 42,
+          displayName: "Agent One",
+          team: "blue",
+          role: "operative",
+          joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+        },
+      ],
+    },
+    senderTelegramId: 42,
+    cardId: "0",
+  });
+
+  assert.equal(validation.ok, false);
+  assert.equal(validation.error, "A card is already selected.");
+});

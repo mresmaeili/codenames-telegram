@@ -29,6 +29,7 @@ The project is now a playable multiplayer MVP with the core lobby, game engine, 
 - Assassin completion assigns winner and completion metadata through the win-condition service.
 - Completed games reveal the full board to operatives.
 - Owner replay/reset returns all clients to the lobby.
+- Room creators can promote or revoke admin access for room players; admins share owner-level room controls.
 
 ### UI and mobile work
 
@@ -45,6 +46,7 @@ The project is now a playable multiplayer MVP with the core lobby, game engine, 
 - Live clue submission and `game:hinted` event.
 - Live double-click operative confirmation and `game:revealed` event.
 - Live replay from completed game to lobby and into a new active game.
+- Lobby reconnect now re-emits room membership after a Socket.IO reconnect.
 - Client and server typechecks.
 - Focused game, turn, win-condition, and room socket tests.
 - Room socket rematch test repaired and all four room socket tests pass in isolation.
@@ -55,6 +57,7 @@ The project is now a playable multiplayer MVP with the core lobby, game engine, 
 - The full suite needs a clean test database strategy so integration tests do not depend on connection timeouts.
 - Reconnect behavior has been implemented but needs a dedicated multi-client network-drop regression test.
 - Socket mutation paths need explicit stale-state and duplicate-action integration coverage.
+- Reconnect needs a multi-client network-drop regression test; the lobby rejoin path is now covered in code but not yet by browser automation.
 - Accessibility announcements and production touch/keyboard checks are incomplete.
 - Editor diagnostics remain for Tailwind class modernization and TypeScript `baseUrl` deprecation.
 - Production configuration and secret rotation must be completed before deployment.

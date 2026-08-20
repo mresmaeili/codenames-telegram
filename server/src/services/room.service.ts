@@ -67,6 +67,21 @@ export interface TransferRoomOwnershipInput {
   targetTelegramId: number;
 }
 
+export interface SetRoomAdminInput {
+  roomCode: string;
+  creatorTelegramId: number;
+  targetTelegramId: number;
+  isAdmin: boolean;
+}
+
+export interface AssignRoomPlayerInput {
+  roomCode: string;
+  actorTelegramId: number;
+  targetTelegramId: number;
+  team: unknown;
+  role: unknown;
+}
+
 export interface ShuffleRoomTeamsInput {
   roomCode: string;
   ownerTelegramId: number;
@@ -272,23 +287,21 @@ async function assertRoomOwner(
     return;
   }
 
-  const ownerUser = await UserModel.findOne({ telegramId: ownerTelegramId });
-  if (!ownerUser) {
-    const directOwner = room.players.some(
-      (player) => player.telegramId === ownerTelegramId,
-    );
-    if (!directOwner) {
-      throw new Error("Only the room owner can change this room.");
-    }
-    return;
-  }
-
-  const isOwnerPlayer = room.players.some(
-    (player) => player.telegramId === ownerTelegramId,
-  );
-
-  if (!isOwnerPlayer) {
+  if (!ownerIds.includes(ownerTelegramId) && room.ownerId !== ownerTelegramId) {
     throw new Error("Only the room owner can change this room.");
+  }
+}
+
+async function assertRoomCreator(
+  room: RoomDocument,
+  creatorTelegramId: number,
+): Promise<void> {
+  if (
+    !Number.isInteger(creatorTelegramId) ||
+    creatorTelegramId <= 0 ||
+    room.ownerId !== creatorTelegramId
+  ) {
+    throw new Error("Only the room creator can manage admins.");
   }
 }
 
@@ -622,6 +635,96 @@ export async function transferRoomOwnership(
   }
 
   room.ownerIds = ownerIds;
+  const updatedRoom = await room.save();
+  return await serializeRoom(updatedRoom);
+}
+
+export async function setRoomAdmin(
+  input: SetRoomAdminInput,
+): Promise<CreateRoomResult> {
+  if (!input.roomCode.trim()) {
+    throw new Error("Room code is required.");
+  }
+
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  await assertRoomCreator(room, input.creatorTelegramId);
+
+  if (
+    !room.players.some((player) => player.telegramId === input.targetTelegramId)
+  ) {
+    throw new Error("Target user is not a member of this room.");
+  }
+
+  const ownerIds = Array.isArray(room.ownerIds)
+    ? [...room.ownerIds]
+    : [room.ownerId];
+  const nextOwnerIds = input.isAdmin
+    ? ownerIds.includes(input.targetTelegramId)
+      ? ownerIds
+      : [...ownerIds, input.targetTelegramId]
+    : ownerIds.filter((telegramId) => telegramId !== input.targetTelegramId);
+
+  if (!nextOwnerIds.includes(room.ownerId)) {
+    nextOwnerIds.push(room.ownerId);
+  }
+
+  room.ownerIds = nextOwnerIds;
+  const updatedRoom = await room.save();
+  return await serializeRoom(updatedRoom);
+}
+
+export async function assignRoomPlayer(
+  input: AssignRoomPlayerInput,
+): Promise<CreateRoomResult> {
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  await assertRoomOwner(room, input.actorTelegramId);
+
+  if (room.status !== "waiting") {
+    throw new Error("Room is not accepting assignments.");
+  }
+
+  const assignmentValues = validateAssignmentValues(input.team, input.role);
+  const targetPlayer = room.players.find(
+    (player) => player.telegramId === input.targetTelegramId,
+  );
+  if (!targetPlayer) {
+    throw new Error("Target user is not a member of this room.");
+  }
+
+  if (assignmentValues.team === null && !room.settings.allowSpectators) {
+    throw new Error("Spectators are not allowed in this room.");
+  }
+
+  const spymasterExistsInTargetTeam = room.players.some(
+    (player) =>
+      player.telegramId !== input.targetTelegramId &&
+      player.team === assignmentValues.team &&
+      player.role === "spymaster",
+  );
+  if (assignmentValues.role === "spymaster" && spymasterExistsInTargetTeam) {
+    throw new Error("Maximum one Spymaster per team.");
+  }
+
+  targetPlayer.team = assignmentValues.team;
+  targetPlayer.role = assignmentValues.role;
   const updatedRoom = await room.save();
   return await serializeRoom(updatedRoom);
 }

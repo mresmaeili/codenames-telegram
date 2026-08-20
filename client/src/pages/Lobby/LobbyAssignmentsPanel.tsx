@@ -12,9 +12,19 @@ interface LobbyAssignmentsPanelProps {
     team: "blue" | "red";
     role: "operative" | "spymaster";
   } | null;
+  canManagePlayers?: boolean;
+  onPlayerClick?: (player: Room["players"][number]) => void;
 }
 
-function PlayerList({ players }: { players: Room["players"] }) {
+function PlayerList({
+  players,
+  canManagePlayers,
+  onPlayerClick,
+}: {
+  players: Room["players"];
+  canManagePlayers: boolean;
+  onPlayerClick?: (player: Room["players"][number]) => void;
+}) {
   if (players.length === 0) {
     return null;
   }
@@ -22,8 +32,11 @@ function PlayerList({ players }: { players: Room["players"] }) {
   return (
     <div className="my-3 flex flex-wrap items-center justify-center gap-2">
       {players.map((player) => (
-        <div
+        <button
           key={player.userId}
+          type="button"
+          onClick={() => onPlayerClick?.(player)}
+          disabled={!canManagePlayers}
           className="flex flex-col items-center gap-1 rounded-full bg-white/10 px-2 py-1"
         >
           <img
@@ -35,7 +48,7 @@ function PlayerList({ players }: { players: Room["players"] }) {
           <span className="text-xs font-semibold text-white whitespace-nowrap">
             {player.displayName}
           </span>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -46,6 +59,8 @@ export function LobbyAssignmentsPanel({
   redPlayers,
   onAssignmentChange,
   pendingAssignment = null,
+  canManagePlayers = false,
+  onPlayerClick,
 }: LobbyAssignmentsPanelProps) {
   const isAssignmentPending = pendingAssignment !== null;
 
@@ -58,6 +73,8 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={bluePlayers.filter((p) => p.role === "operative")}
+            canManagePlayers={canManagePlayers}
+            onPlayerClick={onPlayerClick}
           />
           <button
             type="button"
@@ -79,6 +96,8 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={redPlayers.filter((p) => p.role === "operative")}
+            canManagePlayers={canManagePlayers}
+            onPlayerClick={onPlayerClick}
           />
           <button
             type="button"
@@ -102,6 +121,8 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={bluePlayers.filter((p) => p.role === "spymaster")}
+            canManagePlayers={canManagePlayers}
+            onPlayerClick={onPlayerClick}
           />
           <button
             type="button"
@@ -123,6 +144,8 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={redPlayers.filter((p) => p.role === "spymaster")}
+            canManagePlayers={canManagePlayers}
+            onPlayerClick={onPlayerClick}
           />
           <button
             type="button"

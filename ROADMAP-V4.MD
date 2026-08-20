@@ -11,6 +11,7 @@ The app currently supports:
 - Telegram authentication with development-mode fake users.
 - Room creation, joining, leaving, ownership, owner transfer, and team/role assignment.
 - Host settings for timer, language, word pack, and game mode.
+- Creator-controlled admin promotion and revocation for room players.
 - Real-time room and game updates through Socket.IO.
 - Server-authoritative Codenames gameplay.
 - Random starting team with 9 cards for the starting team and 8 for the other team.
@@ -43,6 +44,7 @@ The app currently supports:
 - [ ] Add explicit connection, reconnecting, and resumed-state UI feedback.
 - [ ] Test two clients receiving every room and game event consistently.
 - [ ] Add host migration behavior for owner disconnects.
+- [ ] Add explicit browser automation for admin promotion and reconnect resume.
 
 ### 3. Gameplay Verification
 

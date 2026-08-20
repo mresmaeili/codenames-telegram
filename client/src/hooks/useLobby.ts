@@ -89,14 +89,22 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       }
     };
 
-    // Join room via socket and listen for updates
-    if (socket && user) {
+    const joinRoomSocket = () => {
+      if (!socket || !user || !isMounted) {
+        return;
+      }
+
       socket.emit("room:join", {
         roomCode,
         telegramId: user.telegramId,
         displayName: user.firstName,
       });
+    };
 
+    // Join room via socket and rejoin after transient reconnects.
+    if (socket && user) {
+      joinRoomSocket();
+      socket.on("connect", joinRoomSocket);
       socket.on("room:updated", handleRoomUpdated);
     }
 
@@ -104,6 +112,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     return () => {
       isMounted = false;
       if (socket) {
+        socket.off("connect", joinRoomSocket);
         socket.off("room:updated", handleRoomUpdated);
       }
     };

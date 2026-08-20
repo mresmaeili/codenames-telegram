@@ -182,6 +182,9 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     (room.ownerId === currentPlayer.telegramId ||
       room.ownerIds.includes(currentPlayer.telegramId)),
   );
+  const isRoomCreator = Boolean(
+    room && user?.telegramId !== undefined && room.ownerId === user.telegramId,
+  );
 
   function handleStartGame() {
     const activeSocket = getSocketClient();
@@ -249,6 +252,101 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       ownerTelegramId: user.telegramId,
     });
     toast.success("Randomize teams sent to the room.");
+  }
+
+  function handleToggleAdmin(targetTelegramId: number, isAdmin: boolean) {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user || !isRoomCreator) {
+      toast.error("Only the room creator can manage admins.");
+      return;
+    }
+
+    activeSocket.emit("room:setAdmin", {
+      roomCode: room.roomCode,
+      creatorTelegramId: user.telegramId,
+      targetTelegramId,
+      isAdmin,
+    });
+    toast.info(isAdmin ? "Admin access granted." : "Admin access removed.");
+  }
+
+  function handleAssignPlayer(
+    targetTelegramId: number,
+    team: "blue" | "red" | null,
+    role: "operative" | "spymaster",
+  ) {
+    if (!socket || !room || !user || !isOwner) {
+      toast.error("Only room admins can assign players.");
+      return;
+    }
+
+    socket.emit("room:assignPlayer", {
+      roomCode: room.roomCode,
+      actorTelegramId: user.telegramId,
+      targetTelegramId,
+      team,
+      role,
+    });
+    closePopup();
+  }
+
+  function handlePlayerClick(player: Room["players"][number]) {
+    if (!isOwner || !room || !user) {
+      return;
+    }
+
+    const isAdmin = room.ownerIds.includes(player.telegramId);
+    const isCreator = player.telegramId === room.ownerId;
+    registerPopup(
+      <div className="space-y-3">
+        <p className="text-center text-lg font-black text-white">
+          {player.displayName}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            ["blue", "operative", "Blue operatives"],
+            ["red", "operative", "Red operatives"],
+            ["blue", "spymaster", "Blue spymasters"],
+            ["red", "spymaster", "Red spymasters"],
+          ].map(([team, role, label]) => (
+            <button
+              key={`${team}-${role}`}
+              type="button"
+              onClick={() =>
+                handleAssignPlayer(
+                  player.telegramId,
+                  team as "blue" | "red",
+                  role as "operative" | "spymaster",
+                )
+              }
+              className={`rounded-full px-3 py-3 text-sm font-black text-white ${team === "blue" ? "bg-[#149dde]" : "bg-[#ff554b]"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            handleAssignPlayer(player.telegramId, null, "operative")
+          }
+          className="w-full rounded-full border-2 border-white px-3 py-3 text-sm font-black text-white"
+        >
+          Spectators
+        </button>
+        {isRoomCreator && !isCreator ? (
+          <button
+            type="button"
+            onClick={() => handleToggleAdmin(player.telegramId, !isAdmin)}
+            className="w-full rounded-full bg-[#2fd000] px-3 py-3 text-sm font-black text-white"
+          >
+            {isAdmin ? "Remove admin" : "Promote"}
+          </button>
+        ) : null}
+      </div>,
+      "Assign role",
+    );
+    openPopup();
   }
 
   function handleAddBot() {
@@ -695,6 +793,43 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               }
             />
 
+            {isRoomCreator ? (
+              <section className="mt-4 rounded-3xl border border-white/15 bg-black/20 p-3 text-white">
+                <p className="text-sm font-black uppercase tracking-[0.12em]">
+                  Room admins
+                </p>
+                <div className="mt-2 space-y-2">
+                  {room.players.map((player) => {
+                    const isAdmin = room.ownerIds.includes(player.telegramId);
+                    const isCreator = player.telegramId === room.ownerId;
+                    return (
+                      <div
+                        key={player.userId}
+                        className="flex items-center justify-between gap-2 rounded-2xl bg-white/5 px-3 py-2"
+                      >
+                        <span className="truncate text-sm font-semibold">
+                          {player.displayName}
+                        </span>
+                        {isCreator ? (
+                          <span className="text-xs text-white/60">Creator</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleToggleAdmin(player.telegramId, !isAdmin)
+                            }
+                            className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#0b69ad]"
+                          >
+                            {isAdmin ? "Remove admin" : "Make admin"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
             <div className="my-4 flex gap-3">
               <button
                 type="button"
@@ -727,6 +862,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               redPlayers={displayRedPlayers}
               onAssignmentChange={handleAssignmentChange}
               pendingAssignment={pendingAssignment}
+              canManagePlayers={isOwner}
+              onPlayerClick={handlePlayerClick}
             />
 
             <div className="mt-4">

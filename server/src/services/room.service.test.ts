@@ -11,6 +11,7 @@ import {
   createRoom,
   joinRoom,
   resetRoomTeams,
+  setRoomAdmin,
   shuffleRoomTeams,
   transferRoomOwnership,
   updateRoomPlayerAssignment,
@@ -376,6 +377,69 @@ test("transferRoomOwnership promotes a player inside the room to owner", async (
     (
       UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
     ).findOne = originalFindOne;
+  }
+});
+
+test("setRoomAdmin lets only the creator grant and revoke admin access", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFind = UserModel.find;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: 1,
+    ownerIds: [1],
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "guest-id",
+        telegramId: 2,
+        displayName: "Guest",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+  roomRepository.findByCode = async () => room;
+  UserModel.find = (() => ({
+    select: () => ({ exec: async () => [] }),
+  })) as unknown as typeof UserModel.find;
+
+  try {
+    const promoted = await setRoomAdmin({
+      roomCode: "ABC123",
+      creatorTelegramId: 1,
+      targetTelegramId: 2,
+      isAdmin: true,
+    });
+    assert.deepEqual(promoted.ownerIds, [1, 2]);
+
+    const revoked = await setRoomAdmin({
+      roomCode: "ABC123",
+      creatorTelegramId: 1,
+      targetTelegramId: 2,
+      isAdmin: false,
+    });
+    assert.deepEqual(revoked.ownerIds, [1]);
+
+    await assert.rejects(
+      setRoomAdmin({
+        roomCode: "ABC123",
+        creatorTelegramId: 2,
+        targetTelegramId: 1,
+        isAdmin: true,
+      }),
+      /Only the room creator can manage admins/,
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    UserModel.find = originalFind;
   }
 });
 
