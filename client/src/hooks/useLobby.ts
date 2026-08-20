@@ -38,37 +38,42 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
   const socket = useMemo(() => getSocketClient(), []);
   const currentRoomCodeRef = useRef<string | null>(null);
 
-  const refreshLobby = useCallback(async () => {
-    if (!roomCode) {
-      setLobbyState({ room: null, loading: false, error: null });
-      return;
-    }
-
-    try {
-      setLobbyState((current) => ({
-        ...current,
-        loading: true,
-        error: null,
-      }));
-
-      const response = await fetch(apiUrl(`/api/rooms/${roomCode}`));
-      if (!response.ok) {
-        throw new Error(
-          "This room could not be found. Please check the code and try again.",
-        );
+  const refreshLobby = useCallback(
+    async (showLoading = true) => {
+      if (!roomCode) {
+        setLobbyState({ room: null, loading: false, error: null });
+        return;
       }
 
-      const room = (await response.json()) as Room;
-      if (currentRoomCodeRef.current === roomCode) {
-        setLobbyState({ room, loading: false, error: null });
+      try {
+        if (showLoading) {
+          setLobbyState((current) => ({
+            ...current,
+            loading: true,
+            error: null,
+          }));
+        }
+
+        const response = await fetch(apiUrl(`/api/rooms/${roomCode}`));
+        if (!response.ok) {
+          throw new Error(
+            "This room could not be found. Please check the code and try again.",
+          );
+        }
+
+        const room = (await response.json()) as Room;
+        if (currentRoomCodeRef.current === roomCode) {
+          setLobbyState({ room, loading: false, error: null });
+        }
+      } catch (error) {
+        const message = getFriendlyLobbyMessage(error);
+        if (currentRoomCodeRef.current === roomCode) {
+          setLobbyState({ room: null, loading: false, error: message });
+        }
       }
-    } catch (error) {
-      const message = getFriendlyLobbyMessage(error);
-      if (currentRoomCodeRef.current === roomCode) {
-        setLobbyState({ room: null, loading: false, error: message });
-      }
-    }
-  }, [roomCode]);
+    },
+    [roomCode],
+  );
 
   // Main effect: fetch room and listen for updates
   useEffect(() => {
@@ -85,7 +90,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     // Handler for room updates from socket
     const handleRoomUpdated = () => {
       if (isMounted && currentRoomCodeRef.current === roomCode) {
-        void refreshLobby();
+        void refreshLobby(false);
       }
     };
 

@@ -12,16 +12,19 @@ interface LobbyAssignmentsPanelProps {
     team: "blue" | "red";
     role: "operative" | "spymaster";
   } | null;
+  ownerIds?: number[];
   canManagePlayers?: boolean;
   onPlayerClick?: (player: Room["players"][number]) => void;
 }
 
 function PlayerList({
   players,
+  ownerIds,
   canManagePlayers,
   onPlayerClick,
 }: {
   players: Room["players"];
+  ownerIds: number[];
   canManagePlayers: boolean;
   onPlayerClick?: (player: Room["players"][number]) => void;
 }) {
@@ -39,12 +42,22 @@ function PlayerList({
           disabled={!canManagePlayers}
           className="flex flex-col items-center gap-1 rounded-full bg-white/10 px-2 py-1"
         >
-          <img
-            src={avatarUrlForPlayer(player)}
-            alt={player.displayName}
-            title={player.displayName}
-            className="h-10 w-10 rounded-full border border-white/30 object-cover"
-          />
+          <span className="relative">
+            <img
+              src={avatarUrlForPlayer(player)}
+              alt={player.displayName}
+              title={player.displayName}
+              className="h-10 w-10 rounded-full border border-white/30 object-cover"
+            />
+            {ownerIds.includes(player.telegramId) ? (
+              <span
+                aria-label="Room admin"
+                className="absolute -right-1 -top-2 text-sm leading-none"
+              >
+                👑
+              </span>
+            ) : null}
+          </span>
           <span className="text-xs font-semibold text-white whitespace-nowrap">
             {player.displayName}
           </span>
@@ -58,6 +71,7 @@ export function LobbyAssignmentsPanel({
   bluePlayers,
   redPlayers,
   onAssignmentChange,
+  ownerIds = [],
   pendingAssignment = null,
   canManagePlayers = false,
   onPlayerClick,
@@ -73,6 +87,7 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={bluePlayers.filter((p) => p.role === "operative")}
+            ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
           />
@@ -96,6 +111,7 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={redPlayers.filter((p) => p.role === "operative")}
+            ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
           />
@@ -121,6 +137,7 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={bluePlayers.filter((p) => p.role === "spymaster")}
+            ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
           />
@@ -144,6 +161,7 @@ export function LobbyAssignmentsPanel({
           </p>
           <PlayerList
             players={redPlayers.filter((p) => p.role === "spymaster")}
+            ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
           />

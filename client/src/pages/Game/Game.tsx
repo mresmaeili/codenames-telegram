@@ -706,7 +706,11 @@ export function GamePage({
   }
 
   function handleConfirmSelection() {
-    if (!state.game || !user?.telegramId || !state.game.selectedCardId) {
+    if (
+      !state.game ||
+      !user?.telegramId ||
+      state.game.selectedCardId === null
+    ) {
       return;
     }
 

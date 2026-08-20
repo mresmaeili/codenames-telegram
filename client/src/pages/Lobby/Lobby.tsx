@@ -7,7 +7,7 @@ import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useSession } from "@/context/SessionContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
-import { avatarUrlForPlayer, avatarEmojiForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayer } from "@/lib/avatar";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
 import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
@@ -167,13 +167,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     room.ownerId > 0 &&
     Array.isArray(room.ownerIds) &&
     room.ownerIds.length > 0,
-  );
-
-  const ownerPlayer = room?.players.find(
-    (player) =>
-      hasValidOwnershipInfo &&
-      (player.telegramId === room.ownerId ||
-        room.ownerIds?.includes(player.telegramId)),
   );
 
   const isOwner = Boolean(
@@ -581,7 +574,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         }
 
         try {
-          await refreshLobby();
+          await refreshLobby(false);
         } finally {
           setPendingAssignment(null);
         }
@@ -796,43 +789,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               }
             />
 
-            {isRoomCreator ? (
-              <section className="mt-4 rounded-3xl border border-white/15 bg-black/20 p-3 text-white">
-                <p className="text-sm font-black uppercase tracking-[0.12em]">
-                  Room admins
-                </p>
-                <div className="mt-2 space-y-2">
-                  {room.players.map((player) => {
-                    const isAdmin = room.ownerIds.includes(player.telegramId);
-                    const isCreator = player.telegramId === room.ownerId;
-                    return (
-                      <div
-                        key={player.userId}
-                        className="flex items-center justify-between gap-2 rounded-2xl bg-white/5 px-3 py-2"
-                      >
-                        <span className="truncate text-sm font-semibold">
-                          {player.displayName}
-                        </span>
-                        {isCreator ? (
-                          <span className="text-xs text-white/60">Creator</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleToggleAdmin(player.telegramId, !isAdmin)
-                            }
-                            className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#0b69ad]"
-                          >
-                            {isAdmin ? "Remove admin" : "Make admin"}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
             <div className="my-4 flex gap-3">
               <button
                 type="button"
@@ -863,6 +819,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             <LobbyAssignmentsPanel
               bluePlayers={displayBluePlayers}
               redPlayers={displayRedPlayers}
+              ownerIds={room.ownerIds}
               onAssignmentChange={handleAssignmentChange}
               pendingAssignment={pendingAssignment}
               canManagePlayers={isOwner}
