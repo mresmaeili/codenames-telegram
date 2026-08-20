@@ -163,6 +163,53 @@ test("joinRoom rejects new players for private rooms", async () => {
   }
 });
 
+test("joinRoom adds late players as spectators after the game starts", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    status: "playing",
+    settings: {
+      maxPlayers: 2,
+      allowSpectators: false,
+      privateRoom: false,
+      gameMode: "standard",
+      timer: "60",
+      language: "en",
+      wordPack: "classic",
+    },
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "late-user-id" },
+    telegramId: 3,
+  });
+
+  try {
+    const updatedRoom = await joinRoom({
+      roomCode: "abc123",
+      telegramId: 3,
+      displayName: "Late spectator",
+    });
+
+    const latePlayer = updatedRoom.players.find(
+      (player) => player.telegramId === 3,
+    );
+    assert.equal(latePlayer?.team, null);
+    assert.equal(latePlayer?.role, "operative");
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
 test("updateRoomSettings allows the room creator to make the room public", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindOne = (

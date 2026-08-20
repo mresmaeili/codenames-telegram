@@ -756,8 +756,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 <div className="flex items-center justify-center gap-3 overflow-x-auto py-2 min-h-12">
                   {displaySpectatorPlayers.length > 0 ? (
                     displaySpectatorPlayers.map((p) => (
-                      <div
+                      <button
                         key={p.userId}
+                        type="button"
+                        onClick={() => handlePlayerClick(p)}
+                        disabled={!isOwner}
                         className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
                       >
                         <img
@@ -768,7 +771,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         <span className="whitespace-nowrap text-xs font-semibold text-white">
                           {p.displayName}
                         </span>
-                      </div>
+                      </button>
                     ))
                   ) : (
                     <div className="text-xs text-white/40 italic">

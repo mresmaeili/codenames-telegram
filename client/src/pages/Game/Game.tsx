@@ -58,7 +58,7 @@ export function GamePage({
   const [showKeycard, setShowKeycard] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const toast = useToast();
-  const { registerPopup, closePopup } = useHeaderPopup();
+  const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [hideBoard, setHideBoard] = useState(() => {
     try {
       const raw = localStorage.getItem("codenames.hideBoard");
@@ -520,6 +520,11 @@ export function GamePage({
         state.room?.ownerIds?.includes(player.telegramId),
     ),
   );
+  const isRoomCreator = Boolean(
+    state.room &&
+    user?.telegramId !== undefined &&
+    state.room.ownerId === user.telegramId,
+  );
 
   useEffect(() => {
     if (!state.room) {
@@ -750,6 +755,93 @@ export function GamePage({
     });
   }
 
+  function handleAssignPlayerFromGame(
+    targetTelegramId: number,
+    team: "blue" | "red" | null,
+    role: "operative" | "spymaster",
+  ) {
+    if (!socket || !state.room || !user || !isRoomOwner) {
+      toast.error("Only room admins can assign players.");
+      return;
+    }
+
+    socket.emit("room:assignPlayer", {
+      roomCode: state.room.roomCode,
+      actorTelegramId: user.telegramId,
+      targetTelegramId,
+      team,
+      role,
+    });
+    closePopup();
+  }
+
+  function handleGamePlayerClick(player: Room["players"][number]) {
+    if (!isRoomOwner || !state.room || !user) {
+      return;
+    }
+
+    const isAdmin = state.room.ownerIds.includes(player.telegramId);
+    const isCreator = player.telegramId === state.room.ownerId;
+    registerPopup(
+      <div className="space-y-3">
+        <p className="text-center text-lg font-black text-white">
+          {player.displayName}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            ["blue", "operative", "Blue operatives"],
+            ["red", "operative", "Red operatives"],
+            ["blue", "spymaster", "Blue spymasters"],
+            ["red", "spymaster", "Red spymasters"],
+          ].map(([team, role, label]) => (
+            <button
+              key={`${team}-${role}`}
+              type="button"
+              onClick={() =>
+                handleAssignPlayerFromGame(
+                  player.telegramId,
+                  team as "blue" | "red",
+                  role as "operative" | "spymaster",
+                )
+              }
+              className={`rounded-full px-3 py-3 text-sm font-black text-white ${team === "blue" ? "bg-[#149dde]" : "bg-[#ff554b]"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            handleAssignPlayerFromGame(player.telegramId, null, "operative")
+          }
+          className="w-full rounded-full border-2 border-white px-3 py-3 text-sm font-black text-white"
+        >
+          Spectators
+        </button>
+        {isRoomCreator && !isCreator ? (
+          <button
+            type="button"
+            onClick={() => {
+              socket?.emit("room:setAdmin", {
+                roomCode: state.room?.roomCode,
+                creatorTelegramId: user.telegramId,
+                targetTelegramId: player.telegramId,
+                isAdmin: !isAdmin,
+              });
+              closePopup();
+            }}
+            className="w-full rounded-full bg-[#2fd000] px-3 py-3 text-sm font-black text-white"
+          >
+            {isAdmin ? "Remove admin" : "Promote"}
+          </button>
+        ) : null}
+      </div>,
+      "Assign role",
+    );
+    openPopup();
+  }
+
   if (state.loading) {
     return (
       <PageContainer>
@@ -914,13 +1006,21 @@ export function GamePage({
               <div className="flex items-center gap-3">
                 <div className="flex items-center -space-x-2">
                   {blueOperatives.slice(0, 3).map((p) => (
-                    <img
+                    <button
                       key={p.userId}
-                      src={avatarUrlForPlayer(p)}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
-                    />
+                      type="button"
+                      onClick={() => handleGamePlayerClick(p)}
+                      disabled={!isRoomOwner}
+                      className="rounded-full disabled:cursor-default"
+                      aria-label={`Manage ${p.displayName}`}
+                    >
+                      <img
+                        src={avatarUrlForPlayer(p)}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
+                      />
+                    </button>
                   ))}
                   {blueOperatives.length === 0 ? (
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
@@ -973,13 +1073,21 @@ export function GamePage({
               <div className="flex items-center gap-3">
                 <div className="flex items-center -space-x-2">
                   {redOperatives.slice(0, 3).map((p) => (
-                    <img
+                    <button
                       key={p.userId}
-                      src={avatarUrlForPlayer(p)}
-                      alt={p.displayName}
-                      title={p.displayName}
-                      className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
-                    />
+                      type="button"
+                      onClick={() => handleGamePlayerClick(p)}
+                      disabled={!isRoomOwner}
+                      className="rounded-full disabled:cursor-default"
+                      aria-label={`Manage ${p.displayName}`}
+                    >
+                      <img
+                        src={avatarUrlForPlayer(p)}
+                        alt={p.displayName}
+                        title={p.displayName}
+                        className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
+                      />
+                    </button>
                   ))}
                   {redOperatives.length === 0 ? (
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
@@ -1001,7 +1109,19 @@ export function GamePage({
             </div>
             <div className="mt-3 flex items-center justify-center gap-3 relative">
               <div className="relative flex items-center justify-center">
-                <div className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#9ef3ff] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    blueSpymaster && handleGamePlayerClick(blueSpymaster)
+                  }
+                  disabled={!isRoomOwner || !blueSpymaster}
+                  className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#9ef3ff] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  aria-label={
+                    blueSpymaster
+                      ? `Manage ${blueSpymaster.displayName}`
+                      : "No blue spymaster"
+                  }
+                >
                   {blueSpymaster ? (
                     <img
                       src={avatarUrlForPlayer(blueSpymaster)}
@@ -1012,7 +1132,7 @@ export function GamePage({
                   ) : (
                     <span className="text-xl">🐟</span>
                   )}
-                </div>
+                </button>
                 <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
                   {blueSpymaster?.displayName ?? "None"}
                 </div>
@@ -1026,7 +1146,19 @@ export function GamePage({
             </div>
             <div className="mt-3 flex items-center justify-center gap-3 relative">
               <div className="relative flex items-center justify-center">
-                <div className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#ffc3be] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    redSpymaster && handleGamePlayerClick(redSpymaster)
+                  }
+                  disabled={!isRoomOwner || !redSpymaster}
+                  className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#ffc3be] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  aria-label={
+                    redSpymaster
+                      ? `Manage ${redSpymaster.displayName}`
+                      : "No red spymaster"
+                  }
+                >
                   {redSpymaster ? (
                     <img
                       src={avatarUrlForPlayer(redSpymaster)}
@@ -1037,7 +1169,7 @@ export function GamePage({
                   ) : (
                     <span className="text-xl">🐙</span>
                   )}
-                </div>
+                </button>
                 <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
                   {redSpymaster?.displayName ?? "None"}
                 </div>
@@ -1065,17 +1197,6 @@ export function GamePage({
             hideWords={isViewerOperative ? hideBoard : false}
           />
         </div>
-        {isActiveOperative && state.game.selectedCardId !== null ? (
-          <div className="mt-3 rounded-3xl bg-black/35 p-3">
-            <button
-              type="button"
-              onClick={handleConfirmSelection}
-              className="w-full rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-lg"
-            >
-              Confirm selected word
-            </button>
-          </div>
-        ) : null}
         {canSubmitHint ? (
           <form onSubmit={handleSubmitHint} className="mt-4 space-y-3">
             <div className="space-y-2">

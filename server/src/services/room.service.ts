@@ -482,21 +482,24 @@ export async function joinRoom(
     return await serializeRoom(room);
   }
 
-  if (room.status !== "waiting") {
-    throw new Error("Room is not accepting players.");
-  }
-
   if (room.settings.privateRoom) {
     throw new Error("Room is private. New players cannot join by room code.");
   }
 
   const userId = await ensureUserExists(input.telegramId, input.displayName);
 
-  if (room.players.length >= room.settings.maxPlayers) {
+  if (
+    room.status === "waiting" &&
+    room.players.length >= room.settings.maxPlayers
+  ) {
     throw new Error("Room is full.");
   }
 
   const nextPlayer = buildJoinPlayer(userId, input);
+  if (room.status !== "waiting") {
+    nextPlayer.team = null;
+    nextPlayer.role = "operative";
+  }
   room.players.push(nextPlayer);
 
   const updatedRoom = await room.save();
@@ -697,7 +700,7 @@ export async function assignRoomPlayer(
 
   await assertRoomOwner(room, input.actorTelegramId);
 
-  if (room.status !== "waiting") {
+  if (room.status !== "waiting" && room.status !== "playing") {
     throw new Error("Room is not accepting assignments.");
   }
 

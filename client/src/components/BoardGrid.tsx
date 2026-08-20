@@ -40,12 +40,17 @@ export function BoardGrid({
         }
 
         const publicCard = card as PublicCard;
+        const isSelected = selectedCardId === String(index);
         const isSelectable = canSelectCard && !publicCard.revealed;
+        const isConfirmable = isSelected && !publicCard.revealed;
+        const isInteractive = isSelectable || isConfirmable;
         const ariaLabel = publicCard.revealed
           ? `Revealed ${publicCard.word}`
-          : isSelectable
-            ? `Select ${publicCard.word}`
-            : `Locked ${publicCard.word}`;
+          : isConfirmable
+            ? `Confirm ${publicCard.word}`
+            : isSelectable
+              ? `Select ${publicCard.word}`
+              : `Locked ${publicCard.word}`;
 
         return (
           <button
@@ -58,21 +63,42 @@ export function BoardGrid({
               }
             }}
             onDoubleClick={() => {
-              if (isSelectable && onConfirmCard) {
+              if (isConfirmable && onConfirmCard) {
                 onConfirmCard(index);
               }
             }}
-            className={`block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isSelectable ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
-            disabled={!isSelectable}
+            className={`relative block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
+            disabled={!isInteractive}
           >
             <BoardCard
               word={publicCard.word}
               hideWord={hideWords}
-              disabled={!isSelectable}
+              disabled={!isInteractive}
               revealPlaceholder={false}
-              selectedPlaceholder={selectedCardId === String(index)}
+              selectedPlaceholder={isSelected}
               revealedColor={publicCard.revealed ? publicCard.color : null}
             />
+            {isConfirmable ? (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label={`Confirm ${publicCard.word}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onConfirmCard?.(index);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onConfirmCard?.(index);
+                  }
+                }}
+                className="absolute right-1 top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#43d61b] text-xl shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
+              >
+                ☝
+              </span>
+            ) : null}
           </button>
         );
       })}
