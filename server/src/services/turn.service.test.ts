@@ -219,6 +219,39 @@ test("validateTurnPass rejects a pass for a non-active operative", () => {
   assert.equal(validation.error, "Sender must belong to the active team.");
 });
 
+test("validateTurnPass allows any room player to pass an expired turn", () => {
+  const validation = validateTurnPass({
+    game: {
+      status: "active",
+      currentTurn: "blue",
+      remainingGuesses: 2,
+      currentHintWord: "forest",
+      currentHintNumber: 1,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+      board: [{ word: "alpha", color: "blue", revealed: false }],
+      selectedCardId: null,
+      selectedByPlayerId: null,
+      selectedAt: null,
+    },
+    room: {
+      players: [
+        {
+          userId: "user-2",
+          telegramId: 43,
+          displayName: "Red Spymaster",
+          team: "red",
+          role: "spymaster",
+          joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+        },
+      ],
+    },
+    senderTelegramId: 43,
+    allowTimeout: true,
+  });
+
+  assert.equal(validation.ok, true);
+});
+
 test("applyTurnPass switches turns and clears the active hint", () => {
   const result = applyTurnPass({
     game: {

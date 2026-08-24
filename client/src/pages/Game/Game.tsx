@@ -78,15 +78,16 @@ export function GamePage({
     const viewerPlayer = state.room?.players.find(
       (player) => player.telegramId === user?.telegramId,
     );
-    const isActiveOperative =
-      viewerPlayer?.team === state.game?.currentTurn &&
-      viewerPlayer?.role === "operative";
+    const isActiveTurnParticipant =
+      viewerPlayer?.team === state.game?.currentTurn && Boolean(viewerPlayer);
 
     if (
       !duration ||
       !state.game ||
       state.game.status !== "active" ||
-      !isActiveOperative
+      !isActiveTurnParticipant ||
+      !state.game.currentHintWord ||
+      state.game.currentHintNumber === null
     ) {
       setTurnSecondsRemaining(null);
       return;
@@ -106,7 +107,7 @@ export function GamePage({
               timeout: true,
             });
           }
-          return duration;
+          return 0;
         }
         return current - 1;
       });
@@ -499,9 +500,12 @@ export function GamePage({
     Boolean(
       state.game?.currentHintWord && state.game?.currentHintNumber !== null,
     ) &&
-    state.game?.selectedCardId === null &&
+    state.game?.selectedCardId == null &&
     state.game?.remainingGuesses > 0;
-  const canPassTurn = isActiveOperative && state.game?.status === "active";
+  const canPassTurn =
+    isActiveOperative && state.game?.status === "active" && hasActiveHint;
+  const canFinishTimedOutTurn =
+    turnSecondsRemaining === 0 && state.game?.status === "active";
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
   const completionSummary = gameFinished
@@ -1271,11 +1275,25 @@ export function GamePage({
             <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
               {state.game.currentHintWord} ({state.game.currentHintNumber})
             </div>
-            {isActiveOperative ? (
+            {canPassTurn || canFinishTimedOutTurn ? (
               <button
                 type="button"
-                onClick={handlePassTurn}
-                disabled={!canPassTurn || hintSubmitting}
+                onClick={() => {
+                  if (canFinishTimedOutTurn) {
+                    const activeSocket = getSocketClient();
+                    if (activeSocket && state.game && user?.telegramId) {
+                      activeSocket.emit("game:pass", {
+                        gameId: state.game.id ?? state.game.roomId,
+                        roomCode: roomCode.toUpperCase(),
+                        telegramId: user.telegramId,
+                        timeout: true,
+                      });
+                    }
+                    return;
+                  }
+                  handlePassTurn();
+                }}
+                disabled={hintSubmitting}
                 aria-label="Close guessing and finish turn"
                 className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffb84d] px-4 text-sm font-black text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
               >
@@ -1284,8 +1302,10 @@ export function GamePage({
             ) : null}
           </div>
         ) : isActiveOperative ? (
-          <div className="mt-4 rounded-3xl bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white/80">
-            Your spymaster has not given a clue yet.
+          <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
+            <div className="flex-1 px-2 text-left text-sm font-semibold text-white/80">
+              Your spymaster has not given a clue yet.
+            </div>
           </div>
         ) : null}
         {hintMessage ? (

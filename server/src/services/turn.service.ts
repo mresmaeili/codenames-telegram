@@ -14,6 +14,7 @@ interface TurnServiceContext {
   };
   room: Pick<Room, "players">;
   senderTelegramId: number;
+  allowTimeout?: boolean;
   revealedCardColor?: string | null;
 }
 
@@ -43,6 +44,17 @@ export function validateTurnPass(
 
   if (!sender) {
     return { ok: false, error: "Sender is not part of the room." };
+  }
+
+  if (context.allowTimeout) {
+    return { ok: true };
+  }
+
+  if (
+    context.game.currentHintWord === null ||
+    context.game.currentHintNumber === null
+  ) {
+    return { ok: false, error: "An active hint is required before passing." };
   }
 
   if (sender.team !== context.game.currentTurn) {

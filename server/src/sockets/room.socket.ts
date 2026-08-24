@@ -121,6 +121,24 @@ interface PassSocketPayload {
   timeout?: unknown;
 }
 
+function hasTurnTimerExpired(
+  game: { hintSubmittedAt?: Date | null },
+  room: { settings: { timer?: string } },
+): boolean {
+  const timerSeconds = Number(room.settings.timer);
+  if (
+    !Number.isFinite(timerSeconds) ||
+    timerSeconds <= 0 ||
+    !game.hintSubmittedAt
+  ) {
+    return false;
+  }
+
+  return (
+    Date.now() - new Date(game.hintSubmittedAt).getTime() >= timerSeconds * 1000
+  );
+}
+
 interface AddBotSocketPayload {
   roomCode?: unknown;
   botName?: unknown;
@@ -1124,6 +1142,17 @@ export function registerRoomSocketHandlers(
         return;
       }
 
+      const timeoutRequested = payload.timeout === true;
+      const timeoutAllowed =
+        timeoutRequested && hasTurnTimerExpired(game, room);
+
+      if (timeoutRequested && !timeoutAllowed) {
+        socket.emit("game:error", {
+          message: "The turn timer has not expired.",
+        });
+        return;
+      }
+
       const validation = validateGameplayAction({
         game: {
           status: game.status,
@@ -1163,6 +1192,7 @@ export function registerRoomSocketHandlers(
         },
         room: { players: room.players },
         senderTelegramId: payload.telegramId,
+        allowTimeout: timeoutAllowed,
       });
 
       const updatedGame = await gameRepository.update(payload.gameId, {
