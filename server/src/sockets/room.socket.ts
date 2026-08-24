@@ -954,7 +954,7 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      const validation = validateGameplayAction({
+      const selectionContext = {
         game: {
           status: game.status,
           currentTurn: game.currentTurn,
@@ -971,45 +971,40 @@ export function registerRoomSocketHandlers(
           completionReason: game.completionReason ?? null,
           completedAt: game.completedAt ?? null,
         },
-      });
+        room: { players: room.players },
+        senderTelegramId: payload.telegramId,
+        cardId: payload.cardId,
+      };
+
+      const validation =
+        payload.confirm === true && game.selectedCardId === payload.cardId
+          ? { ok: true as const }
+          : validateGameplayAction({ game: selectionContext.game });
 
       if (!validation.ok) {
         socket.emit("game:error", { message: validation.error });
         return;
       }
 
+      if (payload.confirm === true && game.selectedCardId !== payload.cardId) {
+        socket.emit("game:error", {
+          message: "Confirm the currently selected card.",
+        });
+        return;
+      }
+
+      if (payload.confirm === true && game.selectedCardId !== payload.cardId) {
+        socket.emit("game:error", {
+          message: "Confirm the currently selected card.",
+        });
+        return;
+      }
+
       const selectionResult =
         payload.confirm === true && game.selectedCardId === payload.cardId
-          ? {
-              game: {
-                status: game.status,
-                currentTurn: game.currentTurn,
-                remainingGuesses: game.remainingGuesses,
-                currentHintWord: game.currentHintWord ?? null,
-                currentHintNumber: game.currentHintNumber ?? null,
-                hintSubmittedAt: game.hintSubmittedAt ?? null,
-                board: game.board,
-                selectedCardId: game.selectedCardId ?? null,
-                selectedByPlayerId: game.selectedByPlayerId ?? null,
-                selectedAt: game.selectedAt ?? null,
-              },
-            }
+          ? { game: selectionContext.game }
           : applyCardSelection({
-              game: {
-                status: game.status,
-                currentTurn: game.currentTurn,
-                remainingGuesses: game.remainingGuesses,
-                currentHintWord: game.currentHintWord ?? null,
-                currentHintNumber: game.currentHintNumber ?? null,
-                hintSubmittedAt: game.hintSubmittedAt ?? null,
-                board: game.board,
-                selectedCardId: game.selectedCardId ?? null,
-                selectedByPlayerId: game.selectedByPlayerId ?? null,
-                selectedAt: game.selectedAt ?? null,
-              },
-              room: { players: room.players },
-              senderTelegramId: payload.telegramId,
-              cardId: payload.cardId,
+              ...selectionContext,
             });
 
       if (payload.confirm === false) {

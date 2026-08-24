@@ -1202,8 +1202,11 @@ export function GamePage({
           />
         </div>
         {canSubmitHint ? (
-          <form onSubmit={handleSubmitHint} className="mt-4 space-y-3">
-            <div className="space-y-2">
+          <form
+            onSubmit={handleSubmitHint}
+            className="mt-4 flex items-end gap-2 rounded-full bg-[#2b2b2b] p-2 shadow-inner"
+          >
+            <div className="min-w-0 flex-1 space-y-2">
               <label
                 htmlFor="hintWord"
                 className="text-xs uppercase tracking-[0.18em] text-white/70"
@@ -1227,7 +1230,7 @@ export function GamePage({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="w-24 shrink-0 space-y-2">
               <label
                 htmlFor="hintNumber"
                 className="text-xs uppercase tracking-[0.18em] text-white/70"
@@ -1252,18 +1255,16 @@ export function GamePage({
               />
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleSubmitHintClick}
-                disabled={
-                  hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
-                }
-                className="flex-1 rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
-              >
-                {hintSubmitting ? "Submitting..." : "Submit Hint"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={
+                hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
+              }
+              aria-label="Send hint"
+              className="flex h-12 shrink-0 items-center justify-center rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+            >
+              {hintSubmitting ? "..." : "Send"}
+            </button>
           </form>
         ) : hasActiveHint ? (
           <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
@@ -1275,10 +1276,10 @@ export function GamePage({
                 type="button"
                 onClick={handlePassTurn}
                 disabled={!canPassTurn || hintSubmitting}
-                aria-label="Pass turn"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffb84d] text-xl font-bold text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
+                aria-label="Close guessing and finish turn"
+                className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffb84d] px-4 text-sm font-black text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
               >
-                ⏭
+                Close
               </button>
             ) : null}
           </div>
