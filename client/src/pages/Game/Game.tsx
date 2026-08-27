@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BoardGrid } from "@/components/BoardGrid";
 import { GameHeader } from "@/components/GameHeader";
@@ -29,6 +29,12 @@ interface GamePageState {
   game: GameView | null;
   loading: boolean;
   error: string | null;
+}
+
+interface GameLogEntry {
+  id: string;
+  team: Turn;
+  text: string;
 }
 
 function getPlayerCount(room: Room | null): number {
@@ -70,6 +76,24 @@ export function GamePage({
   const [turnSecondsRemaining, setTurnSecondsRemaining] = useState<
     number | null
   >(null);
+  const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
+  const gameRef = useRef<GameView | null>(null);
+  const logGameIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    gameRef.current = state.game;
+    const gameId = state.game?.id ?? state.game?.roomId ?? null;
+    if (gameId !== logGameIdRef.current) {
+      logGameIdRef.current = gameId;
+      setGameLog(
+        state.game?.hintHistory.map((hint, index) => ({
+          id: `hint-${hint.submittedAt}-${index}`,
+          team: hint.team,
+          text: `${hint.word} ${hint.number}`,
+        })) ?? [],
+      );
+    }
+  }, [state.game]);
 
   useEffect(() => {
     const timerSetting = state.room?.settings.timer;
@@ -78,14 +102,10 @@ export function GamePage({
     const viewerPlayer = state.room?.players.find(
       (player) => player.telegramId === user?.telegramId,
     );
-    const isActiveTurnParticipant =
-      viewerPlayer?.team === state.game?.currentTurn && Boolean(viewerPlayer);
-
     if (
       !duration ||
       !state.game ||
       state.game.status !== "active" ||
-      !isActiveTurnParticipant ||
       !state.game.currentHintWord ||
       state.game.currentHintNumber === null
     ) {
@@ -98,15 +118,6 @@ export function GamePage({
       setTurnSecondsRemaining((current) => {
         if (current === null || current <= 1) {
           window.clearInterval(interval);
-          const activeSocket = getSocketClient();
-          if (activeSocket && state.game && user?.telegramId) {
-            activeSocket.emit("game:pass", {
-              gameId: state.game.id ?? state.game.roomId,
-              roomCode: roomCode.toUpperCase(),
-              telegramId: user.telegramId,
-              timeout: true,
-            });
-          }
           return 0;
         }
         return current - 1;
@@ -297,6 +308,16 @@ export function GamePage({
               : current.game,
             error: null,
           }));
+          setGameLog((current) => [
+            ...current,
+            {
+              id: `hint-${payload.hintSubmittedAt ?? Date.now()}`,
+              team:
+                payload.hintHistory[payload.hintHistory.length - 1]?.team ??
+                "red",
+              text: `${payload.currentHintWord ?? "Hint"} ${payload.currentHintNumber ?? ""}`,
+            },
+          ]);
         }
       };
 
@@ -340,6 +361,23 @@ export function GamePage({
         completedAt: string | null;
       }) => {
         if (isMounted) {
+          const previousBoard = gameRef.current?.board ?? [];
+          const revealingTeam = gameRef.current?.currentTurn ?? "red";
+          const revealedIndex = payload.board.findIndex(
+            (card, index) => card.revealed && !previousBoard[index]?.revealed,
+          );
+          const revealedCard =
+            revealedIndex >= 0 ? payload.board[revealedIndex] : null;
+          if (revealedCard) {
+            setGameLog((current) => [
+              ...current,
+              {
+                id: `reveal-${revealedIndex}-${Date.now()}`,
+                team: revealingTeam,
+                text: `Revealed ${revealedCard.word}`,
+              },
+            ]);
+          }
           setState((current) => ({
             ...current,
             game: current.game
@@ -484,12 +522,12 @@ export function GamePage({
   const isActiveSpymaster =
     Boolean(viewerPlayer) &&
     viewerPlayer?.team === state.game?.currentTurn &&
-    viewerPlayer?.role === "spymaster" &&
+    state.game?.role === "spymaster" &&
     state.game?.status === "active";
   const isActiveOperative =
     Boolean(viewerPlayer) &&
     viewerPlayer?.team === state.game?.currentTurn &&
-    viewerPlayer?.role === "operative" &&
+    state.game?.role === "operative" &&
     state.game?.status === "active";
   const hasActiveHint = Boolean(
     state.game?.currentHintWord || state.game?.currentHintNumber !== null,
@@ -506,6 +544,9 @@ export function GamePage({
     isActiveOperative && state.game?.status === "active" && hasActiveHint;
   const canFinishTimedOutTurn =
     turnSecondsRemaining === 0 && state.game?.status === "active";
+  const opposingTeam: Turn = state.game?.currentTurn === "red" ? "blue" : "red";
+  const canTakeTurn =
+    canFinishTimedOutTurn && viewerPlayer?.team === opposingTeam;
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
   const completionSummary = gameFinished
@@ -763,6 +804,21 @@ export function GamePage({
     });
   }
 
+  function handleTakeTurn() {
+    if (!state.game || !user?.telegramId || !canTakeTurn) return;
+    const activeSocket = getSocketClient();
+    if (!activeSocket) {
+      setHintMessage("Socket connection is unavailable.");
+      return;
+    }
+    activeSocket.emit("game:pass", {
+      gameId: state.game.id ?? state.game.roomId,
+      roomCode: roomCode.toUpperCase(),
+      telegramId: user.telegramId,
+      timeout: true,
+    });
+  }
+
   function handleAssignPlayerFromGame(
     targetTelegramId: number,
     team: "blue" | "red" | null,
@@ -888,7 +944,7 @@ export function GamePage({
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-[600px] bg-[#0b69ad] px-2 pb-4 pt-2 text-white">
+      <div className="mx-auto w-full max-w-150 bg-[#0b69ad] px-2 pb-4 pt-2 text-white">
         {" "}
         <div className="sticky top-0 z-10 flex gap-2 py-2">
           <button
@@ -1001,7 +1057,7 @@ export function GamePage({
           </button>
         </div>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
-          <div className="col-start-1 row-start-1 rounded-[12px] border-2 border-[#76f21b] bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]">
+          <div className="col-start-1 row-start-1 rounded-xl border-2 border-[#76f21b] bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -1045,19 +1101,19 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="col-start-2 row-span-2 row-start-1 h-[212px] overflow-y-auto rounded-[12px] border-2 border-[#777] bg-[#3e3e3e] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
+          <div className="col-start-2 row-span-2 row-start-1 h-53 overflow-y-auto rounded-xl border-2 border-[#777] bg-[#3e3e3e] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
               Game log
             </div>
             <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
-              {state.game.hintHistory.length > 0 ? (
-                state.game.hintHistory.map((hint, index) => (
+              {gameLog.length > 0 ? (
+                gameLog.map((entry) => (
                   <div
-                    key={`${hint.word}-${hint.submittedAt}-${index}`}
+                    key={entry.id}
                     className="rounded-lg bg-black/55 px-2 py-1.5"
                   >
-                    <span className="font-black uppercase">{hint.word}</span>
-                    <span className="ml-1 font-black">{hint.number}</span>
+                    <span className="font-black uppercase">{entry.team}</span>
+                    <span className="ml-1">{entry.text}</span>
                   </div>
                 ))
               ) : (
@@ -1068,7 +1124,7 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="col-start-3 row-start-1 rounded-[12px] border-2 border-[#e88963] bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
+          <div className="col-start-3 row-start-1 rounded-xl border-2 border-[#e88963] bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
@@ -1111,7 +1167,7 @@ export function GamePage({
               </div>
             </div>
           </div>
-          <div className="col-start-1 row-start-2 rounded-[12px] border-2 border-[#23d4ff] bg-[#168fc5] p-1.5 text-white">
+          <div className="col-start-1 row-start-2 rounded-xl border-2 border-[#23d4ff] bg-[#168fc5] p-1.5 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -1148,7 +1204,7 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="col-start-3 row-start-2 rounded-[12px] border-2 border-[#f39b84] bg-[#c94b3b] p-1.5 text-white">
+          <div className="col-start-3 row-start-2 rounded-xl border-2 border-[#f39b84] bg-[#c94b3b] p-1.5 text-white">
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -1275,29 +1331,14 @@ export function GamePage({
             <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
               {state.game.currentHintWord} ({state.game.currentHintNumber})
             </div>
-            {canPassTurn || canFinishTimedOutTurn ? (
+            {canPassTurn || canTakeTurn ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (canFinishTimedOutTurn) {
-                    const activeSocket = getSocketClient();
-                    if (activeSocket && state.game && user?.telegramId) {
-                      activeSocket.emit("game:pass", {
-                        gameId: state.game.id ?? state.game.roomId,
-                        roomCode: roomCode.toUpperCase(),
-                        telegramId: user.telegramId,
-                        timeout: true,
-                      });
-                    }
-                    return;
-                  }
-                  handlePassTurn();
-                }}
-                disabled={hintSubmitting}
-                aria-label="Close guessing and finish turn"
-                className="flex h-10 shrink-0 items-center justify-center rounded-full bg-[#ffb84d] px-4 text-sm font-black text-black hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 disabled:opacity-60"
+                onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
+                className="rounded-full bg-white px-4 py-3 text-sm font-black uppercase text-[#0a63d4]"
+                aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
               >
-                Close
+                {canTakeTurn ? "Take turn" : "Pass"}
               </button>
             ) : null}
           </div>

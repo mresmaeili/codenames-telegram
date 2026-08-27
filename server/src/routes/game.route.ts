@@ -285,30 +285,10 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       senderTelegramId,
     });
 
-    const turnResult = applyTurnOutcome({
-      game: {
-        ...revealResult.game,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        selectedCardId: game.selectedCardId ?? null,
-        selectedByPlayerId: game.selectedByPlayerId ?? null,
-        selectedAt: game.selectedAt ?? null,
-      },
-      room: {
-        players: roomRecord.players,
-      },
-      senderTelegramId,
-      revealedCardColor:
-        game.board[Number.parseInt(game.selectedCardId ?? "", 10)]?.color ??
-        null,
-    });
-
     const completionResult = applyGameCompletion({
       game: {
-        ...turnResult.game,
-        status: turnResult.game.status,
+        ...revealResult.game,
+        status: revealResult.game.status,
         startingTeam: game.startingTeam,
         winningTeam: game.winningTeam ?? null,
         completionReason: game.completionReason ?? null,
@@ -316,20 +296,39 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       },
     });
 
+    const resolvedGame = completionResult.completed
+      ? completionResult.game
+      : applyTurnOutcome({
+          game: revealResult.game,
+          room: {
+            players: roomRecord.players,
+          },
+          senderTelegramId,
+          revealedCardColor:
+            game.board[Number.parseInt(game.selectedCardId ?? "", 10)]?.color ??
+            null,
+        }).game;
+
     const updatedGame = await gameRepository.update(gameId, {
       board: revealResult.game.board,
-      status: completionResult.game.status,
-      currentTurn: completionResult.game.currentTurn,
-      remainingGuesses: completionResult.game.remainingGuesses,
-      currentHintWord: completionResult.game.currentHintWord,
-      currentHintNumber: completionResult.game.currentHintNumber,
-      hintSubmittedAt: completionResult.game.hintSubmittedAt,
-      selectedCardId: completionResult.game.selectedCardId,
-      selectedByPlayerId: completionResult.game.selectedByPlayerId,
-      selectedAt: completionResult.game.selectedAt,
-      winningTeam: completionResult.game.winningTeam,
-      completionReason: completionResult.game.completionReason,
-      completedAt: completionResult.game.completedAt,
+      status: resolvedGame.status,
+      currentTurn: resolvedGame.currentTurn,
+      remainingGuesses: resolvedGame.remainingGuesses,
+      currentHintWord: resolvedGame.currentHintWord,
+      currentHintNumber: resolvedGame.currentHintNumber,
+      hintSubmittedAt: resolvedGame.hintSubmittedAt,
+      selectedCardId: resolvedGame.selectedCardId,
+      selectedByPlayerId: resolvedGame.selectedByPlayerId,
+      selectedAt: resolvedGame.selectedAt,
+      winningTeam: completionResult.completed
+        ? completionResult.game.winningTeam
+        : (game.winningTeam ?? null),
+      completionReason: completionResult.completed
+        ? completionResult.game.completionReason
+        : (game.completionReason ?? null),
+      completedAt: completionResult.completed
+        ? completionResult.game.completedAt
+        : (game.completedAt ?? null),
     });
 
     if (!updatedGame) {

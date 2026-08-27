@@ -279,6 +279,128 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
   RoomModel.findOne = originalRoomFindOne;
 });
 
+test("registerRoomSocketHandlers completes selection confirmation and reveal", async () => {
+  const originalFindById = gameRepository.findById;
+  const originalUpdate = gameRepository.update;
+  const originalRoomFindOne = RoomModel.findOne;
+
+  const emitted: Array<{ event: string; payload: unknown }> = [];
+  const handlers = new Map<string, (payload: unknown) => Promise<void>>();
+
+  const socket = {
+    join: async () => undefined,
+    leave: async () => undefined,
+    emit: (event: string, payload: unknown) => {
+      emitted.push({ event, payload });
+    },
+    on: (event: string, handler: (payload: unknown) => Promise<void>) => {
+      handlers.set(event, handler);
+    },
+  } as unknown as Parameters<typeof registerRoomSocketHandlers>[1];
+
+  const io = {
+    to: () => ({
+      emit: (event: string, payload: unknown) => {
+        emitted.push({ event, payload });
+      },
+    }),
+  } as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    players: [
+      {
+        userId: "user-1",
+        telegramId: 10,
+        displayName: "Agent One",
+        team: "blue",
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  const game = {
+    _id: "game-id",
+    roomId: "room-id",
+    status: "active",
+    currentTurn: "blue",
+    startingTeam: "blue",
+    remainingGuesses: 2,
+    currentHintWord: "forest",
+    currentHintNumber: 1,
+    hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+    hintHistory: [],
+    board: [
+      { word: "river", color: "blue", revealed: false },
+      { word: "apple", color: "red", revealed: false },
+      { word: "mountain", color: "blue", revealed: false },
+    ],
+    selectedCardId: null,
+    selectedByPlayerId: null,
+    selectedAt: null,
+    winningTeam: null,
+    completionReason: null,
+    completedAt: null,
+  };
+
+  gameRepository.findById = async () => game as any;
+  RoomModel.findOne = () => ({ exec: async () => room }) as any;
+  gameRepository.update = async (_gameId, updates) => {
+    Object.assign(game, updates);
+    return game as any;
+  };
+
+  registerRoomSocketHandlers(io, socket);
+
+  const selectHandler = handlers.get("game:select");
+  if (!selectHandler) {
+    throw new Error("game:select handler was not registered.");
+  }
+
+  await selectHandler({
+    gameId: "game-id",
+    roomCode: "abc123",
+    telegramId: 10,
+    cardId: "0",
+    confirm: false,
+  });
+
+  assert.equal(game.selectedCardId, "0");
+  assert.ok(emitted.some((event) => event.event === "game:selected"));
+
+  await selectHandler({
+    gameId: "game-id",
+    roomCode: "abc123",
+    telegramId: 10,
+    cardId: "0",
+    confirm: true,
+  });
+
+  assert.equal(game.board[0]?.revealed, true);
+  assert.equal(game.board[0]?.color, "blue");
+  assert.equal(game.remainingGuesses, 1);
+  assert.equal(game.currentTurn, "blue");
+  assert.equal(game.selectedCardId, null);
+
+  const revealedEvent = emitted.find(
+    (event) => event.event === "game:revealed",
+  );
+  assert.ok(revealedEvent);
+  assert.equal(
+    (revealedEvent?.payload as { remainingGuesses: number }).remainingGuesses,
+    1,
+  );
+  assert.equal(
+    (revealedEvent?.payload as { currentTurn: string }).currentTurn,
+    "blue",
+  );
+
+  gameRepository.findById = originalFindById;
+  gameRepository.update = originalUpdate;
+  RoomModel.findOne = originalRoomFindOne;
+});
+
 test("registerRoomSocketHandlers accepts an owner rematch request and initializes a new game", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindByRoomId = gameRepository.findByRoomId;

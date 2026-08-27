@@ -1011,13 +1011,6 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      if (payload.confirm === true && game.selectedCardId !== payload.cardId) {
-        socket.emit("game:error", {
-          message: "Confirm the currently selected card.",
-        });
-        return;
-      }
-
       const selectionResult =
         payload.confirm === true && game.selectedCardId === payload.cardId
           ? { game: selectionContext.game }
@@ -1056,17 +1049,10 @@ export function registerRoomSocketHandlers(
         selectionResult.game.board[Number.parseInt(payload.cardId, 10)]
           ?.color ?? null;
 
-      const turnResult = applyTurnOutcome({
-        game: revealResult.game,
-        room: { players: room.players },
-        senderTelegramId: payload.telegramId,
-        revealedCardColor: selectedCardColor,
-      });
-
       const completionResult = applyGameCompletion({
         game: {
-          ...turnResult.game,
-          status: turnResult.game.status,
+          ...revealResult.game,
+          status: revealResult.game.status,
           startingTeam: game.startingTeam,
           winningTeam: game.winningTeam ?? null,
           completionReason: game.completionReason ?? null,
@@ -1074,20 +1060,35 @@ export function registerRoomSocketHandlers(
         },
       });
 
+      const resolvedGame = completionResult.completed
+        ? completionResult.game
+        : applyTurnOutcome({
+            game: revealResult.game,
+            room: { players: room.players },
+            senderTelegramId: payload.telegramId,
+            revealedCardColor: selectedCardColor,
+          }).game;
+
       const updatedGame = await gameRepository.update(payload.gameId, {
         board: revealResult.game.board,
-        status: completionResult.game.status,
-        currentTurn: completionResult.game.currentTurn,
-        remainingGuesses: completionResult.game.remainingGuesses,
-        currentHintWord: completionResult.game.currentHintWord,
-        currentHintNumber: completionResult.game.currentHintNumber,
-        hintSubmittedAt: completionResult.game.hintSubmittedAt,
-        selectedCardId: completionResult.game.selectedCardId,
-        selectedByPlayerId: completionResult.game.selectedByPlayerId,
-        selectedAt: completionResult.game.selectedAt,
-        winningTeam: completionResult.game.winningTeam,
-        completionReason: completionResult.game.completionReason,
-        completedAt: completionResult.game.completedAt,
+        status: resolvedGame.status,
+        currentTurn: resolvedGame.currentTurn,
+        remainingGuesses: resolvedGame.remainingGuesses,
+        currentHintWord: resolvedGame.currentHintWord,
+        currentHintNumber: resolvedGame.currentHintNumber,
+        hintSubmittedAt: resolvedGame.hintSubmittedAt,
+        selectedCardId: resolvedGame.selectedCardId,
+        selectedByPlayerId: resolvedGame.selectedByPlayerId,
+        selectedAt: resolvedGame.selectedAt,
+        winningTeam: completionResult.completed
+          ? completionResult.game.winningTeam
+          : (game.winningTeam ?? null),
+        completionReason: completionResult.completed
+          ? completionResult.game.completionReason
+          : (game.completionReason ?? null),
+        completedAt: completionResult.completed
+          ? completionResult.game.completedAt
+          : (game.completedAt ?? null),
       });
 
       if (!updatedGame) {

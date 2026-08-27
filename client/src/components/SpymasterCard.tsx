@@ -25,7 +25,7 @@ export function SpymasterCard({
       role="img"
       aria-label={`${word} (${color})`}
     >
-      <div className="absolute inset-[5px] flex items-center justify-center rounded-[2px] border border-black/15 bg-[#fffaf2] p-1 text-center">
+      <div className="absolute inset-1.25 flex items-center justify-center rounded-xs border border-black/15 bg-[#fffaf2] p-1 text-center">
         <span className="block px-1 text-center wrap-break-word whitespace-normal text-[clamp(0.72rem,2.8vw,1.15rem)] font-black uppercase leading-none tracking-[0.01em] text-[#111820]">
           {word}
         </span>

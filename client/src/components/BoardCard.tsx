@@ -7,6 +7,7 @@ interface BoardCardProps {
   selectedPlaceholder?: boolean;
   revealedColor?: CardColor | null;
   hideWord?: boolean;
+  showRevealedWord?: boolean;
 }
 
 const tileBgStyles: Record<CardColor, string> = {
@@ -23,8 +24,9 @@ export function BoardCard({
   selectedPlaceholder = false,
   revealedColor = null,
   hideWord = false,
+  showRevealedWord = false,
 }: BoardCardProps) {
-  const hiddenWord = hideWord && !revealedColor && !selectedPlaceholder;
+  const hiddenWord = !revealedColor || !showRevealedWord;
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",
   ];
@@ -39,9 +41,11 @@ export function BoardCard({
     <div
       className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 border-[#0a6e9f] ${tileColor} ${outerClasses.join(" ")} transform-gpu transition duration-200 ease-out`}
     >
-      <div className="absolute inset-[5px] flex items-center justify-center rounded-[2px] border border-black/15 bg-[#fffaf2] p-1 text-center">
+      <div
+        className={`absolute inset-1.25 flex items-center justify-center rounded-xs border border-black/15 p-1 text-center ${revealedColor ? "bg-transparent" : "bg-[#fffaf2]"}`}
+      >
         <span
-          className={`block font-black uppercase tracking-[0.01em] text-[clamp(0.72rem,2.8vw,1.15rem)] leading-none text-[#111820] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`absolute bottom-1 block w-full font-black uppercase tracking-[0.01em] text-[clamp(0.64rem,2.5vw,1rem)] leading-none text-[#111820] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>

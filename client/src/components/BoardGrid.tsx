@@ -1,5 +1,6 @@
 import { BoardCard } from "@/components/BoardCard";
 import { SpymasterCard } from "@/components/SpymasterCard";
+import { useState } from "react";
 import type {
   PublicCard,
   SpymasterCard as SpymasterCardModel,
@@ -24,6 +25,10 @@ export function BoardGrid({
   onConfirmCard,
   hideWords = false,
 }: BoardGridProps) {
+  const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
+    new Set(),
+  );
+
   return (
     <div className="grid grid-cols-5 gap-1.5">
       {cards.map((card, index) => {
@@ -44,6 +49,7 @@ export function BoardGrid({
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable = isSelected && !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
+        const isRevealedWordVisible = visibleRevealedWords.has(index);
         const ariaLabel = publicCard.revealed
           ? `Revealed ${publicCard.word}`
           : isConfirmable
@@ -60,10 +66,17 @@ export function BoardGrid({
               onClick={() => {
                 if (isSelectable && onSelectCard) {
                   onSelectCard(index);
+                } else if (publicCard.revealed) {
+                  setVisibleRevealedWords((current) => {
+                    const next = new Set(current);
+                    if (next.has(index)) next.delete(index);
+                    else next.add(index);
+                    return next;
+                  });
                 }
               }}
-              className={`block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
-              disabled={!isSelectable}
+              className={`block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || publicCard.revealed ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
+              disabled={!isSelectable && !publicCard.revealed}
             >
               <BoardCard
                 word={publicCard.word}
@@ -72,6 +85,7 @@ export function BoardGrid({
                 revealPlaceholder={false}
                 selectedPlaceholder={isSelected}
                 revealedColor={publicCard.revealed ? publicCard.color : null}
+                showRevealedWord={isRevealedWordVisible}
               />
             </button>
             {isConfirmable ? (
