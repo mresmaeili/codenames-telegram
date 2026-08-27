@@ -40,6 +40,7 @@ export interface Game {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  turnStartedAt?: Date | null;
   hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
@@ -62,6 +63,7 @@ export interface GameViewBase {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  turnStartedAt?: Date | null;
   hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;

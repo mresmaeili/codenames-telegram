@@ -33,8 +33,12 @@ interface GamePageState {
 
 interface GameLogEntry {
   id: string;
+  kind: "hint" | "reveal";
   team: Turn;
-  text: string;
+  word: string;
+  number?: number;
+  playerId: string | null;
+  correct?: boolean;
 }
 
 function getPlayerCount(room: Room | null): number {
@@ -78,18 +82,27 @@ export function GamePage({
   >(null);
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
   const gameRef = useRef<GameView | null>(null);
+  const roomRef = useRef<Room | null>(null);
   const logGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     gameRef.current = state.game;
+    roomRef.current = state.room;
     const gameId = state.game?.id ?? state.game?.roomId ?? null;
     if (gameId !== logGameIdRef.current) {
       logGameIdRef.current = gameId;
       setGameLog(
         state.game?.hintHistory.map((hint, index) => ({
           id: `hint-${hint.submittedAt}-${index}`,
+          kind: "hint" as const,
           team: hint.team,
-          text: `${hint.word} ${hint.number}`,
+          word: hint.word,
+          number: hint.number,
+          playerId:
+            state.room?.players.find(
+              (player) =>
+                player.team === hint.team && player.role === "spymaster",
+            )?.userId ?? null,
         })) ?? [],
       );
     }
@@ -99,21 +112,18 @@ export function GamePage({
     const timerSetting = state.room?.settings.timer;
     const duration =
       timerSetting && timerSetting !== "none" ? Number(timerSetting) : null;
-    const viewerPlayer = state.room?.players.find(
-      (player) => player.telegramId === user?.telegramId,
-    );
-    if (
-      !duration ||
-      !state.game ||
-      state.game.status !== "active" ||
-      !state.game.currentHintWord ||
-      state.game.currentHintNumber === null
-    ) {
+    if (!duration || !state.game || state.game.status !== "active") {
       setTurnSecondsRemaining(null);
       return;
     }
 
-    setTurnSecondsRemaining(duration);
+    const turnStartedAt =
+      state.game.turnStartedAt ?? state.game.createdAt ?? new Date();
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(turnStartedAt).getTime()) / 1000),
+    );
+    setTurnSecondsRemaining(Math.max(0, duration - elapsedSeconds));
     const interval = window.setInterval(() => {
       setTurnSecondsRemaining((current) => {
         if (current === null || current <= 1) {
@@ -128,7 +138,7 @@ export function GamePage({
   }, [
     roomCode,
     state.game?.currentTurn,
-    state.game?.hintSubmittedAt,
+    state.game?.turnStartedAt,
     state.game?.status,
     state.room?.settings.timer,
     state.room?.players,
@@ -312,10 +322,19 @@ export function GamePage({
             ...current,
             {
               id: `hint-${payload.hintSubmittedAt ?? Date.now()}`,
+              kind: "hint",
               team:
                 payload.hintHistory[payload.hintHistory.length - 1]?.team ??
                 "red",
-              text: `${payload.currentHintWord ?? "Hint"} ${payload.currentHintNumber ?? ""}`,
+              word: payload.currentHintWord ?? "Hint",
+              number: payload.currentHintNumber ?? undefined,
+              playerId:
+                roomRef.current?.players.find(
+                  (player) =>
+                    player.team ===
+                      (payload.hintHistory[payload.hintHistory.length - 1]
+                        ?.team ?? "red") && player.role === "spymaster",
+                )?.userId ?? null,
             },
           ]);
         }
@@ -369,12 +388,17 @@ export function GamePage({
           const revealedCard =
             revealedIndex >= 0 ? payload.board[revealedIndex] : null;
           if (revealedCard) {
+            const selectedPlayerId =
+              gameRef.current?.selectedByPlayerId ?? null;
             setGameLog((current) => [
               ...current,
               {
                 id: `reveal-${revealedIndex}-${Date.now()}`,
+                kind: "reveal",
                 team: revealingTeam,
-                text: `Revealed ${revealedCard.word}`,
+                word: revealedCard.word,
+                playerId: selectedPlayerId,
+                correct: revealedCard.color === revealingTeam,
               },
             ]);
           }
@@ -1108,12 +1132,49 @@ export function GamePage({
             <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
               {gameLog.length > 0 ? (
                 gameLog.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-lg bg-black/55 px-2 py-1.5"
-                  >
-                    <span className="font-black uppercase">{entry.team}</span>
-                    <span className="ml-1">{entry.text}</span>
+                  <div key={entry.id} className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <img
+                        src={avatarUrlForPlayer(
+                          state.room?.players.find(
+                            (player) => player.userId === entry.playerId,
+                          ),
+                        )}
+                        alt=""
+                        className={`h-7 w-7 rounded-full border-2 object-cover ${entry.team === "blue" ? "border-cyan-300" : "border-red-300"}`}
+                      />
+                      <span
+                        className={`rounded-sm px-1 text-[9px] font-black uppercase ${entry.team === "blue" ? "bg-[#08a6d0]" : "bg-[#d84c3e]"}`}
+                      >
+                        {state.room?.players.find(
+                          (player) => player.userId === entry.playerId,
+                        )?.displayName ?? entry.team}
+                      </span>
+                    </div>
+                    <div
+                      className={`flex items-center gap-1 rounded-sm px-1.5 py-1 font-black text-white ${entry.team === "blue" ? "bg-[#159dce]" : "bg-[#c94b3b]"}`}
+                    >
+                      <span className="min-w-0 flex-1 truncate uppercase">
+                        {entry.word}
+                      </span>
+                      {entry.number !== undefined ? (
+                        <span className="rounded-full bg-white px-1.5 py-0.5 text-black">
+                          {entry.number}
+                        </span>
+                      ) : null}
+                      {entry.kind === "reveal" ? (
+                        <span
+                          className={
+                            entry.correct ? "text-lime-300" : "text-red-200"
+                          }
+                          aria-label={
+                            entry.correct ? "Correct guess" : "Wrong guess"
+                          }
+                        >
+                          {entry.correct ? "✓" : "×"}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 ))
               ) : (

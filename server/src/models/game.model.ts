@@ -77,6 +77,10 @@ const gameSchema = new Schema<GameDocument>(
       type: Date,
       default: null,
     },
+    turnStartedAt: {
+      type: Date,
+      default: Date.now,
+    },
     hintHistory: {
       type: [
         {

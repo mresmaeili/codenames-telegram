@@ -39,7 +39,8 @@ export function BoardCard({
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 border-[#0a6e9f] ${tileColor} ${outerClasses.join(" ")} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 border-[#0a6e9f] ${tileColor} ${outerClasses.join(" ")} ${revealedColor ? "animate-reveal-card" : ""} transform-gpu transition duration-200 ease-out`}
+      data-revealed={revealedColor ? "true" : "false"}
     >
       <div
         className={`absolute inset-1.25 flex items-center justify-center rounded-xs border border-black/15 p-1 text-center ${revealedColor ? "bg-transparent" : "bg-[#fffaf2]"}`}

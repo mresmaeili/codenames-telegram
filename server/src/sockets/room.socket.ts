@@ -122,20 +122,28 @@ interface PassSocketPayload {
 }
 
 function hasTurnTimerExpired(
-  game: { hintSubmittedAt?: Date | null },
+  game: {
+    hintSubmittedAt?: Date | null;
+    turnStartedAt?: Date | null;
+    createdAt?: Date;
+  },
   room: { settings: { timer?: string } },
 ): boolean {
   const timerSeconds = Number(room.settings.timer);
   if (
     !Number.isFinite(timerSeconds) ||
     timerSeconds <= 0 ||
-    !game.hintSubmittedAt
+    !(game.turnStartedAt ?? game.hintSubmittedAt ?? game.createdAt)
   ) {
     return false;
   }
 
   return (
-    Date.now() - new Date(game.hintSubmittedAt).getTime() >= timerSeconds * 1000
+    Date.now() -
+      new Date(
+        game.turnStartedAt ?? game.hintSubmittedAt ?? game.createdAt ?? 0,
+      ).getTime() >=
+    timerSeconds * 1000
   );
 }
 
@@ -1089,6 +1097,9 @@ export function registerRoomSocketHandlers(
         completedAt: completionResult.completed
           ? completionResult.game.completedAt
           : (game.completedAt ?? null),
+        ...(resolvedGame.currentTurn !== game.currentTurn
+          ? { turnStartedAt: new Date() }
+          : {}),
       });
 
       if (!updatedGame) {
@@ -1205,6 +1216,7 @@ export function registerRoomSocketHandlers(
         selectedCardId: result.game.selectedCardId,
         selectedByPlayerId: result.game.selectedByPlayerId,
         selectedAt: result.game.selectedAt,
+        turnStartedAt: new Date(),
       });
 
       if (!updatedGame) {

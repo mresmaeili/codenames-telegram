@@ -93,6 +93,7 @@ export function buildGameView(input: {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  turnStartedAt?: Date | null;
   hintHistory: HintEntry[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
@@ -114,6 +115,7 @@ export function buildGameView(input: {
     currentHintWord: input.currentHintWord,
     currentHintNumber: input.currentHintNumber,
     hintSubmittedAt: input.hintSubmittedAt,
+    turnStartedAt: input.turnStartedAt,
     hintHistory: input.hintHistory,
     selectedCardId: input.selectedCardId,
     selectedByPlayerId: input.selectedByPlayerId,
@@ -189,6 +191,7 @@ export async function getGameByRoomCode(
     currentHintWord: game.currentHintWord ?? null,
     currentHintNumber: game.currentHintNumber ?? null,
     hintSubmittedAt: game.hintSubmittedAt ?? null,
+    turnStartedAt: game.turnStartedAt ?? game.createdAt,
     hintHistory: game.hintHistory ?? [],
     selectedCardId: game.selectedCardId ?? null,
     selectedByPlayerId: game.selectedByPlayerId ?? null,
@@ -236,6 +239,7 @@ export async function createGame(
     currentHintWord: null,
     currentHintNumber: null,
     hintSubmittedAt: null,
+    turnStartedAt: new Date(),
     hintHistory: [],
     selectedCardId: null,
     selectedByPlayerId: null,

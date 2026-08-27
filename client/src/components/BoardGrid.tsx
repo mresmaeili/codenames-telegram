@@ -66,6 +66,8 @@ export function BoardGrid({
               onClick={() => {
                 if (isSelectable && onSelectCard) {
                   onSelectCard(index);
+                } else if (isConfirmable && onConfirmCard) {
+                  onConfirmCard(index);
                 } else if (publicCard.revealed) {
                   setVisibleRevealedWords((current) => {
                     const next = new Set(current);
@@ -84,7 +86,9 @@ export function BoardGrid({
                 disabled={!isInteractive}
                 revealPlaceholder={false}
                 selectedPlaceholder={isSelected}
-                revealedColor={publicCard.revealed ? publicCard.color : null}
+                revealedColor={
+                  publicCard.revealed ? (publicCard.color ?? "neutral") : null
+                }
                 showRevealedWord={isRevealedWordVisible}
               />
             </button>
