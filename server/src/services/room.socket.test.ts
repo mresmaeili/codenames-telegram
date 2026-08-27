@@ -282,6 +282,15 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
       .blueCardsRemaining,
     1,
   );
+  assert.equal(
+    (revealedEvent?.payload as { revealedCardIndex: number }).revealedCardIndex,
+    0,
+  );
+  assert.equal(
+    (revealedEvent?.payload as { revealedByPlayerId: string })
+      .revealedByPlayerId,
+    "user-1",
+  );
 
   gameRepository.findById = originalFindById;
   gameRepository.update = originalUpdate;

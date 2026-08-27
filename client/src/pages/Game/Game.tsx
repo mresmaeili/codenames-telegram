@@ -249,8 +249,26 @@ export function GamePage({
         }
       };
 
-      const handleGameInitialized = () => {
+      const handleGameInitialized = (payload: {
+        redCardsRemaining?: number;
+        blueCardsRemaining?: number;
+      }) => {
         if (isMounted) {
+          if (
+            typeof payload?.redCardsRemaining === "number" &&
+            typeof payload?.blueCardsRemaining === "number"
+          ) {
+            setState((current) => ({
+              ...current,
+              game: current.game
+                ? {
+                    ...current.game,
+                    redCardsRemaining: payload.redCardsRemaining,
+                    blueCardsRemaining: payload.blueCardsRemaining,
+                  }
+                : current.game,
+            }));
+          }
           setIsReconnecting(true);
           toast.success("Game starting. Loading board...");
           void loadGameData();
@@ -377,27 +395,23 @@ export function GamePage({
         completionReason: GameView["completionReason"];
         completedAt: string | null;
         turnStartedAt: string | null;
+        revealedCardIndex: number;
+        revealedCardColor: GameView["board"][number]["color"];
+        revealedByPlayerId: string | null;
       }) => {
         if (isMounted) {
-          const previousBoard = gameRef.current?.board ?? [];
           const revealingTeam = gameRef.current?.currentTurn ?? "red";
-          const revealedIndex = payload.board.findIndex(
-            (card, index) => card.revealed && !previousBoard[index]?.revealed,
-          );
-          const revealedCard =
-            revealedIndex >= 0 ? payload.board[revealedIndex] : null;
+          const revealedCard = payload.board[payload.revealedCardIndex];
           if (revealedCard) {
-            const selectedPlayerId =
-              gameRef.current?.selectedByPlayerId ?? null;
             setGameLog((current) => [
               ...current,
               {
-                id: `reveal-${revealedIndex}-${Date.now()}`,
+                id: `reveal-${payload.revealedCardIndex}-${Date.now()}`,
                 kind: "reveal",
                 team: revealingTeam,
                 word: revealedCard.word,
-                playerId: selectedPlayerId,
-                correct: revealedCard.color === revealingTeam,
+                playerId: payload.revealedByPlayerId,
+                correct: payload.revealedCardColor === revealingTeam,
               },
             ]);
           }

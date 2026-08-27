@@ -1061,6 +1061,9 @@ export function registerRoomSocketHandlers(
       const selectedCardColor =
         selectionResult.game.board[Number.parseInt(payload.cardId, 10)]
           ?.color ?? null;
+      const revealedCardIndex = Number.parseInt(payload.cardId, 10);
+      const revealedCard = selectionResult.game.board[revealedCardIndex];
+      const revealedByPlayerId = selectionResult.game.selectedByPlayerId;
 
       const completionResult = applyGameCompletion({
         game: {
@@ -1139,6 +1142,9 @@ export function registerRoomSocketHandlers(
         completionReason: updatedGame.completionReason,
         completedAt: updatedGame.completedAt,
         turnStartedAt: updatedGame.turnStartedAt,
+        revealedCardIndex,
+        revealedCardColor: revealedCard?.color ?? null,
+        revealedByPlayerId,
       });
     } catch (error) {
       const message =
