@@ -41,6 +41,26 @@ interface GameLogEntry {
   correct?: boolean;
 }
 
+function normalizeGameCounts(game: GameView): GameView {
+  if (
+    typeof game.redCardsRemaining === "number" &&
+    typeof game.blueCardsRemaining === "number"
+  ) {
+    return game;
+  }
+
+  const boardIsUnrevealed = game.board.every((card) => !card.revealed);
+  if (!boardIsUnrevealed) {
+    return game;
+  }
+
+  return {
+    ...game,
+    redCardsRemaining: game.startingTeam === "red" ? 9 : 8,
+    blueCardsRemaining: game.startingTeam === "blue" ? 9 : 8,
+  };
+}
+
 function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
@@ -184,7 +204,7 @@ export function GamePage({
         throw new Error("Unable to load the game board.");
       }
 
-      const game = (await gameResponse.json()) as GameView;
+      const game = normalizeGameCounts((await gameResponse.json()) as GameView);
 
       setState({ room, game, loading: false, error: null });
       setIsReconnecting(false);
@@ -395,23 +415,36 @@ export function GamePage({
         completionReason: GameView["completionReason"];
         completedAt: string | null;
         turnStartedAt: string | null;
-        revealedCardIndex: number;
-        revealedCardColor: GameView["board"][number]["color"];
-        revealedByPlayerId: string | null;
+        revealedCardIndex?: number;
+        revealedCardColor?: GameView["board"][number]["color"];
+        revealedByPlayerId?: string | null;
       }) => {
         if (isMounted) {
           const revealingTeam = gameRef.current?.currentTurn ?? "red";
-          const revealedCard = payload.board[payload.revealedCardIndex];
+          const revealedIndex =
+            typeof payload.revealedCardIndex === "number"
+              ? payload.revealedCardIndex
+              : payload.board.findIndex(
+                  (card, index) =>
+                    card.revealed && !gameRef.current?.board[index]?.revealed,
+                );
+          const revealedCard =
+            revealedIndex >= 0 ? payload.board[revealedIndex] : null;
           if (revealedCard) {
             setGameLog((current) => [
               ...current,
               {
-                id: `reveal-${payload.revealedCardIndex}-${Date.now()}`,
+                id: `reveal-${revealedIndex}-${Date.now()}`,
                 kind: "reveal",
                 team: revealingTeam,
                 word: revealedCard.word,
-                playerId: payload.revealedByPlayerId,
-                correct: payload.revealedCardColor === revealingTeam,
+                playerId:
+                  payload.revealedByPlayerId ??
+                  gameRef.current?.selectedByPlayerId ??
+                  null,
+                correct:
+                  (payload.revealedCardColor ?? revealedCard.color) ===
+                  revealingTeam,
               },
             ]);
           }
@@ -423,8 +456,14 @@ export function GamePage({
                   board: payload.board,
                   currentTurn: payload.currentTurn as GameView["currentTurn"],
                   remainingGuesses: payload.remainingGuesses,
-                  redCardsRemaining: payload.redCardsRemaining,
-                  blueCardsRemaining: payload.blueCardsRemaining,
+                  redCardsRemaining:
+                    typeof payload.redCardsRemaining === "number"
+                      ? payload.redCardsRemaining
+                      : current.game.redCardsRemaining,
+                  blueCardsRemaining:
+                    typeof payload.blueCardsRemaining === "number"
+                      ? payload.blueCardsRemaining
+                      : current.game.blueCardsRemaining,
                   currentHintWord: payload.currentHintWord,
                   currentHintNumber: payload.currentHintNumber,
                   status: payload.status as GameView["status"],
@@ -584,7 +623,6 @@ export function GamePage({
     Boolean(
       state.game?.currentHintWord && state.game?.currentHintNumber !== null,
     ) &&
-    state.game?.selectedCardId == null &&
     state.game?.remainingGuesses > 0;
   const opposingTeam: Turn = state.game?.currentTurn === "red" ? "blue" : "red";
   const canPassTurn =
@@ -775,13 +813,7 @@ export function GamePage({
   }
 
   function handleSelectCard(cardIndex: number) {
-    if (
-      !state.game ||
-      !user?.telegramId ||
-      !canSelectCard ||
-      state.game.selectedCardId !== null ||
-      hintSubmitting
-    ) {
+    if (!state.game || !user?.telegramId || !canSelectCard || hintSubmitting) {
       return;
     }
 

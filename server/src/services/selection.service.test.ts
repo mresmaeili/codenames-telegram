@@ -75,7 +75,7 @@ test("validateCardSelection rejects a guess when no remaining guesses are availa
   assert.equal(validation.error, "No remaining guesses are available.");
 });
 
-test("validateCardSelection rejects a stale duplicate selection", () => {
+test("validateCardSelection allows replacing a pending selection", () => {
   const validation = validateCardSelection({
     game: {
       status: "active",
@@ -105,6 +105,5 @@ test("validateCardSelection rejects a stale duplicate selection", () => {
     cardId: "0",
   });
 
-  assert.equal(validation.ok, false);
-  assert.equal(validation.error, "A card is already selected.");
+  assert.equal(validation.ok, true);
 });

@@ -71,10 +71,6 @@ export function validateCardSelection(
     return { ok: false, error: "No remaining guesses are available." };
   }
 
-  if (context.game.selectedCardId !== null) {
-    return { ok: false, error: "A card is already selected." };
-  }
-
   return { ok: true };
 }
 
