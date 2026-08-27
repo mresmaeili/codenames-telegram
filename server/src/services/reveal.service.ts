@@ -76,6 +76,13 @@ export function validateCardReveal(
     return { ok: false, error: "Selected card has already been revealed." };
   }
 
+  if (context.game.selectedByPlayerId !== sender.userId) {
+    return {
+      ok: false,
+      error: "Only the player who selected the card can confirm it.",
+    };
+  }
+
   return { ok: true };
 }
 

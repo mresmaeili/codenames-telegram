@@ -67,10 +67,10 @@ export function BoardGrid({
               type="button"
               aria-label={ariaLabel}
               onClick={() => {
-                if (isSelectable && onSelectCard) {
-                  onSelectCard(index);
-                } else if (isConfirmable && onConfirmCard) {
+                if (isConfirmable && onConfirmCard) {
                   onConfirmCard(index);
+                } else if (isSelectable && onSelectCard) {
+                  onSelectCard(index);
                 } else if (publicCard.revealed) {
                   setVisibleRevealedWords((current) => {
                     const next = new Set(current);

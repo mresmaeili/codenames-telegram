@@ -47,6 +47,13 @@ export function validateTurnPass(
   }
 
   if (context.allowTimeout) {
+    if (sender.team === null) {
+      return {
+        ok: false,
+        error: "Only a room team can act on a timed-out turn.",
+      };
+    }
+
     return { ok: true };
   }
 

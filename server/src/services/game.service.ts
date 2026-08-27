@@ -242,6 +242,12 @@ export async function createGame(
     startingTeam,
     currentTurn: startingTeam,
     remainingGuesses: 0,
+    redCardsRemaining: board.filter(
+      (card) => card.color === "red" && !card.revealed,
+    ).length,
+    blueCardsRemaining: board.filter(
+      (card) => card.color === "blue" && !card.revealed,
+    ).length,
     currentHintWord: null,
     currentHintNumber: null,
     hintSubmittedAt: null,

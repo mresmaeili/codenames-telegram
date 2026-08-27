@@ -64,6 +64,16 @@ const gameSchema = new Schema<GameDocument>(
       required: true,
       default: 0,
     },
+    redCardsRemaining: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    blueCardsRemaining: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     currentHintWord: {
       type: String,
       default: null,

@@ -376,6 +376,7 @@ export function GamePage({
         winningTeam: GameView["winningTeam"];
         completionReason: GameView["completionReason"];
         completedAt: string | null;
+        turnStartedAt: string | null;
       }) => {
         if (isMounted) {
           const previousBoard = gameRef.current?.board ?? [];
@@ -423,6 +424,9 @@ export function GamePage({
                   completedAt: payload.completedAt
                     ? new Date(payload.completedAt)
                     : null,
+                  turnStartedAt: payload.turnStartedAt
+                    ? new Date(payload.turnStartedAt)
+                    : null,
                 }
               : current.game,
             error: null,
@@ -464,6 +468,7 @@ export function GamePage({
         selectedCardId: string | null;
         selectedByPlayerId: string | null;
         selectedAt: string | null;
+        turnStartedAt: string | null;
       }) => {
         if (isMounted) {
           setState((current) => ({
@@ -479,6 +484,9 @@ export function GamePage({
                   selectedByPlayerId: payload.selectedByPlayerId,
                   selectedAt: payload.selectedAt
                     ? new Date(payload.selectedAt)
+                    : null,
+                  turnStartedAt: payload.turnStartedAt
+                    ? new Date(payload.turnStartedAt)
                     : null,
                 }
               : current.game,
@@ -564,11 +572,15 @@ export function GamePage({
     ) &&
     state.game?.selectedCardId == null &&
     state.game?.remainingGuesses > 0;
+  const opposingTeam: Turn = state.game?.currentTurn === "red" ? "blue" : "red";
   const canPassTurn =
-    isActiveOperative && state.game?.status === "active" && hasActiveHint;
+    state.game?.status === "active" &&
+    (turnSecondsRemaining === 0
+      ? viewerPlayer?.team === state.game.currentTurn ||
+        viewerPlayer?.team === opposingTeam
+      : isActiveOperative && hasActiveHint);
   const canFinishTimedOutTurn =
     turnSecondsRemaining === 0 && state.game?.status === "active";
-  const opposingTeam: Turn = state.game?.currentTurn === "red" ? "blue" : "red";
   const canTakeTurn =
     canFinishTimedOutTurn && viewerPlayer?.team === opposingTeam;
   const gameFinished = state.game?.status === "finished";
@@ -825,6 +837,7 @@ export function GamePage({
       gameId: state.game.id ?? state.game.roomId,
       roomCode: roomCode.toUpperCase(),
       telegramId: user.telegramId,
+      timeout: turnSecondsRemaining === 0,
     });
   }
 
@@ -1402,6 +1415,17 @@ export function GamePage({
                 {canTakeTurn ? "Take turn" : "Pass"}
               </button>
             ) : null}
+          </div>
+        ) : canPassTurn || canTakeTurn ? (
+          <div className="mt-4 flex items-center justify-end rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
+            <button
+              type="button"
+              onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
+              className="rounded-full bg-white px-4 py-3 text-sm font-black uppercase text-[#0a63d4]"
+              aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
+            >
+              {canTakeTurn ? "Take turn" : "Pass"}
+            </button>
           </div>
         ) : isActiveOperative ? (
           <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">

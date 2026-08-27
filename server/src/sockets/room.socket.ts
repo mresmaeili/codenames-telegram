@@ -1079,6 +1079,12 @@ export function registerRoomSocketHandlers(
 
       const updatedGame = await gameRepository.update(payload.gameId, {
         board: revealResult.game.board,
+        redCardsRemaining: revealResult.game.board.filter(
+          (card) => card.color === "red" && !card.revealed,
+        ).length,
+        blueCardsRemaining: revealResult.game.board.filter(
+          (card) => card.color === "blue" && !card.revealed,
+        ).length,
         status: resolvedGame.status,
         currentTurn: resolvedGame.currentTurn,
         remainingGuesses: resolvedGame.remainingGuesses,
@@ -1127,6 +1133,7 @@ export function registerRoomSocketHandlers(
         winningTeam: updatedGame.winningTeam,
         completionReason: updatedGame.completionReason,
         completedAt: updatedGame.completedAt,
+        turnStartedAt: updatedGame.turnStartedAt,
       });
     } catch (error) {
       const message =
@@ -1239,6 +1246,7 @@ export function registerRoomSocketHandlers(
         selectedCardId: updatedGame.selectedCardId,
         selectedByPlayerId: updatedGame.selectedByPlayerId,
         selectedAt: updatedGame.selectedAt,
+        turnStartedAt: updatedGame.turnStartedAt,
       });
     } catch (error) {
       const message =

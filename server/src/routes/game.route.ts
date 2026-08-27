@@ -311,6 +311,12 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
 
     const updatedGame = await gameRepository.update(gameId, {
       board: revealResult.game.board,
+      redCardsRemaining: revealResult.game.board.filter(
+        (card) => card.color === "red" && !card.revealed,
+      ).length,
+      blueCardsRemaining: revealResult.game.board.filter(
+        (card) => card.color === "blue" && !card.revealed,
+      ).length,
       status: resolvedGame.status,
       currentTurn: resolvedGame.currentTurn,
       remainingGuesses: resolvedGame.remainingGuesses,
@@ -329,6 +335,9 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       completedAt: completionResult.completed
         ? completionResult.game.completedAt
         : (game.completedAt ?? null),
+      ...(resolvedGame.currentTurn !== game.currentTurn
+        ? { turnStartedAt: new Date() }
+        : {}),
     });
 
     if (!updatedGame) {
@@ -396,6 +405,7 @@ gameRouter.post("/:gameId/pass", async (request, response) => {
       selectedCardId: result.game.selectedCardId,
       selectedByPlayerId: result.game.selectedByPlayerId,
       selectedAt: result.game.selectedAt,
+      turnStartedAt: new Date(),
     });
 
     if (!updatedGame) {

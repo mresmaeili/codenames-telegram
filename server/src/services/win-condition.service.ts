@@ -53,12 +53,6 @@ export function evaluateGameCompletion(
     };
   }
 
-  const revealedTeamCards = context.game.board.filter(
-    (card) => card.revealed && card.color === context.game.currentTurn,
-  );
-  const unrevealedTeamCards = context.game.board.filter(
-    (card) => !card.revealed && card.color === context.game.currentTurn,
-  );
   const revealedAssassin = context.game.board.some(
     (card) => card.revealed && card.color === "assassin",
   );
@@ -71,12 +65,15 @@ export function evaluateGameCompletion(
     };
   }
 
-  if (revealedTeamCards.length > 0 && unrevealedTeamCards.length === 0) {
-    return {
-      completed: true,
-      winningTeam: context.game.currentTurn,
-      completionReason: `all-${context.game.currentTurn}-cards-revealed`,
-    };
+  for (const team of ["red", "blue"] as const) {
+    const teamCards = context.game.board.filter((card) => card.color === team);
+    if (teamCards.length > 0 && teamCards.every((card) => card.revealed)) {
+      return {
+        completed: true,
+        winningTeam: team,
+        completionReason: `all-${team}-cards-revealed`,
+      };
+    }
   }
 
   return {

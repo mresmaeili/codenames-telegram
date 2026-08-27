@@ -63,6 +63,34 @@ test("evaluateGameCompletion uses the revealing team's turn before turn resoluti
   assert.equal(result.completionReason, "all-blue-cards-revealed");
 });
 
+test("evaluateGameCompletion awards the game when the opponent's final card is revealed", () => {
+  const result = evaluateGameCompletion({
+    game: {
+      status: "active",
+      currentTurn: "red",
+      startingTeam: "blue",
+      remainingGuesses: 1,
+      currentHintWord: "forest",
+      currentHintNumber: 1,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+      board: [
+        { word: "alpha", color: "red", revealed: false },
+        { word: "bravo", color: "blue", revealed: true },
+      ],
+      selectedCardId: null,
+      selectedByPlayerId: null,
+      selectedAt: null,
+      winningTeam: null,
+      completionReason: null,
+      completedAt: null,
+    },
+  });
+
+  assert.equal(result.completed, true);
+  assert.equal(result.winningTeam, "blue");
+  assert.equal(result.completionReason, "all-blue-cards-revealed");
+});
+
 test("evaluateGameCompletion declares the opposing team victorious when the assassin is revealed", () => {
   const result = evaluateGameCompletion({
     game: {
