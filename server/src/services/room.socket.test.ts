@@ -273,6 +273,15 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
     (revealedEvent?.payload as { remainingGuesses: number }).remainingGuesses,
     0,
   );
+  assert.equal(
+    (revealedEvent?.payload as { redCardsRemaining: number }).redCardsRemaining,
+    0,
+  );
+  assert.equal(
+    (revealedEvent?.payload as { blueCardsRemaining: number })
+      .blueCardsRemaining,
+    1,
+  );
 
   gameRepository.findById = originalFindById;
   gameRepository.update = originalUpdate;

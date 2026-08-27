@@ -82,6 +82,22 @@ export function buildGameBoard(words: string[], startingTeam: Turn): Card[] {
   }));
 }
 
+export function getRemainingCardCounts(
+  board: Array<{ color: string | null; revealed: boolean }>,
+): {
+  redCardsRemaining: number;
+  blueCardsRemaining: number;
+} {
+  return {
+    redCardsRemaining: board.filter(
+      (card) => card.color === "red" && !card.revealed,
+    ).length,
+    blueCardsRemaining: board.filter(
+      (card) => card.color === "blue" && !card.revealed,
+    ).length,
+  };
+}
+
 export function buildGameView(input: {
   id?: string;
   roomId: string;
@@ -105,6 +121,7 @@ export function buildGameView(input: {
   updatedAt: Date;
   role: "operative" | "spymaster";
 }): GameView {
+  const remainingCardCounts = getRemainingCardCounts(input.board);
   const base = {
     id: input.id,
     roomId: input.roomId,
@@ -112,12 +129,7 @@ export function buildGameView(input: {
     startingTeam: input.startingTeam,
     currentTurn: input.currentTurn,
     remainingGuesses: input.remainingGuesses,
-    redCardsRemaining: input.board.filter(
-      (card) => card.color === "red" && !card.revealed,
-    ).length,
-    blueCardsRemaining: input.board.filter(
-      (card) => card.color === "blue" && !card.revealed,
-    ).length,
+    ...remainingCardCounts,
     currentHintWord: input.currentHintWord,
     currentHintNumber: input.currentHintNumber,
     hintSubmittedAt: input.hintSubmittedAt,
@@ -242,12 +254,7 @@ export async function createGame(
     startingTeam,
     currentTurn: startingTeam,
     remainingGuesses: 0,
-    redCardsRemaining: board.filter(
-      (card) => card.color === "red" && !card.revealed,
-    ).length,
-    blueCardsRemaining: board.filter(
-      (card) => card.color === "blue" && !card.revealed,
-    ).length,
+    ...getRemainingCardCounts(board),
     currentHintWord: null,
     currentHintNumber: null,
     hintSubmittedAt: null,

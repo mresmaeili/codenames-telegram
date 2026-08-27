@@ -34,6 +34,8 @@ test("buildGameView returns a public board for operatives and a colorized board 
   });
 
   assert.equal(operativeView.role, "operative");
+  assert.equal(operativeView.redCardsRemaining, 1);
+  assert.equal(operativeView.blueCardsRemaining, 1);
   assert.deepEqual(operativeView.board, [
     { word: "alpha", revealed: false, color: null },
     { word: "bravo", revealed: false, color: null },

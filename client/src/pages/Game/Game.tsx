@@ -1144,52 +1144,72 @@ export function GamePage({
             </div>
             <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
               {gameLog.length > 0 ? (
-                gameLog.map((entry) => (
-                  <div key={entry.id} className="space-y-1">
-                    <div className="flex items-center gap-1.5">
+                gameLog.map((entry) => {
+                  const player = state.room?.players.find(
+                    (roomPlayer) => roomPlayer.userId === entry.playerId,
+                  );
+                  const teamColor =
+                    entry.team === "blue"
+                      ? {
+                          border: "border-cyan-300",
+                          badge: "bg-[#08a6d0]",
+                          row: "bg-[#159dce]",
+                        }
+                      : {
+                          border: "border-red-300",
+                          badge: "bg-[#d84c3e]",
+                          row: "bg-[#c94b3b]",
+                        };
+
+                  return (
+                    <div key={entry.id} className="flex items-end gap-1.5">
                       <img
-                        src={avatarUrlForPlayer(
-                          state.room?.players.find(
-                            (player) => player.userId === entry.playerId,
-                          ),
-                        )}
-                        alt=""
-                        className={`h-7 w-7 rounded-full border-2 object-cover ${entry.team === "blue" ? "border-cyan-300" : "border-red-300"}`}
+                        src={avatarUrlForPlayer(player)}
+                        alt={player?.displayName ?? entry.team}
+                        title={player?.displayName ?? entry.team}
+                        className={`h-7 w-7 shrink-0 rounded-full border-2 object-cover ${teamColor.border}`}
                       />
-                      <span
-                        className={`rounded-sm px-1 text-[9px] font-black uppercase ${entry.team === "blue" ? "bg-[#08a6d0]" : "bg-[#d84c3e]"}`}
-                      >
-                        {state.room?.players.find(
-                          (player) => player.userId === entry.playerId,
-                        )?.displayName ?? entry.team}
-                      </span>
-                    </div>
-                    <div
-                      className={`flex items-center gap-1 rounded-sm px-1.5 py-1 font-black text-white ${entry.team === "blue" ? "bg-[#159dce]" : "bg-[#c94b3b]"}`}
-                    >
-                      <span className="min-w-0 flex-1 truncate uppercase">
-                        {entry.word}
-                      </span>
-                      {entry.number !== undefined ? (
-                        <span className="rounded-full bg-white px-1.5 py-0.5 text-black">
-                          {entry.number}
-                        </span>
-                      ) : null}
-                      {entry.kind === "reveal" ? (
-                        <span
-                          className={
-                            entry.correct ? "text-lime-300" : "text-red-200"
-                          }
-                          aria-label={
-                            entry.correct ? "Correct guess" : "Wrong guess"
-                          }
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-0.5 flex items-center gap-1">
+                          <span
+                            className={`max-w-full truncate rounded-sm px-1 text-[9px] font-black uppercase ${teamColor.badge}`}
+                          >
+                            {player?.displayName ?? entry.team}
+                          </span>
+                          {entry.kind === "hint" ? (
+                            <span className="text-[8px] uppercase text-white/60">
+                              hint
+                            </span>
+                          ) : null}
+                        </div>
+                        <div
+                          className={`flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 font-black text-white ${teamColor.row}`}
                         >
-                          {entry.correct ? "✓" : "×"}
-                        </span>
-                      ) : null}
+                          <span className="min-w-0 flex-1 truncate uppercase">
+                            {entry.word}
+                          </span>
+                          {entry.number !== undefined ? (
+                            <span className="rounded-full bg-white px-1.5 py-0.5 text-black">
+                              {entry.number}
+                            </span>
+                          ) : null}
+                          {entry.kind === "reveal" ? (
+                            <span
+                              className={
+                                entry.correct ? "text-lime-300" : "text-red-200"
+                              }
+                              aria-label={
+                                entry.correct ? "Correct guess" : "Wrong guess"
+                              }
+                            >
+                              {entry.correct ? "✓" : "×"}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="rounded-lg bg-black/55 px-2 py-1.5 text-center">
                   No hint yet

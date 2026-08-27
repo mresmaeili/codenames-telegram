@@ -13,7 +13,10 @@ import {
   updateRoomPlayerAssignment,
   updateRoomSettings,
 } from "../services/room.service.js";
-import { createGame } from "../services/game.service.js";
+import {
+  createGame,
+  getRemainingCardCounts,
+} from "../services/game.service.js";
 import { applyHintSubmission } from "../services/hint.service.js";
 import { applyCardSelection } from "../services/selection.service.js";
 import { applyCardReveal } from "../services/reveal.service.js";
@@ -723,6 +726,7 @@ export function registerRoomSocketHandlers(
         startingTeam: game.startingTeam,
         currentTurn: game.currentTurn,
         remainingGuesses: game.remainingGuesses,
+        ...getRemainingCardCounts(game.board),
       });
     } catch (error) {
       const message =
@@ -779,6 +783,7 @@ export function registerRoomSocketHandlers(
         startingTeam: newGame.startingTeam,
         currentTurn: newGame.currentTurn,
         remainingGuesses: newGame.remainingGuesses,
+        ...getRemainingCardCounts(newGame.board),
       });
     } catch (error) {
       const message =

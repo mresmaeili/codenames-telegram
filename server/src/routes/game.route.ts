@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import { RoomModel } from "../models/room.model.js";
 import { gameRepository } from "../repositories/game.repository.js";
-import { getGameByRoomCode } from "../services/game.service.js";
+import {
+  getGameByRoomCode,
+  getRemainingCardCounts,
+} from "../services/game.service.js";
 import { applyHintSubmission } from "../services/hint.service.js";
 import { applyCardSelection } from "../services/selection.service.js";
 import { applyCardReveal } from "../services/reveal.service.js";
@@ -311,12 +314,8 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
 
     const updatedGame = await gameRepository.update(gameId, {
       board: revealResult.game.board,
-      redCardsRemaining: revealResult.game.board.filter(
-        (card) => card.color === "red" && !card.revealed,
-      ).length,
-      blueCardsRemaining: revealResult.game.board.filter(
-        (card) => card.color === "blue" && !card.revealed,
-      ).length,
+      ...getRemainingCardCounts(revealResult.game.board),
+      ...getRemainingCardCounts(revealResult.game.board),
       status: resolvedGame.status,
       currentTurn: resolvedGame.currentTurn,
       remainingGuesses: resolvedGame.remainingGuesses,
