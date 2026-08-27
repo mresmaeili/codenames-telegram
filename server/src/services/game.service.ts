@@ -112,6 +112,12 @@ export function buildGameView(input: {
     startingTeam: input.startingTeam,
     currentTurn: input.currentTurn,
     remainingGuesses: input.remainingGuesses,
+    redCardsRemaining: input.board.filter(
+      (card) => card.color === "red" && !card.revealed,
+    ).length,
+    blueCardsRemaining: input.board.filter(
+      (card) => card.color === "blue" && !card.revealed,
+    ).length,
     currentHintWord: input.currentHintWord,
     currentHintNumber: input.currentHintNumber,
     hintSubmittedAt: input.hintSubmittedAt,

@@ -1112,6 +1112,12 @@ export function registerRoomSocketHandlers(
         board: updatedGame.board,
         currentTurn: updatedGame.currentTurn,
         remainingGuesses: updatedGame.remainingGuesses,
+        redCardsRemaining: updatedGame.board.filter(
+          (card) => card.color === "red" && !card.revealed,
+        ).length,
+        blueCardsRemaining: updatedGame.board.filter(
+          (card) => card.color === "blue" && !card.revealed,
+        ).length,
         currentHintWord: updatedGame.currentHintWord,
         currentHintNumber: updatedGame.currentHintNumber,
         status: updatedGame.status,

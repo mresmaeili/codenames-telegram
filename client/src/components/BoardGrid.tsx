@@ -59,7 +59,10 @@ export function BoardGrid({
               : `Locked ${publicCard.word}`;
 
         return (
-          <div key={`${publicCard.word}-${index}`} className="relative">
+          <div
+            key={`${publicCard.word}-${index}-${publicCard.revealed ? (publicCard.color ?? "neutral") : "hidden"}`}
+            className="relative"
+          >
             <button
               type="button"
               aria-label={ariaLabel}

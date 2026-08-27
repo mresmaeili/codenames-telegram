@@ -145,12 +145,8 @@ export function GamePage({
     user?.telegramId,
   ]);
 
-  const blueCardsRemaining =
-    state.game?.board.filter((card) => card.color === "blue" && !card.revealed)
-      .length ?? 0;
-  const redCardsRemaining =
-    state.game?.board.filter((card) => card.color === "red" && !card.revealed)
-      .length ?? 0;
+  const blueCardsRemaining = state.game?.blueCardsRemaining ?? 0;
+  const redCardsRemaining = state.game?.redCardsRemaining ?? 0;
   const blueSpymaster = state.room?.players.find(
     (player) => player.team === "blue" && player.role === "spymaster",
   );
@@ -369,6 +365,8 @@ export function GamePage({
         board: GameView["board"];
         currentTurn: string;
         remainingGuesses: number;
+        redCardsRemaining: number;
+        blueCardsRemaining: number;
         currentHintWord: string | null;
         currentHintNumber: number | null;
         status: string;
@@ -410,6 +408,8 @@ export function GamePage({
                   board: payload.board,
                   currentTurn: payload.currentTurn as GameView["currentTurn"],
                   remainingGuesses: payload.remainingGuesses,
+                  redCardsRemaining: payload.redCardsRemaining,
+                  blueCardsRemaining: payload.blueCardsRemaining,
                   currentHintWord: payload.currentHintWord,
                   currentHintNumber: payload.currentHintNumber,
                   status: payload.status as GameView["status"],

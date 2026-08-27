@@ -37,6 +37,8 @@ export interface Game {
   startingTeam: Turn;
   currentTurn: Turn;
   remainingGuesses: number;
+  redCardsRemaining: number;
+  blueCardsRemaining: number;
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
@@ -60,6 +62,8 @@ export interface GameViewBase {
   startingTeam: Turn;
   currentTurn: Turn;
   remainingGuesses: number;
+  redCardsRemaining: number;
+  blueCardsRemaining: number;
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
