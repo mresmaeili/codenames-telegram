@@ -101,6 +101,9 @@ export function GamePage({
     number | null
   >(null);
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
+  const [selectedPlayersByCard, setSelectedPlayersByCard] = useState<
+    Record<number, Room["players"]>
+  >({});
   const gameRef = useRef<GameView | null>(null);
   const roomRef = useRef<Room | null>(null);
   const logGameIdRef = useRef<string | null>(null);
@@ -111,6 +114,7 @@ export function GamePage({
     const gameId = state.game?.id ?? state.game?.roomId ?? null;
     if (gameId !== logGameIdRef.current) {
       logGameIdRef.current = gameId;
+      setSelectedPlayersByCard({});
       setGameLog(
         state.game?.hintHistory.map((hint, index) => ({
           id: `hint-${hint.submittedAt}-${index}`,
@@ -206,7 +210,18 @@ export function GamePage({
 
       const game = normalizeGameCounts((await gameResponse.json()) as GameView);
 
-      setState({ room, game, loading: false, error: null });
+      setState((current) => {
+        const currentGameUpdatedAt = current.game?.updatedAt
+          ? new Date(current.game.updatedAt).getTime()
+          : 0;
+        const fetchedGameUpdatedAt = new Date(game.updatedAt).getTime();
+        const latestGame =
+          current.game && currentGameUpdatedAt > fetchedGameUpdatedAt
+            ? current.game
+            : game;
+
+        return { room, game: latestGame, loading: false, error: null };
+      });
       setIsReconnecting(false);
     } catch (error) {
       const message =
@@ -381,6 +396,26 @@ export function GamePage({
         selectedAt: string | null;
       }) => {
         if (isMounted) {
+          const cardIndex = Number.parseInt(payload.selectedCardId ?? "", 10);
+          const selectedPlayer = roomRef.current?.players.find(
+            (player) => player.userId === payload.selectedByPlayerId,
+          );
+          if (Number.isInteger(cardIndex) && selectedPlayer) {
+            setSelectedPlayersByCard((current) => {
+              const players = current[cardIndex] ?? [];
+              if (
+                players.some(
+                  (player) => player.userId === selectedPlayer.userId,
+                )
+              ) {
+                return current;
+              }
+              return {
+                ...current,
+                [cardIndex]: [...players, selectedPlayer],
+              };
+            });
+          }
           setState((current) => ({
             ...current,
             game: current.game
@@ -480,6 +515,7 @@ export function GamePage({
                   turnStartedAt: payload.turnStartedAt
                     ? new Date(payload.turnStartedAt)
                     : null,
+                  updatedAt: new Date(),
                 }
               : current.game,
             error: null,
@@ -635,6 +671,24 @@ export function GamePage({
     turnSecondsRemaining === 0 && state.game?.status === "active";
   const canTakeTurn =
     canFinishTimedOutTurn && viewerPlayer?.team === opposingTeam;
+  const currentSelectedCardIndex = state.game?.selectedCardId
+    ? Number.parseInt(state.game.selectedCardId, 10)
+    : null;
+  const currentSelectedPlayer = state.room?.players.find(
+    (player) => player.userId === state.game?.selectedByPlayerId,
+  );
+  const visibleSelectedPlayersByCard =
+    currentSelectedCardIndex !== null && currentSelectedPlayer
+      ? {
+          ...selectedPlayersByCard,
+          [currentSelectedCardIndex]: [
+            ...(selectedPlayersByCard[currentSelectedCardIndex] ?? []).filter(
+              (player) => player.userId !== currentSelectedPlayer.userId,
+            ),
+            currentSelectedPlayer,
+          ],
+        }
+      : selectedPlayersByCard;
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
   const completionSummary = gameFinished
@@ -1399,6 +1453,7 @@ export function GamePage({
             onSelectCard={handleSelectCard}
             onConfirmCard={handleConfirmCard}
             hideWords={isViewerOperative ? hideBoard : false}
+            selectedPlayersByCard={visibleSelectedPlayersByCard}
           />
         </div>
         {canSubmitHint ? (

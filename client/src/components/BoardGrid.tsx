@@ -5,6 +5,7 @@ import type {
   PublicCard,
   SpymasterCard as SpymasterCardModel,
 } from "@/../shared/src/types/game";
+import type { Room } from "@/../shared/src/types/room";
 
 interface BoardGridProps {
   cards: PublicCard[] | SpymasterCardModel[];
@@ -14,6 +15,7 @@ interface BoardGridProps {
   onSelectCard?: (cardIndex: number) => void;
   onConfirmCard?: (cardIndex: number) => void;
   hideWords?: boolean;
+  selectedPlayersByCard?: Record<number, Room["players"]>;
 }
 
 export function BoardGrid({
@@ -24,6 +26,7 @@ export function BoardGrid({
   onSelectCard,
   onConfirmCard,
   hideWords = false,
+  selectedPlayersByCard = {},
 }: BoardGridProps) {
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
     new Set(),
@@ -93,6 +96,7 @@ export function BoardGrid({
                   publicCard.revealed ? (publicCard.color ?? "neutral") : null
                 }
                 showRevealedWord={isRevealedWordVisible}
+                selectedPlayers={selectedPlayersByCard[index] ?? []}
               />
             </button>
             {isConfirmable ? (
