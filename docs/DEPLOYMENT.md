@@ -68,6 +68,14 @@ server {
   ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
+  location = /index.html {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    add_header Cache-Control "no-cache" always;
+  }
+
   location / {
     proxy_pass http://127.0.0.1:3001;
     proxy_http_version 1.1;
