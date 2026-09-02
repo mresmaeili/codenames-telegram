@@ -47,14 +47,15 @@ success "Project root verified."
 PROJECT_ROOT="$(pwd)"
 info "Project root: ${PROJECT_ROOT}"
 
-# 2. Clean workspace build artifacts
-info "Cleaning workspace build artifacts..."
-rm -rf node_modules .turbo
-
-# Install root workspace dependencies first (monorepo setup)
-info "Installing root workspace dependencies..."
+# 2. Reuse dependencies between deployments. Installing on every deploy is
+# unnecessary for source-only changes and is the largest avoidable delay.
 cd "${PROJECT_ROOT}"
-npm install --no-audit --no-fund
+if [[ ! -d "node_modules" || "package-lock.json" -nt "node_modules" ]]; then
+  info "Installing changed workspace dependencies..."
+  npm ci --no-audit --no-fund
+else
+  info "Reusing existing workspace dependencies."
+fi
 
 # 3. Load environment variables from .env (production deployment)
 if [[ -f ".env" ]]; then
@@ -73,9 +74,9 @@ fi
 info "Building frontend..."
 cd "${PROJECT_ROOT}/client"
 
-# Clean only local build artifacts (node_modules already clean from root)
+# Clean only the frontend build output.
 info "Cleaning client build artifacts..."
-rm -rf dist .turbo tsconfig.tsbuildinfo
+rm -rf dist tsconfig.tsbuildinfo
 
 info "Running frontend build with environment variables..."
 VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
@@ -114,9 +115,9 @@ success "Frontend deployed to ${TARGET_DIR}."
 info "Building backend..."
 cd "${PROJECT_ROOT}/server"
 
-# Clean only local build artifacts (node_modules already clean from root)
+# Clean only the backend build output.
 info "Cleaning backend build artifacts..."
-rm -rf dist .turbo tsconfig.tsbuildinfo
+rm -rf dist tsconfig.tsbuildinfo
 
 # Check if package.json defines a build script
 HAS_BUILD_SCRIPT=$(node -e "const pkg=require('./package.json'); console.log(Boolean(pkg.scripts && pkg.scripts.build))")
