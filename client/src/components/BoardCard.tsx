@@ -30,7 +30,8 @@ export function BoardCard({
   showRevealedWord = false,
   selectedPlayers = [],
 }: BoardCardProps) {
-  const hiddenWord = Boolean(revealedColor) && !showRevealedWord;
+  const isFlipped = selectedPlaceholder || Boolean(revealedColor);
+  const hiddenWord = hideWord || (Boolean(revealedColor) && !showRevealedWord);
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",
   ];
@@ -39,25 +40,32 @@ export function BoardCard({
 
   const tileColor = revealedColor
     ? tileBgStyles[revealedColor]
-    : "bg-[#f5cda9]";
+    : selectedPlaceholder
+      ? "bg-[#987653]"
+      : "bg-[#f5cda9]";
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 border-[#0a6e9f] ${tileColor} ${outerClasses.join(" ")} ${revealedColor ? "animate-reveal-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 ${selectedPlaceholder ? "border-[#f8e2c8]" : "border-[#0a6e9f]"} ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       <div
-        className={`absolute inset-1.25 flex items-center justify-center rounded-xs border border-black/15 p-1 text-center ${revealedColor ? "bg-transparent" : "bg-[#fffaf2]"}`}
+        className={`absolute flex items-center justify-center rounded-xs border p-1 text-center ${selectedPlaceholder ? "inset-1.25 border-[#6e4d32] bg-[#fffaf2] shadow-[inset_0_0_0_3px_rgba(255,241,220,0.18)]" : revealedColor ? "inset-x-1.25 bottom-1.25 min-h-[46%] border-black/15 bg-[#fffaf2] shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" : "inset-1.25 border-black/15 bg-[#fffaf2]"}`}
       >
         {selectedPlayers.length > 0 ? (
-          <div className="absolute left-1 top-1 z-10 flex h-6 min-w-6 items-center justify-center">
+          <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
             {selectedPlayers.length === 1 ? (
-              <img
-                src={avatarUrlForPlayer(selectedPlayers[0])}
-                alt={selectedPlayers[0]?.displayName ?? "Selected by player"}
-                title={selectedPlayers[0]?.displayName}
-                className="h-6 w-6 rounded-full border-2 border-white object-cover shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
-              />
+              <div className="flex min-w-0 items-center gap-0.5 rounded-full bg-black/65 pr-1 text-[0.55rem] font-bold leading-none text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+                <img
+                  src={avatarUrlForPlayer(selectedPlayers[0])}
+                  alt={selectedPlayers[0]?.displayName ?? "Selected by player"}
+                  title={selectedPlayers[0]?.displayName}
+                  className="h-6 w-6 shrink-0 rounded-full border-2 border-white object-cover"
+                />
+                <span className="max-w-14 truncate">
+                  {selectedPlayers[0]?.displayName ?? "Player"}
+                </span>
+              </div>
             ) : (
               <span
                 className="flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-black/75 px-1 text-[0.65rem] font-black leading-none text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]"

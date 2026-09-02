@@ -582,6 +582,42 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     );
   }
 
+  function handleJoinSpectators() {
+    const activeSocket = getSocketClient();
+    if (!activeSocket || !room || !user) {
+      toast.error("Socket connection is unavailable.");
+      return;
+    }
+
+    if (!room.settings.allowSpectators) {
+      toast.error("Spectators are disabled for this room.");
+      return;
+    }
+
+    if (!currentPlayer || currentPlayer.team === null) {
+      return;
+    }
+
+    setPendingAssignment(null);
+    activeSocket.emit(
+      "room:updateTeam",
+      {
+        roomCode: room.roomCode,
+        telegramId: user.telegramId,
+        team: null,
+        role: "operative",
+      },
+      async (ack?: { error?: string }) => {
+        if (ack?.error) {
+          toast.error(ack.error);
+          return;
+        }
+        await refreshLobby(false);
+        toast.success("You joined the spectators.");
+      },
+    );
+  }
+
   const readinessIssues = getReadinessIssues(room);
   const isReady = readinessIssues.length === 0;
   // Allow starting when both teams have a spymaster and minimum players,
@@ -680,15 +716,92 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-120 bg-[#070b12] px-3 pb-0 pt-0 text-white">
-        <div className="sticky top-0 z-10 flex gap-2 py-2">
-          <button
-            type="button"
-            onClick={onLeave}
-            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 active:bg-white/30"
-          >
-            Exit
-          </button>
+      <div className="mx-auto w-full max-w-150 bg-[#070b12] px-3 pb-4 pt-0 text-white">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/10 bg-[#070b12]/95 py-2 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onLeave}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl text-white hover:bg-white/20 active:bg-white/30"
+              aria-label="Leave lobby"
+            >
+              ×
+            </button>
+            <div
+              className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-white/10 px-3 text-sm font-bold"
+              aria-label={`${room?.players.length ?? 0} players`}
+            >
+              <span aria-hidden="true" className="text-lg">
+                👥
+              </span>
+              {room?.players.length ?? 0}
+            </div>
+            {room && spectatorPlayers.length > 0 ? (
+              <div
+                className="flex h-10 items-center gap-1 rounded-full border border-white/50 bg-white/10 px-2 text-sm font-bold"
+                aria-label={`${spectatorPlayers.length} spectators`}
+                title="Spectators"
+              >
+                <span aria-hidden="true">👁</span>
+                {spectatorPlayers.length}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                registerPopup(
+                  <div className="space-y-3 text-sm text-(--app-text)">
+                    <p>
+                      Invite friends, choose a team, and wait until both
+                      spymasters are ready.
+                    </p>
+                  </div>,
+                  "News",
+                );
+                openPopup();
+              }}
+              className="rounded-full border border-white/70 bg-white/10 px-4 py-2 text-sm font-semibold"
+            >
+              News
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                registerPopup(
+                  <div className="space-y-3 text-sm text-(--app-text)">
+                    <p>
+                      Classic games need two teams and one spymaster on each
+                      side.
+                    </p>
+                    <p>
+                      Operatives join a team, then the room owner starts the
+                      game.
+                    </p>
+                  </div>,
+                  "Rules",
+                );
+                openPopup();
+              }}
+              className="rounded-full border border-white/70 bg-white/10 px-4 py-2 text-sm font-semibold"
+            >
+              Rules
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById("lobby-settings")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl"
+              aria-label="Lobby settings"
+              title="Lobby settings"
+            >
+              ⚙
+            </button>
+          </div>
         </div>
 
         {starting ? (
@@ -719,8 +832,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         ) : room ? (
           <>
-            {/* Header gear removed — settings open via in-page '⚙ Settings' button below */}
-
             <div className="mt-2 w-full px-2">
               <div className="w-full bg-[#0b0f13] rounded-lg px-3 py-2 flex items-center justify-center gap-4">
                 <div className="text-center">
@@ -742,11 +853,22 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </div>
               </div>
 
-              <div className="mt-3">
-                <div className="text-xs uppercase tracking-[0.18em] text-white/60 text-center mb-2">
-                  Spectators
+              <div className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">
+                    Spectators
+                  </div>
+                  {room.settings.allowSpectators && currentPlayer?.team ? (
+                    <button
+                      type="button"
+                      onClick={handleJoinSpectators}
+                      className="rounded-full border-2 border-white/80 px-3 py-1 text-[11px] font-black uppercase text-white hover:bg-white/15"
+                    >
+                      Join spectators
+                    </button>
+                  ) : null}
                 </div>
-                <div className="flex items-center justify-center gap-3 overflow-x-auto py-2 min-h-12">
+                <div className="flex min-h-12 items-center justify-center gap-3 overflow-x-auto py-2">
                   {displaySpectatorPlayers.length > 0 ? (
                     displaySpectatorPlayers.map((p) => (
                       <button
@@ -787,34 +909,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               onOpenWordPackSettings={() =>
                 handleOpenSettingsPopup("word-pack")
               }
+              onModeChange={(gameMode) =>
+                setSettingsForm((current) => ({ ...current, gameMode }))
+              }
             />
-
-            <div className="my-4 flex gap-3">
-              <button
-                type="button"
-                onClick={handleResetTeams}
-                disabled={!isOwner}
-                className={`flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white ${
-                  isOwner
-                    ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-                    : "opacity-60 cursor-not-allowed"
-                }`}
-              >
-                Reset teams
-              </button>
-              <button
-                type="button"
-                onClick={handleRandomizeTeams}
-                disabled={!isOwner}
-                className={`flex-1 rounded-full border border-white/70 bg-[#0d1118] px-4 py-3 text-lg font-semibold text-white ${
-                  isOwner
-                    ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-                    : "opacity-60 cursor-not-allowed"
-                }`}
-              >
-                Shuffle teams
-              </button>
-            </div>
 
             <LobbyAssignmentsPanel
               bluePlayers={displayBluePlayers}
@@ -824,6 +922,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
               pendingAssignment={pendingAssignment}
               canManagePlayers={isOwner}
               onPlayerClick={handlePlayerClick}
+              activeTeam={currentPlayer?.team}
+              activeRole={currentPlayer?.role}
             />
 
             <div className="mt-4">

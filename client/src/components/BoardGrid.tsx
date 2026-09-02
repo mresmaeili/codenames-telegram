@@ -33,7 +33,7 @@ export function BoardGrid({
   );
 
   return (
-    <div className="grid grid-cols-5 gap-1.5">
+    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -52,7 +52,8 @@ export function BoardGrid({
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable = isSelected && !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
-        const isRevealedWordVisible = visibleRevealedWords.has(index);
+        const isRevealedWordVisible =
+          publicCard.revealed || visibleRevealedWords.has(index);
         const ariaLabel = publicCard.revealed
           ? `Revealed ${publicCard.word}`
           : isConfirmable
@@ -107,7 +108,7 @@ export function BoardGrid({
                   event.stopPropagation();
                   onConfirmCard?.(index);
                 }}
-                className="absolute right-1 top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#43d61b] text-xl shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
+                className="absolute -right-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-xl shadow-[0_2px_7px_rgba(0,0,0,0.45)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
                 ☝
               </button>

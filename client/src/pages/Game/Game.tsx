@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BoardGrid } from "@/components/BoardGrid";
-import { GameHeader } from "@/components/GameHeader";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
@@ -65,6 +64,17 @@ function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
 
+function getRemainingCards(
+  board: GameView["board"],
+  color: "red" | "blue",
+): number {
+  return board.filter((card) => card.color === color && !card.revealed).length;
+}
+
+function getSpectatorCount(room: Room | null): number {
+  return room?.players.filter((player) => player.team === null).length ?? 0;
+}
+
 export function GamePage({
   roomCode,
   onLeave,
@@ -85,7 +95,6 @@ export function GamePage({
 
   const [refreshingGame, setRefreshingGame] = useState(false);
   const devMode = isDevModeEnabled();
-  const [showKeycard, setShowKeycard] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
@@ -171,6 +180,8 @@ export function GamePage({
 
   const blueCardsRemaining = state.game?.blueCardsRemaining ?? 0;
   const redCardsRemaining = state.game?.redCardsRemaining ?? 0;
+  const isBlueTurn = state.game?.currentTurn === "blue";
+  const isRedTurn = state.game?.currentTurn === "red";
   const blueSpymaster = state.room?.players.find(
     (player) => player.team === "blue" && player.role === "spymaster",
   );
@@ -491,14 +502,8 @@ export function GamePage({
                   board: payload.board,
                   currentTurn: payload.currentTurn as GameView["currentTurn"],
                   remainingGuesses: payload.remainingGuesses,
-                  redCardsRemaining:
-                    typeof payload.redCardsRemaining === "number"
-                      ? payload.redCardsRemaining
-                      : current.game.redCardsRemaining,
-                  blueCardsRemaining:
-                    typeof payload.blueCardsRemaining === "number"
-                      ? payload.blueCardsRemaining
-                      : current.game.blueCardsRemaining,
+                  redCardsRemaining: getRemainingCards(payload.board, "red"),
+                  blueCardsRemaining: getRemainingCards(payload.board, "blue"),
                   currentHintWord: payload.currentHintWord,
                   currentHintNumber: payload.currentHintNumber,
                   status: payload.status as GameView["status"],
@@ -691,6 +696,14 @@ export function GamePage({
       : selectedPlayersByCard;
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
+  const timerDuration =
+    roomSettings?.timer && roomSettings.timer !== "none"
+      ? Number(roomSettings.timer)
+      : null;
+  const timerProgress =
+    timerDuration && turnSecondsRemaining !== null
+      ? Math.max(0, Math.min(100, (turnSecondsRemaining / timerDuration) * 100))
+      : 0;
   const completionSummary = gameFinished
     ? state.game?.completionReason === "assassin-revealed"
       ? `${state.game.winningTeam ?? "The opposing team"} wins after the assassin was revealed.`
@@ -777,6 +790,16 @@ export function GamePage({
     state.room.players.find((p) => p.telegramId === user?.telegramId)?.role ===
       "operative",
   );
+  const selectedCardActive = Boolean(state.game?.selectedCardId);
+  const turnInstruction = isViewerSpymaster
+    ? "Give your operatives a clue"
+    : isViewerOperative
+      ? hasActiveHint
+        ? selectedCardActive
+          ? "Tap to confirm your choice"
+          : "Tap to choose a word"
+        : "Wait for your spymaster to give you a clue"
+      : "Watch the turn";
 
   function handleResetTeams() {
     if (!socket || !state.room || !user) return;
@@ -1082,16 +1105,107 @@ export function GamePage({
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-150 bg-[#0b69ad] px-2 pb-4 pt-2 text-white">
-        {" "}
-        <div className="sticky top-0 z-10 flex gap-2 py-2">
+        <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-2 border-b border-white/10 bg-[#0b69ad]/95 py-2 backdrop-blur-sm">
           <button
             type="button"
             onClick={onLeave}
-            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 active:bg-white/30"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl text-white hover:bg-white/20 active:bg-white/30"
+            aria-label="Leave game"
           >
-            Exit
+            ×
           </button>
-        </div>{" "}
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-[#1f5fae] px-3 text-sm font-bold">
+              <span aria-hidden="true" className="text-lg">
+                👥
+              </span>
+              {getPlayerCount(state.room)}
+            </div>
+            {getSpectatorCount(state.room) > 0 ? (
+              <div
+                className="flex h-10 items-center gap-1 rounded-full border border-white/50 bg-white/10 px-2 text-sm font-bold"
+                aria-label={`${getSpectatorCount(state.room)} spectators`}
+                title="Spectators"
+              >
+                <span aria-hidden="true">👁</span>
+                {getSpectatorCount(state.room)}
+              </div>
+            ) : null}
+            {isViewerOperative ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setHideBoard((current) => {
+                    const next = !current;
+                    try {
+                      localStorage.setItem("codenames.hideBoard", String(next));
+                    } catch {
+                      // Local storage may be unavailable in private browsing.
+                    }
+                    return next;
+                  });
+                }}
+                className={`flex h-10 w-10 items-center justify-center rounded-full border border-white/70 text-lg ${hideBoard ? "bg-[#51df20]" : "bg-[#1f5fae]"}`}
+                aria-label={hideBoard ? "Show board words" : "Hide board words"}
+                title={hideBoard ? "Show board words" : "Hide board words"}
+              >
+                {hideBoard ? "🙈" : "👁"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                registerPopup(
+                  <div className="space-y-3 text-sm text-(--app-text)">
+                    <p>
+                      Stay with your team, read the clue, and select one word at
+                      a time.
+                    </p>
+                    <p>
+                      The green hand confirms the selected card. Revealed cards
+                      can be tapped to view their word.
+                    </p>
+                  </div>,
+                  "News",
+                );
+                openPopup();
+              }}
+              className="rounded-full border border-white/70 bg-[#1f5fae] px-3 py-2 text-sm font-semibold"
+            >
+              News
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                registerPopup(
+                  <div className="space-y-3 text-sm text-(--app-text)">
+                    <p>
+                      Spymasters give a one-word clue and a number. Operatives
+                      discuss and choose matching cards.
+                    </p>
+                    <p>
+                      Reveal one card, then continue or pass when the turn is
+                      complete.
+                    </p>
+                  </div>,
+                  "Rules",
+                );
+                openPopup();
+              }}
+              className="rounded-full border border-white/70 bg-[#1f5fae] px-3 py-2 text-sm font-semibold"
+            >
+              Rules
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={openPopup}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-[#1f5fae] text-xl"
+            aria-label="Game settings"
+          >
+            ⚙
+          </button>
+        </div>
         {devMode ? (
           <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1123,13 +1237,6 @@ export function GamePage({
             />
           </div>
         ) : null}
-        <div className="mb-3">
-          <GameHeader
-            room={state.room}
-            game={state.game}
-            playerCount={getPlayerCount(state.room)}
-          />
-        </div>
         {gameFinished ? (
           <div className="mb-3 rounded-3xl border border-white/20 bg-black/20 p-4">
             <p className="text-lg font-black uppercase tracking-tight">
@@ -1172,37 +1279,24 @@ export function GamePage({
             </div>
           </div>
         ) : null}
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-full border border-white/75 bg-[#1f5fae] px-3 py-2 text-white"
-            aria-label="Player count"
-          >
-            <span className="text-2xl">👥</span>
-            <span className="text-base font-semibold">
-              {getPlayerCount(state.room)}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/75 bg-[#1f5fae] text-2xl text-white"
-            aria-label="Room settings"
-            onClick={() => setShowKeycard((current) => !current)}
-          >
-            ⚙
-          </button>
-        </div>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
-          <div className="col-start-1 row-start-1 rounded-xl border-2 border-[#76f21b] bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]">
+          <div
+            className={`col-start-1 row-start-1 rounded-xl border-2 ${isBlueTurn ? "border-[#76f21b]" : "border-[#23d4ff]/70"} bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]`}
+          >
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
               </p>
             </div>
             <div className="mt-2 flex items-end justify-between">
-              <div className="text-5xl font-black leading-none">
-                {blueCardsRemaining}
+              <div className="flex items-end gap-2">
+                <div className="text-5xl font-black leading-none">
+                  {blueCardsRemaining}
+                </div>
+                <div className="mb-0.5 flex h-10 w-7 flex-col justify-end overflow-hidden rounded-sm border-2 border-white/45 bg-[#116a91] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                  <div className="h-5 bg-[#0b77a7]" />
+                  <div className="h-4 bg-[#dbe8e8]" />
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center -space-x-2">
@@ -1212,7 +1306,7 @@ export function GamePage({
                       type="button"
                       onClick={() => handleGamePlayerClick(p)}
                       disabled={!isRoomOwner}
-                      className="rounded-full disabled:cursor-default"
+                      className="flex flex-col items-center rounded-full disabled:cursor-default"
                       aria-label={`Manage ${p.displayName}`}
                     >
                       <img
@@ -1221,6 +1315,9 @@ export function GamePage({
                         title={p.displayName}
                         className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
                       />
+                      <span className="max-w-14 truncate rounded-sm bg-black/65 px-1 text-[8px] font-bold leading-tight text-white">
+                        {p.displayName}
+                      </span>
                     </button>
                   ))}
                   {blueOperatives.length === 0 ? (
@@ -1242,6 +1339,23 @@ export function GamePage({
             <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
               Game log
             </div>
+            {timerDuration && turnSecondsRemaining !== null ? (
+              <div className="mt-1 rounded-full bg-[#bfeff5] px-2 py-0.5 text-center text-sm font-black text-[#17212b]">
+                {Math.floor(turnSecondsRemaining / 60)
+                  .toString()
+                  .padStart(2, "0")}
+                :
+                {Math.floor(turnSecondsRemaining % 60)
+                  .toString()
+                  .padStart(2, "0")}
+                <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-[#3e8290]">
+                  <div
+                    className="h-full rounded-full bg-[#27b9d1] transition-[width] duration-500"
+                    style={{ width: `${timerProgress}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
             <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
               {gameLog.length > 0 ? (
                 gameLog.map((entry) => {
@@ -1318,15 +1432,23 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="col-start-3 row-start-1 rounded-xl border-2 border-[#e88963] bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
+          <div
+            className={`col-start-3 row-start-1 rounded-xl border-2 ${isRedTurn ? "border-[#76f21b]" : "border-[#e88963]"} bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]`}
+          >
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
                 Operatives
               </p>
             </div>
             <div className="mt-2 flex items-end justify-between">
-              <div className="text-5xl font-black leading-none">
-                {redCardsRemaining}
+              <div className="flex items-end gap-2">
+                <div className="text-5xl font-black leading-none">
+                  {redCardsRemaining}
+                </div>
+                <div className="mb-0.5 flex h-10 w-7 flex-col justify-end overflow-hidden rounded-sm border-2 border-white/45 bg-[#a23d38] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                  <div className="h-5 bg-[#d84c3e]" />
+                  <div className="h-4 bg-[#f1d4c4]" />
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center -space-x-2">
@@ -1336,7 +1458,7 @@ export function GamePage({
                       type="button"
                       onClick={() => handleGamePlayerClick(p)}
                       disabled={!isRoomOwner}
-                      className="rounded-full disabled:cursor-default"
+                      className="flex flex-col items-center rounded-full disabled:cursor-default"
                       aria-label={`Manage ${p.displayName}`}
                     >
                       <img
@@ -1345,6 +1467,9 @@ export function GamePage({
                         title={p.displayName}
                         className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
                       />
+                      <span className="max-w-14 truncate rounded-sm bg-black/65 px-1 text-[8px] font-bold leading-tight text-white">
+                        {p.displayName}
+                      </span>
                     </button>
                   ))}
                   {redOperatives.length === 0 ? (
@@ -1361,7 +1486,9 @@ export function GamePage({
               </div>
             </div>
           </div>
-          <div className="col-start-1 row-start-2 rounded-xl border-2 border-[#23d4ff] bg-[#168fc5] p-1.5 text-white">
+          <div
+            className={`col-start-1 row-start-2 rounded-xl border-2 ${isBlueTurn ? "border-[#76f21b]" : "border-[#23d4ff]"} bg-[#168fc5] p-1.5 text-white`}
+          >
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -1398,7 +1525,9 @@ export function GamePage({
             </div>
           </div>
 
-          <div className="col-start-3 row-start-2 rounded-xl border-2 border-[#f39b84] bg-[#c94b3b] p-1.5 text-white">
+          <div
+            className={`col-start-3 row-start-2 rounded-xl border-2 ${isRedTurn ? "border-[#76f21b]" : "border-[#f39b84]"} bg-[#c94b3b] p-1.5 text-white`}
+          >
             <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
               Spymasters
             </div>
@@ -1435,14 +1564,29 @@ export function GamePage({
             </div>
           </div>
         </div>
-        <div className="mt-3 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-none tracking-tight text-white">
-          {isViewerSpymaster
-            ? "Give your operatives a clue"
-            : isViewerOperative
-              ? hasActiveHint
-                ? "Pick a word"
-                : "Wait for your spymaster's clue"
-              : "Watch the turn"}
+        <div className="mt-3 flex items-center justify-center gap-2 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-none tracking-tight text-white">
+          <span>{turnInstruction}</span>
+          <button
+            type="button"
+            onClick={() => {
+              registerPopup(
+                <div className="space-y-3 text-sm text-(--app-text)">
+                  <p>Spymasters give one clue word and a number.</p>
+                  <p>
+                    Operatives tap a card to select it, then use the green
+                    button to confirm.
+                  </p>
+                  <p>Tap a revealed card to show or hide its word.</p>
+                </div>,
+                "How to play",
+              );
+              openPopup();
+            }}
+            aria-label="How to play"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#54df20] text-base text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)] transition-transform hover:scale-110 active:scale-95"
+          >
+            <span aria-hidden="true">?</span>
+          </button>
         </div>
         <div className="mt-2 rounded-[10px] border border-white/15 bg-[#0879b8] p-1.5">
           <BoardGrid
@@ -1459,7 +1603,7 @@ export function GamePage({
         {canSubmitHint ? (
           <form
             onSubmit={handleSubmitHint}
-            className="mt-4 flex items-end gap-2 rounded-full bg-[#2b2b2b] p-2 shadow-inner"
+            className="sticky bottom-2 z-20 mt-3 flex items-end gap-2 rounded-2xl border-2 border-white/25 bg-[#292929] p-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
           >
             <div className="min-w-0 flex-1 space-y-2">
               <label
@@ -1480,7 +1624,7 @@ export function GamePage({
                 }
                 placeholder="Enter one word (no spaces)"
                 disabled={hintSubmitting}
-                className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
                 autoFocus
               />
             </div>
@@ -1506,7 +1650,7 @@ export function GamePage({
                 }
                 placeholder="How many cards?"
                 disabled={hintSubmitting}
-                className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
               />
             </div>
 
@@ -1516,21 +1660,24 @@ export function GamePage({
                 hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
               }
               aria-label="Send hint"
-              className="flex h-12 shrink-0 items-center justify-center rounded-full bg-[#24d16b] px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+              className="flex h-12 shrink-0 items-center justify-center rounded-full bg-[#51df20] px-4 py-3 text-sm font-black text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)] disabled:opacity-60"
             >
               {hintSubmitting ? "..." : "Send"}
             </button>
           </form>
         ) : hasActiveHint ? (
-          <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
-            <div className="flex-1 rounded-full bg-white/90 px-4 py-3 text-left text-xl font-black uppercase tracking-tight text-black">
+          <div className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-2xl border-2 border-white/25 bg-[#292929] px-2 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)]">
+            <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl bg-white px-3 py-2 text-center text-xl font-black uppercase tracking-tight text-black">
               {state.game.currentHintWord} ({state.game.currentHintNumber})
+            </div>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#159dce] text-xl font-black">
+              {state.game.currentHintNumber}
             </div>
             {canPassTurn || canTakeTurn ? (
               <button
                 type="button"
                 onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
-                className="rounded-full bg-white px-4 py-3 text-sm font-black uppercase text-[#0a63d4]"
+                className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
                 aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
               >
                 {canTakeTurn ? "Take turn" : "Pass"}
@@ -1538,11 +1685,11 @@ export function GamePage({
             ) : null}
           </div>
         ) : canPassTurn || canTakeTurn ? (
-          <div className="mt-4 flex items-center justify-end rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
+          <div className="sticky bottom-2 z-20 mt-3 flex items-center justify-end rounded-2xl border-2 border-white/25 bg-[#292929] px-3 py-3 shadow-[0_4px_14px_rgba(0,0,0,0.4)]">
             <button
               type="button"
               onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
-              className="rounded-full bg-white px-4 py-3 text-sm font-black uppercase text-[#0a63d4]"
+              className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
               aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
             >
               {canTakeTurn ? "Take turn" : "Pass"}
