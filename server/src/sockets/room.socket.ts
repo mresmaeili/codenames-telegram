@@ -16,6 +16,7 @@ import {
 import {
   createGame,
   getRemainingCardCounts,
+  buildGameView,
 } from "../services/game.service.js";
 import { applyHintSubmission } from "../services/hint.service.js";
 import { applyCardSelection } from "../services/selection.service.js";
@@ -30,103 +31,60 @@ import { roomRepository } from "../repositories/room.repository.js";
 import { GameModel } from "../models/game.model.js";
 import { RoomModel } from "../models/room.model.js";
 import { env } from "../config/env.js";
-interface CreateRoomSocketPayload {
-  ownerId?: unknown;
-  ownerTelegramId?: unknown;
-  ownerDisplayName?: unknown;
-}
+import type { Room } from "../../../shared/src/types/room.js";
+import type {
+  RoomAssignPlayerPayload,
+  RoomAdminPayload,
+  RoomCreatePayload,
+  RoomJoinPayload,
+  RoomOwnerPayload,
+  RoomSettingsPayload,
+  RoomTransferOwnerPayload,
+  RoomUpdateTeamPayload,
+  GameDebugRevealPayload,
+  GameHintInputPayload,
+  GameKeycardPayload,
+  GamePassInputPayload,
+  GameSelectInputPayload,
+  RoomResetPayload,
+} from "../../../shared/src/types/socket.js";
+type CreateRoomSocketPayload = RoomCreatePayload;
 
-interface JoinRoomSocketPayload {
-  roomCode?: unknown;
-  telegramId?: unknown;
-  displayName?: unknown;
-}
+type JoinRoomSocketPayload = RoomJoinPayload;
 
-interface UpdateTeamSocketPayload {
-  roomCode?: unknown;
-  telegramId?: unknown;
-  team?: unknown;
-  role?: unknown;
-}
+type UpdateTeamSocketPayload = RoomUpdateTeamPayload;
 
-interface UpdateRoomSettingsSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-  settings?: unknown;
-}
+type UpdateRoomSettingsSocketPayload = RoomSettingsPayload;
 
-interface StartRoomSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-}
+type StartRoomSocketPayload = RoomOwnerPayload;
 
-interface TransferHostSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-  targetTelegramId?: unknown;
-}
+type TransferHostSocketPayload = RoomTransferOwnerPayload;
 
-interface SetRoomAdminSocketPayload {
-  roomCode?: unknown;
-  creatorTelegramId?: unknown;
-  targetTelegramId?: unknown;
-  isAdmin?: unknown;
-}
+type SetRoomAdminSocketPayload = RoomAdminPayload;
 
-interface AssignRoomPlayerSocketPayload {
-  roomCode?: unknown;
-  actorTelegramId?: unknown;
-  targetTelegramId?: unknown;
-  team?: unknown;
-  role?: unknown;
-}
+type AssignRoomPlayerSocketPayload = RoomAssignPlayerPayload;
 
-interface ShuffleRoomTeamsSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-}
+type ShuffleRoomTeamsSocketPayload = RoomOwnerPayload;
 
-interface ResetRoomTeamsSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-}
+type ResetRoomTeamsSocketPayload = RoomOwnerPayload;
 
-interface ResetGameSocketPayload {
-  roomCode?: unknown;
-  ownerTelegramId?: unknown;
-}
+type ResetGameSocketPayload = RoomOwnerPayload;
 
 interface LeaveRoomSocketPayload {
   roomCode?: unknown;
   userId?: unknown;
 }
 
-interface HintSocketPayload {
-  gameId?: unknown;
-  roomCode?: unknown;
-  telegramId?: unknown;
-  word?: unknown;
-  number?: unknown;
-}
+type HintSocketPayload = GameHintInputPayload;
 
-interface SelectionSocketPayload {
-  gameId?: unknown;
-  roomCode?: unknown;
-  telegramId?: unknown;
-  cardId?: unknown;
-  confirm?: unknown;
-}
+type SelectionSocketPayload = GameSelectInputPayload;
 
-interface PassSocketPayload {
-  gameId?: unknown;
-  roomCode?: unknown;
-  telegramId?: unknown;
-  timeout?: unknown;
-}
+type PassSocketPayload = GamePassInputPayload;
 
 function hasTurnTimerExpired(
   game: {
     hintSubmittedAt?: Date | null;
+    phaseStartedAt?: Date | null;
     turnStartedAt?: Date | null;
     createdAt?: Date;
   },
@@ -136,7 +94,12 @@ function hasTurnTimerExpired(
   if (
     !Number.isFinite(timerSeconds) ||
     timerSeconds <= 0 ||
-    !(game.turnStartedAt ?? game.hintSubmittedAt ?? game.createdAt)
+    !(
+      game.phaseStartedAt ??
+      game.turnStartedAt ??
+      game.hintSubmittedAt ??
+      game.createdAt
+    )
   ) {
     return false;
   }
@@ -144,7 +107,11 @@ function hasTurnTimerExpired(
   return (
     Date.now() -
       new Date(
-        game.turnStartedAt ?? game.hintSubmittedAt ?? game.createdAt ?? 0,
+        game.phaseStartedAt ??
+          game.turnStartedAt ??
+          game.hintSubmittedAt ??
+          game.createdAt ??
+          0,
       ).getTime() >=
     timerSeconds * 1000
   );
@@ -155,13 +122,9 @@ interface AddBotSocketPayload {
   botName?: unknown;
 }
 
-interface ResetRoomSocketPayload {
-  roomCode?: unknown;
-}
+type ResetRoomSocketPayload = RoomResetPayload;
 
-interface DebugRevealSocketPayload {
-  roomCode?: unknown;
-}
+type DebugRevealSocketPayload = GameDebugRevealPayload;
 
 function generateBotTelegramId(botName: string): number {
   let hash = 0;
@@ -194,6 +157,75 @@ function chooseBotRole(
   );
 
   return hasTeamSpymaster ? "operative" : "spymaster";
+}
+
+function buildGameSnapshotView(
+  game: Awaited<ReturnType<typeof gameRepository.findById>>,
+  room: Room,
+  viewerTelegramId: number,
+) {
+  if (!game || !room) return null;
+
+  const viewerRole =
+    room.players.find((player) => player.telegramId === viewerTelegramId)
+      ?.role ?? "operative";
+
+  return buildGameView({
+    id: game._id?.toString(),
+    roomId: game.roomId,
+    status: game.status,
+    board: game.board,
+    startingTeam: game.startingTeam,
+    currentTurn: game.currentTurn,
+    remainingGuesses: game.remainingGuesses,
+    currentHintWord: game.currentHintWord ?? null,
+    currentHintNumber: game.currentHintNumber ?? null,
+    hintSubmittedAt: game.hintSubmittedAt ?? null,
+    phase: game.phase ?? (game.currentHintWord ? "operatives" : "spymaster"),
+    phaseStartedAt:
+      game.phaseStartedAt ??
+      game.hintSubmittedAt ??
+      game.turnStartedAt ??
+      game.createdAt,
+    turnStartedAt: game.turnStartedAt ?? game.createdAt,
+    hintHistory: game.hintHistory ?? [],
+    rounds: game.rounds ?? [],
+    selectedCardId: game.selectedCardId ?? null,
+    selectedByPlayerId: game.selectedByPlayerId ?? null,
+    selectedAt: game.selectedAt ?? null,
+    winningTeam: game.winningTeam ?? null,
+    completionReason: game.completionReason ?? null,
+    completedAt: game.completedAt ?? null,
+    createdAt: game.createdAt,
+    updatedAt: game.updatedAt,
+    role: viewerRole,
+  });
+}
+
+async function emitGameState(
+  io: SocketIOServer,
+  roomCode: string,
+  room: Room,
+  game: Awaited<ReturnType<typeof gameRepository.findById>>,
+): Promise<void> {
+  if (!room || !game) return;
+
+  const connectedSockets = await io.in(roomCode).fetchSockets();
+  await Promise.all(
+    connectedSockets.map(async (connectedSocket) => {
+      const viewerTelegramId = connectedSocket.data.telegramId;
+      if (typeof viewerTelegramId !== "number") return;
+
+      const gameView = buildGameSnapshotView(game, room, viewerTelegramId);
+      if (!gameView) return;
+
+      connectedSocket.emit("game:state", {
+        room,
+        game: gameView,
+        serverTime: new Date().toISOString(),
+      });
+    }),
+  );
 }
 
 export function registerRoomSocketHandlers(
@@ -245,6 +277,11 @@ export function registerRoomSocketHandlers(
       });
 
       await socket.join(room.roomCode);
+      socket.data = {
+        ...socket.data,
+        telegramId: payload.telegramId,
+        roomCode: room.roomCode,
+      };
       socket.emit("room:joined", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
@@ -728,6 +765,7 @@ export function registerRoomSocketHandlers(
         remainingGuesses: game.remainingGuesses,
         ...getRemainingCardCounts(game.board),
       });
+      await emitGameState(io, room.roomCode, room, game);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Room start failed.";
@@ -785,6 +823,7 @@ export function registerRoomSocketHandlers(
         remainingGuesses: newGame.remainingGuesses,
         ...getRemainingCardCounts(newGame.board),
       });
+      await emitGameState(io, room.roomCode, room, newGame);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Room rematch failed.";
@@ -931,12 +970,33 @@ export function registerRoomSocketHandlers(
         number: payload.number,
       });
 
+      const hint = result.game.hintHistory[result.game.hintHistory.length - 1];
+      const roundHint = {
+        ...hint,
+        playerId:
+          room.players.find(
+            (player) => player.telegramId === payload.telegramId,
+          )?.userId ?? null,
+      };
+      const rounds = [
+        ...(game.rounds ?? []),
+        {
+          id: `round-${hint.submittedAt.toISOString()}`,
+          team: hint.team,
+          hint: roundHint,
+          guesses: [],
+        },
+      ];
+
       const updatedGame = await gameRepository.update(payload.gameId, {
         currentHintWord: result.game.currentHintWord,
         currentHintNumber: result.game.currentHintNumber,
         remainingGuesses: result.game.remainingGuesses,
         hintSubmittedAt: result.game.hintSubmittedAt,
         hintHistory: result.game.hintHistory,
+        rounds,
+        phase: "operatives",
+        phaseStartedAt: result.game.hintSubmittedAt,
       });
 
       if (!updatedGame) {
@@ -951,7 +1011,14 @@ export function registerRoomSocketHandlers(
         remainingGuesses: updatedGame.remainingGuesses,
         hintSubmittedAt: updatedGame.hintSubmittedAt,
         hintHistory: updatedGame.hintHistory,
+        rounds: updatedGame.rounds ?? [],
       });
+      await emitGameState(
+        io,
+        payload.roomCode.toUpperCase(),
+        room as unknown as Room,
+        updatedGame,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to submit hint.";
@@ -1049,6 +1116,12 @@ export function registerRoomSocketHandlers(
           selectedByPlayerId: selectedGame.selectedByPlayerId,
           selectedAt: selectedGame.selectedAt,
         });
+        await emitGameState(
+          io,
+          payload.roomCode.toUpperCase(),
+          room as unknown as Room,
+          selectedGame,
+        );
         return;
       }
 
@@ -1085,6 +1158,24 @@ export function registerRoomSocketHandlers(
             revealedCardColor: selectedCardColor,
           }).game;
 
+      const rounds = [...(game.rounds ?? [])];
+      const currentRound = rounds[rounds.length - 1];
+      if (currentRound && revealedCard) {
+        rounds[rounds.length - 1] = {
+          ...currentRound,
+          guesses: [
+            ...currentRound.guesses,
+            {
+              word: revealedCard.word,
+              cardIndex: revealedCardIndex,
+              playerId: revealedByPlayerId,
+              correct: selectedCardColor === game.currentTurn,
+              revealedAt: new Date(),
+            },
+          ],
+        };
+      }
+
       const updatedGame = await gameRepository.update(payload.gameId, {
         board: revealResult.game.board,
         redCardsRemaining: revealResult.game.board.filter(
@@ -1111,8 +1202,13 @@ export function registerRoomSocketHandlers(
         completedAt: completionResult.completed
           ? completionResult.game.completedAt
           : (game.completedAt ?? null),
+        rounds,
         ...(resolvedGame.currentTurn !== game.currentTurn
-          ? { turnStartedAt: new Date() }
+          ? {
+              turnStartedAt: new Date(),
+              phase: "spymaster",
+              phaseStartedAt: new Date(),
+            }
           : {}),
       });
 
@@ -1142,10 +1238,18 @@ export function registerRoomSocketHandlers(
         completionReason: updatedGame.completionReason,
         completedAt: updatedGame.completedAt,
         turnStartedAt: updatedGame.turnStartedAt,
+        phase: updatedGame.phase,
+        phaseStartedAt: updatedGame.phaseStartedAt,
         revealedCardIndex,
         revealedCardColor: revealedCard?.color ?? null,
         revealedByPlayerId,
       });
+      await emitGameState(
+        io,
+        payload.roomCode.toUpperCase(),
+        room as unknown as Room,
+        updatedGame,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to select card.";
@@ -1240,6 +1344,8 @@ export function registerRoomSocketHandlers(
         selectedCardId: result.game.selectedCardId,
         selectedByPlayerId: result.game.selectedByPlayerId,
         selectedAt: result.game.selectedAt,
+        phase: "spymaster",
+        phaseStartedAt: new Date(),
         turnStartedAt: new Date(),
       });
 
@@ -1258,7 +1364,15 @@ export function registerRoomSocketHandlers(
         selectedByPlayerId: updatedGame.selectedByPlayerId,
         selectedAt: updatedGame.selectedAt,
         turnStartedAt: updatedGame.turnStartedAt,
+        phase: updatedGame.phase,
+        phaseStartedAt: updatedGame.phaseStartedAt,
       });
+      await emitGameState(
+        io,
+        payload.roomCode.toUpperCase(),
+        room as unknown as Room,
+        updatedGame,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to pass turn.";

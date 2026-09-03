@@ -4,6 +4,8 @@ interface SpymasterCardProps {
   word: string;
   color: CardColor;
   revealed?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
 }
 
 const tileBgStyles: Record<CardColor, string> = {
@@ -17,11 +19,13 @@ export function SpymasterCard({
   word,
   color,
   revealed = false,
+  selected = false,
+  onClick,
 }: SpymasterCardProps) {
   const tileColor = tileBgStyles[color] ?? "bg-(--app-surface)";
-  return (
+  const card = (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 border-[#0a6e9f] ${tileColor} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)] transition duration-200 ease-out ${revealed ? "opacity-90" : ""}`}
+      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 ${selected ? "border-[#76f21b] ring-2 ring-[#76f21b]" : "border-[#0a6e9f]"} ${tileColor} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)] transition duration-200 ease-out ${revealed ? "opacity-90" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >
@@ -31,5 +35,18 @@ export function SpymasterCard({
         </span>
       </div>
     </div>
+  );
+
+  return onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${selected ? "Remove" : "Add"} ${word} to hint count`}
+      className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
+    >
+      {card}
+    </button>
+  ) : (
+    card
   );
 }

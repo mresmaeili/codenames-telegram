@@ -112,12 +112,33 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
       number,
     });
 
+    const hint = result.game.hintHistory[result.game.hintHistory.length - 1];
+    const roundHint = {
+      ...hint,
+      playerId:
+        roomRecord.players.find(
+          (player) => player.telegramId === senderTelegramId,
+        )?.userId ?? null,
+    };
+    const rounds = [
+      ...(game.rounds ?? []),
+      {
+        id: `round-${hint.submittedAt.toISOString()}`,
+        team: hint.team,
+        hint: roundHint,
+        guesses: [],
+      },
+    ];
+
     const updatedGame = await gameRepository.update(gameId, {
       currentHintWord: result.game.currentHintWord,
       currentHintNumber: result.game.currentHintNumber,
       remainingGuesses: result.game.remainingGuesses,
       hintSubmittedAt: result.game.hintSubmittedAt,
       hintHistory: result.game.hintHistory,
+      rounds,
+      phase: "operatives",
+      phaseStartedAt: result.game.hintSubmittedAt,
     });
 
     if (!updatedGame) {
@@ -312,9 +333,28 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
             null,
         }).game;
 
+    const revealedIndex = Number.parseInt(game.selectedCardId ?? "", 10);
+    const revealedCard = game.board[revealedIndex];
+    const rounds = [...(game.rounds ?? [])];
+    const currentRound = rounds[rounds.length - 1];
+    if (currentRound && revealedCard) {
+      rounds[rounds.length - 1] = {
+        ...currentRound,
+        guesses: [
+          ...currentRound.guesses,
+          {
+            word: revealedCard.word,
+            cardIndex: revealedIndex,
+            playerId: game.selectedByPlayerId ?? null,
+            correct: revealedCard.color === game.currentTurn,
+            revealedAt: new Date(),
+          },
+        ],
+      };
+    }
+
     const updatedGame = await gameRepository.update(gameId, {
       board: revealResult.game.board,
-      ...getRemainingCardCounts(revealResult.game.board),
       ...getRemainingCardCounts(revealResult.game.board),
       status: resolvedGame.status,
       currentTurn: resolvedGame.currentTurn,
@@ -334,6 +374,10 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       completedAt: completionResult.completed
         ? completionResult.game.completedAt
         : (game.completedAt ?? null),
+      rounds,
+      ...(resolvedGame.currentTurn !== game.currentTurn
+        ? { phase: "spymaster", phaseStartedAt: new Date() }
+        : {}),
       ...(resolvedGame.currentTurn !== game.currentTurn
         ? { turnStartedAt: new Date() }
         : {}),
@@ -404,6 +448,8 @@ gameRouter.post("/:gameId/pass", async (request, response) => {
       selectedCardId: result.game.selectedCardId,
       selectedByPlayerId: result.game.selectedByPlayerId,
       selectedAt: result.game.selectedAt,
+      phase: "spymaster",
+      phaseStartedAt: new Date(),
       turnStartedAt: new Date(),
     });
 

@@ -22,6 +22,28 @@ test("buildGameView returns a public board for operatives and a colorized board 
     currentHintNumber: null,
     hintSubmittedAt: null,
     hintHistory: [],
+    rounds: [
+      {
+        id: "round-1",
+        team: "blue",
+        hint: {
+          word: "forest",
+          number: 2,
+          team: "blue",
+          submittedAt: new Date("2024-01-01T00:00:00.000Z"),
+          playerId: "spymaster-1",
+        },
+        guesses: [
+          {
+            word: "alpha",
+            cardIndex: 0,
+            playerId: "operative-1",
+            correct: false,
+            revealedAt: new Date("2024-01-01T00:00:01.000Z"),
+          },
+        ],
+      },
+    ],
     selectedCardId: null,
     selectedByPlayerId: null,
     selectedAt: null,
@@ -36,6 +58,9 @@ test("buildGameView returns a public board for operatives and a colorized board 
   assert.equal(operativeView.role, "operative");
   assert.equal(operativeView.redCardsRemaining, 1);
   assert.equal(operativeView.blueCardsRemaining, 1);
+  assert.equal(operativeView.phase, "spymaster");
+  assert.equal(operativeView.rounds?.[0]?.guesses.length, 1);
+  assert.equal(operativeView.rounds?.[0]?.hint.playerId, "spymaster-1");
   assert.deepEqual(operativeView.board, [
     { word: "alpha", revealed: false, color: null },
     { word: "bravo", revealed: false, color: null },

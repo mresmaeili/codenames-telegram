@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { BoardGrid } from "@/components/BoardGrid";
+import { GameLog, type GameLogEntry } from "./GameLog";
+import { TeamPanel } from "./TeamPanel";
+import { SpymasterPanel } from "./SpymasterPanel";
+import { TurnBanner } from "./TurnBanner";
+import { useGameActions } from "./useGameActions";
+import { HintComposer } from "./HintComposer";
+import { useGameStateSync } from "./useGameStateSync";
+import { useRoomSocketSync } from "./useRoomSocketSync";
+import { GameBoardSurface } from "./GameBoardSurface";
+import { TurnActionBar } from "./TurnActionBar";
+import { GameHeaderBar } from "./GameHeaderBar";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
@@ -14,8 +24,16 @@ import {
   avatarUrlForName,
   avatarEmojiForPlayer,
 } from "@/lib/avatar";
-import type { GameView, HintEntry, Turn } from "@/../shared/src/types/game";
+import type { GameView, HintEntry } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
+import {
+  canPassTurn as canPassTurnForViewer,
+  canSelectCard as canSelectCardForViewer,
+  canSubmitHint as canSubmitHintForViewer,
+  canTakeTurn as canTakeTurnForViewer,
+  hasActiveHint as hasActiveHintForGame,
+  isActiveRole,
+} from "./gameSelectors";
 
 interface GamePageProps {
   roomCode: string;
@@ -30,14 +48,25 @@ interface GamePageState {
   error: string | null;
 }
 
-interface GameLogEntry {
-  id: string;
-  kind: "hint" | "reveal";
-  team: Turn;
-  word: string;
-  number?: number;
-  playerId: string | null;
-  correct?: boolean;
+function logEntriesFromRounds(game: GameView): GameLogEntry[] {
+  return (game.rounds ?? []).flatMap((round) => [
+    {
+      id: `hint-${round.id}`,
+      kind: "hint" as const,
+      team: round.team,
+      word: round.hint.word,
+      number: round.hint.number,
+      playerId: round.hint.playerId ?? null,
+    },
+    ...round.guesses.map((guess) => ({
+      id: `${round.id}-${guess.cardIndex}-${guess.revealedAt}`,
+      kind: "reveal" as const,
+      team: round.team,
+      word: guess.word,
+      playerId: guess.playerId,
+      correct: guess.correct,
+    })),
+  ]);
 }
 
 function normalizeGameCounts(game: GameView): GameView {
@@ -64,13 +93,6 @@ function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
 
-function getRemainingCards(
-  board: GameView["board"],
-  color: "red" | "blue",
-): number {
-  return board.filter((card) => card.color === color && !card.revealed).length;
-}
-
 function getSpectatorCount(room: Room | null): number {
   return room?.players.filter((player) => player.team === null).length ?? 0;
 }
@@ -88,6 +110,9 @@ export function GamePage({
     error: null,
   });
   const [hintDraft, setHintDraft] = useState({ word: "", number: "" });
+  const [selectedHintCardIds, setSelectedHintCardIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [hintSubmitting, setHintSubmitting] = useState(false);
   const [hintMessage, setHintMessage] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -106,38 +131,42 @@ export function GamePage({
       return false;
     }
   });
-  const [turnSecondsRemaining, setTurnSecondsRemaining] = useState<
+  const [spymasterSecondsRemaining, setSpymasterSecondsRemaining] = useState<
+    number | null
+  >(null);
+  const [operativeSecondsRemaining, setOperativeSecondsRemaining] = useState<
     number | null
   >(null);
   const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
   const [selectedPlayersByCard, setSelectedPlayersByCard] = useState<
     Record<number, Room["players"]>
   >({});
-  const gameRef = useRef<GameView | null>(null);
-  const roomRef = useRef<Room | null>(null);
   const logGameIdRef = useRef<string | null>(null);
 
+  useGameStateSync(socket, ({ room, game }) => {
+    setState({ room, game, loading: false, error: null });
+    setGameLog(logEntriesFromRounds(game));
+    setIsReconnecting(false);
+  });
+
+  useRoomSocketSync({
+    socket,
+    onRoomUpdated: (room) => {
+      if (room.status === "waiting") {
+        onReturnToLobby();
+        return;
+      }
+      setState((current) => ({ ...current, room, error: null }));
+    },
+    onRoomReset: onReturnToLobby,
+  });
+
   useEffect(() => {
-    gameRef.current = state.game;
-    roomRef.current = state.room;
     const gameId = state.game?.id ?? state.game?.roomId ?? null;
     if (gameId !== logGameIdRef.current) {
       logGameIdRef.current = gameId;
       setSelectedPlayersByCard({});
-      setGameLog(
-        state.game?.hintHistory.map((hint, index) => ({
-          id: `hint-${hint.submittedAt}-${index}`,
-          kind: "hint" as const,
-          team: hint.team,
-          word: hint.word,
-          number: hint.number,
-          playerId:
-            state.room?.players.find(
-              (player) =>
-                player.team === hint.team && player.role === "spymaster",
-            )?.userId ?? null,
-        })) ?? [],
-      );
+      setGameLog(logEntriesFromRounds(state.game!));
     }
   }, [state.game]);
 
@@ -146,25 +175,32 @@ export function GamePage({
     const duration =
       timerSetting && timerSetting !== "none" ? Number(timerSetting) : null;
     if (!duration || !state.game || state.game.status !== "active") {
-      setTurnSecondsRemaining(null);
+      setSpymasterSecondsRemaining(null);
+      setOperativeSecondsRemaining(null);
       return;
     }
 
-    const turnStartedAt =
-      state.game.turnStartedAt ?? state.game.createdAt ?? new Date();
-    const elapsedSeconds = Math.max(
-      0,
-      Math.floor((Date.now() - new Date(turnStartedAt).getTime()) / 1000),
-    );
-    setTurnSecondsRemaining(Math.max(0, duration - elapsedSeconds));
+    const updateTimers = () => {
+      const turnStartedAt =
+        state.game?.phaseStartedAt ??
+        state.game?.turnStartedAt ??
+        state.game?.createdAt ??
+        new Date();
+      const elapsedSinceTurn = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(turnStartedAt).getTime()) / 1000),
+      );
+      setSpymasterSecondsRemaining(Math.max(0, duration - elapsedSinceTurn));
+      setOperativeSecondsRemaining(
+        state.game?.phase === "operatives"
+          ? Math.max(0, duration - elapsedSinceTurn)
+          : null,
+      );
+    };
+
+    updateTimers();
     const interval = window.setInterval(() => {
-      setTurnSecondsRemaining((current) => {
-        if (current === null || current <= 1) {
-          window.clearInterval(interval);
-          return 0;
-        }
-        return current - 1;
-      });
+      updateTimers();
     }, 1000);
 
     return () => window.clearInterval(interval);
@@ -172,6 +208,8 @@ export function GamePage({
     roomCode,
     state.game?.currentTurn,
     state.game?.turnStartedAt,
+    state.game?.phaseStartedAt,
+    state.game?.hintSubmittedAt,
     state.game?.status,
     state.room?.settings.timer,
     state.room?.players,
@@ -285,16 +323,6 @@ export function GamePage({
     }
 
     if (socket) {
-      const handleRoomUpdated = (room: Room) => {
-        if (isMounted) {
-          if (room.status === "waiting") {
-            onReturnToLobby();
-            return;
-          }
-          setState((current) => ({ ...current, room, error: null }));
-        }
-      };
-
       const handleGameInitialized = (payload: {
         redCardsRemaining?: number;
         blueCardsRemaining?: number;
@@ -321,12 +349,6 @@ export function GamePage({
         }
       };
 
-      const handleGameReset = () => {
-        if (isMounted) {
-          onReturnToLobby();
-        }
-      };
-
       const handleKeycardReveal = (payload: {
         gameId: string;
         board: GameView["board"];
@@ -345,197 +367,6 @@ export function GamePage({
         }
       };
 
-      const handleHinted = (payload: {
-        gameId: string;
-        currentHintWord: string | null;
-        currentHintNumber: number | null;
-        remainingGuesses: number;
-        hintSubmittedAt: string | null;
-        hintHistory: Array<{
-          word: string;
-          number: number;
-          team: Turn;
-          submittedAt: string;
-        }>;
-      }) => {
-        if (isMounted) {
-          setState((current) => ({
-            ...current,
-            game: current.game
-              ? {
-                  ...current.game,
-                  currentHintWord: payload.currentHintWord,
-                  currentHintNumber: payload.currentHintNumber,
-                  remainingGuesses: payload.remainingGuesses,
-                  hintSubmittedAt: payload.hintSubmittedAt
-                    ? new Date(payload.hintSubmittedAt)
-                    : null,
-                  hintHistory: payload.hintHistory.map((hint) => ({
-                    ...hint,
-                    submittedAt: new Date(hint.submittedAt),
-                  })),
-                }
-              : current.game,
-            error: null,
-          }));
-          setGameLog((current) => [
-            ...current,
-            {
-              id: `hint-${payload.hintSubmittedAt ?? Date.now()}`,
-              kind: "hint",
-              team:
-                payload.hintHistory[payload.hintHistory.length - 1]?.team ??
-                "red",
-              word: payload.currentHintWord ?? "Hint",
-              number: payload.currentHintNumber ?? undefined,
-              playerId:
-                roomRef.current?.players.find(
-                  (player) =>
-                    player.team ===
-                      (payload.hintHistory[payload.hintHistory.length - 1]
-                        ?.team ?? "red") && player.role === "spymaster",
-                )?.userId ?? null,
-            },
-          ]);
-        }
-      };
-
-      const handleSelected = (payload: {
-        gameId: string;
-        selectedCardId: string | null;
-        selectedByPlayerId: string | null;
-        selectedAt: string | null;
-      }) => {
-        if (isMounted) {
-          const cardIndex = Number.parseInt(payload.selectedCardId ?? "", 10);
-          const selectedPlayer = roomRef.current?.players.find(
-            (player) => player.userId === payload.selectedByPlayerId,
-          );
-          if (Number.isInteger(cardIndex) && selectedPlayer) {
-            setSelectedPlayersByCard((current) => {
-              const players = current[cardIndex] ?? [];
-              if (
-                players.some(
-                  (player) => player.userId === selectedPlayer.userId,
-                )
-              ) {
-                return current;
-              }
-              return {
-                ...current,
-                [cardIndex]: [...players, selectedPlayer],
-              };
-            });
-          }
-          setState((current) => ({
-            ...current,
-            game: current.game
-              ? {
-                  ...current.game,
-                  selectedCardId: payload.selectedCardId,
-                  selectedByPlayerId: payload.selectedByPlayerId,
-                  selectedAt: payload.selectedAt
-                    ? new Date(payload.selectedAt)
-                    : null,
-                }
-              : current.game,
-            error: null,
-          }));
-        }
-      };
-
-      const handleRevealed = (payload: {
-        gameId: string;
-        board: GameView["board"];
-        currentTurn: string;
-        remainingGuesses: number;
-        redCardsRemaining: number;
-        blueCardsRemaining: number;
-        currentHintWord: string | null;
-        currentHintNumber: number | null;
-        status: string;
-        selectedCardId: string | null;
-        selectedByPlayerId: string | null;
-        selectedAt: string | null;
-        winningTeam: GameView["winningTeam"];
-        completionReason: GameView["completionReason"];
-        completedAt: string | null;
-        turnStartedAt: string | null;
-        revealedCardIndex?: number;
-        revealedCardColor?: GameView["board"][number]["color"];
-        revealedByPlayerId?: string | null;
-      }) => {
-        if (isMounted) {
-          const revealingTeam = gameRef.current?.currentTurn ?? "red";
-          const revealedIndex =
-            typeof payload.revealedCardIndex === "number"
-              ? payload.revealedCardIndex
-              : payload.board.findIndex(
-                  (card, index) =>
-                    card.revealed && !gameRef.current?.board[index]?.revealed,
-                );
-          const revealedCard =
-            revealedIndex >= 0 ? payload.board[revealedIndex] : null;
-          if (revealedCard) {
-            setGameLog((current) => [
-              ...current,
-              {
-                id: `reveal-${revealedIndex}-${Date.now()}`,
-                kind: "reveal",
-                team: revealingTeam,
-                word: revealedCard.word,
-                playerId:
-                  payload.revealedByPlayerId ??
-                  gameRef.current?.selectedByPlayerId ??
-                  null,
-                correct:
-                  (payload.revealedCardColor ?? revealedCard.color) ===
-                  revealingTeam,
-              },
-            ]);
-          }
-          setState((current) => ({
-            ...current,
-            game: current.game
-              ? {
-                  ...current.game,
-                  board: payload.board,
-                  currentTurn: payload.currentTurn as GameView["currentTurn"],
-                  remainingGuesses: payload.remainingGuesses,
-                  redCardsRemaining: getRemainingCards(payload.board, "red"),
-                  blueCardsRemaining: getRemainingCards(payload.board, "blue"),
-                  currentHintWord: payload.currentHintWord,
-                  currentHintNumber: payload.currentHintNumber,
-                  status: payload.status as GameView["status"],
-                  selectedCardId: payload.selectedCardId,
-                  selectedByPlayerId: payload.selectedByPlayerId,
-                  selectedAt: payload.selectedAt
-                    ? new Date(payload.selectedAt)
-                    : null,
-                  winningTeam: payload.winningTeam,
-                  completionReason: payload.completionReason,
-                  completedAt: payload.completedAt
-                    ? new Date(payload.completedAt)
-                    : null,
-                  turnStartedAt: payload.turnStartedAt
-                    ? new Date(payload.turnStartedAt)
-                    : null,
-                  updatedAt: new Date(),
-                }
-              : current.game,
-            error: null,
-          }));
-
-          if (payload.status === "finished") {
-            toast.success(
-              payload.completionReason === "assassin-revealed"
-                ? "Game over — the assassin was revealed."
-                : `${payload.winningTeam ?? "The opposing team"} wins!`,
-            );
-          }
-        }
-      };
-
       const handleReconnect = () => {
         if (isMounted) {
           setIsReconnecting(true);
@@ -550,42 +381,6 @@ export function GamePage({
             setHasJoinedRoom(true);
           }
           void loadGameData();
-        }
-      };
-
-      const handlePassed = (payload: {
-        gameId: string;
-        currentTurn: string;
-        remainingGuesses: number;
-        currentHintWord: string | null;
-        currentHintNumber: number | null;
-        selectedCardId: string | null;
-        selectedByPlayerId: string | null;
-        selectedAt: string | null;
-        turnStartedAt: string | null;
-      }) => {
-        if (isMounted) {
-          setState((current) => ({
-            ...current,
-            game: current.game
-              ? {
-                  ...current.game,
-                  currentTurn: payload.currentTurn as GameView["currentTurn"],
-                  remainingGuesses: payload.remainingGuesses,
-                  currentHintWord: payload.currentHintWord,
-                  currentHintNumber: payload.currentHintNumber,
-                  selectedCardId: payload.selectedCardId,
-                  selectedByPlayerId: payload.selectedByPlayerId,
-                  selectedAt: payload.selectedAt
-                    ? new Date(payload.selectedAt)
-                    : null,
-                  turnStartedAt: payload.turnStartedAt
-                    ? new Date(payload.turnStartedAt)
-                    : null,
-                }
-              : current.game,
-            error: null,
-          }));
         }
       };
 
@@ -611,28 +406,16 @@ export function GamePage({
 
       socket.on("connect", handleConnect);
       socket.on("disconnect", handleDisconnect);
-      socket.on("room:updated", handleRoomUpdated);
-      socket.on("room:reset", handleGameReset);
       socket.on("game:initialized", handleGameInitialized);
       socket.on("game:keycard", handleKeycardReveal);
-      socket.on("game:hinted", handleHinted);
-      socket.on("game:selected", handleSelected);
-      socket.on("game:revealed", handleRevealed);
-      socket.on("game:passed", handlePassed);
       socket.on("game:error", handleGameError);
 
       return () => {
         isMounted = false;
         socket.off("connect", handleConnect);
         socket.off("disconnect", handleDisconnect);
-        socket.off("room:updated", handleRoomUpdated);
-        socket.off("room:reset", handleGameReset);
         socket.off("game:initialized", handleGameInitialized);
         socket.off("game:keycard", handleKeycardReveal);
-        socket.off("game:hinted", handleHinted);
-        socket.off("game:selected", handleSelected);
-        socket.off("game:revealed", handleRevealed);
-        socket.off("game:passed", handlePassed);
         socket.off("game:error", handleGameError);
       };
     }
@@ -645,37 +428,42 @@ export function GamePage({
   const viewerPlayer = state.room?.players.find(
     (player) => player.telegramId === user?.telegramId,
   );
-  const isActiveSpymaster =
-    Boolean(viewerPlayer) &&
-    viewerPlayer?.team === state.game?.currentTurn &&
-    state.game?.role === "spymaster" &&
-    state.game?.status === "active";
-  const isActiveOperative =
-    Boolean(viewerPlayer) &&
-    viewerPlayer?.team === state.game?.currentTurn &&
-    state.game?.role === "operative" &&
-    state.game?.status === "active";
-  const hasActiveHint = Boolean(
-    state.game?.currentHintWord || state.game?.currentHintNumber !== null,
+  const isActiveSpymaster = isActiveRole(state.game, viewerPlayer, "spymaster");
+  const isActiveOperative = isActiveRole(state.game, viewerPlayer, "operative");
+  const hasActiveHint = hasActiveHintForGame(state.game);
+  const canSubmitHint = canSubmitHintForViewer(state.game, viewerPlayer);
+  const canSelectCard = canSelectCardForViewer(state.game, viewerPlayer);
+  const activeSecondsRemaining = isActiveSpymaster
+    ? spymasterSecondsRemaining
+    : operativeSecondsRemaining;
+  const timerExpired = activeSecondsRemaining === 0;
+  const canPassTurn = canPassTurnForViewer(
+    state.game,
+    viewerPlayer,
+    timerExpired,
   );
-  const canSubmitHint = isActiveSpymaster && !hasActiveHint;
-  const canSelectCard =
-    isActiveOperative &&
-    Boolean(
-      state.game?.currentHintWord && state.game?.currentHintNumber !== null,
-    ) &&
-    state.game?.remainingGuesses > 0;
-  const opposingTeam: Turn = state.game?.currentTurn === "red" ? "blue" : "red";
-  const canPassTurn =
-    state.game?.status === "active" &&
-    (turnSecondsRemaining === 0
-      ? viewerPlayer?.team === state.game.currentTurn ||
-        viewerPlayer?.team === opposingTeam
-      : isActiveOperative && hasActiveHint);
-  const canFinishTimedOutTurn =
-    turnSecondsRemaining === 0 && state.game?.status === "active";
-  const canTakeTurn =
-    canFinishTimedOutTurn && viewerPlayer?.team === opposingTeam;
+  const canTakeTurn = canTakeTurnForViewer(
+    state.game,
+    viewerPlayer,
+    timerExpired,
+  );
+  const { submitHint, selectCard, confirmSelection, passTurn, takeTurn } =
+    useGameActions({
+      socket,
+      roomCode,
+      telegramId: user?.telegramId,
+      game: state.game,
+      canSubmitHint,
+      canSelectCard,
+      canPassTurn,
+      canTakeTurn,
+      secondsRemaining: activeSecondsRemaining,
+      hintSubmitting,
+      setHintSubmitting,
+      setHintMessage,
+      setHintDraft,
+      setSelectedHintCardIds,
+    });
   const currentSelectedCardIndex = state.game?.selectedCardId
     ? Number.parseInt(state.game.selectedCardId, 10)
     : null;
@@ -701,8 +489,11 @@ export function GamePage({
       ? Number(roomSettings.timer)
       : null;
   const timerProgress =
-    timerDuration && turnSecondsRemaining !== null
-      ? Math.max(0, Math.min(100, (turnSecondsRemaining / timerDuration) * 100))
+    timerDuration && activeSecondsRemaining !== null
+      ? Math.max(
+          0,
+          Math.min(100, (activeSecondsRemaining / timerDuration) * 100),
+        )
       : 0;
   const completionSummary = gameFinished
     ? state.game?.completionReason === "assassin-revealed"
@@ -732,7 +523,7 @@ export function GamePage({
     }
 
     registerPopup(
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
             Room settings
@@ -744,6 +535,28 @@ export function GamePage({
           >
             Close
           </button>
+        </div>
+        <div className="rounded-[22px] bg-black px-4 py-4">
+          <p className="text-center text-base font-black text-white">
+            Players in the room
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-3">
+            {state.room.players.map((roomPlayer) => (
+              <div
+                key={roomPlayer.userId}
+                className="flex w-16 flex-col items-center gap-1"
+              >
+                <img
+                  src={avatarUrlForPlayer(roomPlayer)}
+                  alt={roomPlayer.displayName}
+                  className="h-11 w-11 rounded-full border-2 border-white object-cover"
+                />
+                <span className="max-w-16 truncate rounded-sm bg-white/15 px-1 text-[10px] font-bold text-white">
+                  {roomPlayer.displayName}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {isRoomOwner ? (
@@ -800,6 +613,15 @@ export function GamePage({
           : "Tap to choose a word"
         : "Wait for your spymaster to give you a clue"
       : "Watch the turn";
+  const activeOperative = state.room?.players.find(
+    (player) =>
+      player.team === state.game?.currentTurn && player.role !== "spymaster",
+  );
+  const activeSpymaster = state.room?.players.find(
+    (player) =>
+      player.team === state.game?.currentTurn && player.role === "spymaster",
+  );
+  const turnPlayer = isViewerSpymaster ? activeSpymaster : activeOperative;
 
   function handleResetTeams() {
     if (!socket || !state.room || !user) return;
@@ -821,6 +643,22 @@ export function GamePage({
     onReturnToLobby();
   }
 
+  function handleToggleHintCard(cardIndex: number) {
+    if (!canSubmitHint || hintSubmitting) return;
+    setSelectedHintCardIds((current) => {
+      const next = new Set(current);
+      if (next.has(cardIndex)) next.delete(cardIndex);
+      else next.add(cardIndex);
+      setHintDraft((draft) => ({ ...draft, number: String(next.size) }));
+      return next;
+    });
+  }
+
+  function handleHintNumberChange(value: string) {
+    setSelectedHintCardIds(new Set());
+    setHintDraft((current) => ({ ...current, number: value }));
+  }
+
   function handleRematch() {
     const activeSocket = getSocketClient();
     if (!state.room || !user?.telegramId || !activeSocket) {
@@ -836,101 +674,10 @@ export function GamePage({
     toast.success("Rematch requested.");
   }
 
-  async function handleSubmitHint(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!state.game || !user?.telegramId || hintSubmitting) {
-      return;
-    }
-
-    const parsedNumber = Number(hintDraft.number);
-    if (!canSubmitHint || Number.isNaN(parsedNumber) || parsedNumber <= 0) {
-      setHintMessage("Hint number must be a positive integer.");
-      return;
-    }
-
-    setHintSubmitting(true);
-    setHintMessage(null);
-
-    try {
-      const activeSocket = getSocketClient();
-      if (!activeSocket) {
-        throw new Error("Socket connection is unavailable.");
-      }
-
-      activeSocket.emit("game:hint", {
-        gameId: state.game.id ?? state.game.roomId,
-        roomCode: roomCode.toUpperCase(),
-        telegramId: user.telegramId,
-        word: hintDraft.word.trim(),
-        number: parsedNumber,
-      });
-
-      setHintDraft({ word: "", number: "" });
-      setHintMessage("Hint submitted.");
-    } catch (error) {
-      setHintMessage(
-        error instanceof Error ? error.message : "Unable to submit hint.",
-      );
-    } finally {
-      setHintSubmitting(false);
-    }
-  }
-
-  // Click wrapper so we can call the form submit logic from a button
-  async function handleSubmitHintClick() {
-    await handleSubmitHint({
-      preventDefault: () => {},
-    } as React.FormEvent<HTMLFormElement>);
-  }
-
   async function refreshGameState() {
     setRefreshingGame(true);
     await loadGameData();
     setRefreshingGame(false);
-  }
-
-  function handleSelectCard(cardIndex: number) {
-    if (!state.game || !user?.telegramId || !canSelectCard || hintSubmitting) {
-      return;
-    }
-
-    const activeSocket = getSocketClient();
-    if (!activeSocket) {
-      setHintMessage("Socket connection is unavailable.");
-      return;
-    }
-
-    activeSocket.emit("game:select", {
-      gameId: state.game.id ?? state.game.roomId,
-      roomCode: roomCode.toUpperCase(),
-      telegramId: user.telegramId,
-      cardId: String(cardIndex),
-      confirm: false,
-    });
-  }
-
-  function handleConfirmSelection() {
-    if (
-      !state.game ||
-      !user?.telegramId ||
-      state.game.selectedCardId === null
-    ) {
-      return;
-    }
-
-    const activeSocket = getSocketClient();
-    if (!activeSocket) {
-      setHintMessage("Socket connection is unavailable.");
-      return;
-    }
-
-    activeSocket.emit("game:select", {
-      gameId: state.game.id ?? state.game.roomId,
-      roomCode: roomCode.toUpperCase(),
-      telegramId: user.telegramId,
-      cardId: state.game.selectedCardId,
-      confirm: true,
-    });
   }
 
   function handleConfirmCard(cardIndex: number) {
@@ -942,41 +689,7 @@ export function GamePage({
       return;
     }
 
-    handleConfirmSelection();
-  }
-
-  function handlePassTurn() {
-    if (!state.game || !user?.telegramId || !canPassTurn || hintSubmitting) {
-      return;
-    }
-
-    const activeSocket = getSocketClient();
-    if (!activeSocket) {
-      setHintMessage("Socket connection is unavailable.");
-      return;
-    }
-
-    activeSocket.emit("game:pass", {
-      gameId: state.game.id ?? state.game.roomId,
-      roomCode: roomCode.toUpperCase(),
-      telegramId: user.telegramId,
-      timeout: turnSecondsRemaining === 0,
-    });
-  }
-
-  function handleTakeTurn() {
-    if (!state.game || !user?.telegramId || !canTakeTurn) return;
-    const activeSocket = getSocketClient();
-    if (!activeSocket) {
-      setHintMessage("Socket connection is unavailable.");
-      return;
-    }
-    activeSocket.emit("game:pass", {
-      gameId: state.game.id ?? state.game.roomId,
-      roomCode: roomCode.toUpperCase(),
-      telegramId: user.telegramId,
-      timeout: true,
-    });
+    confirmSelection();
   }
 
   function handleAssignPlayerFromGame(
@@ -1104,108 +817,44 @@ export function GamePage({
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-150 bg-[#0b69ad] px-2 pb-4 pt-2 text-white">
-        <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-2 border-b border-white/10 bg-[#0b69ad]/95 py-2 backdrop-blur-sm">
-          <button
-            type="button"
-            onClick={onLeave}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl text-white hover:bg-white/20 active:bg-white/30"
-            aria-label="Leave game"
-          >
-            ×
-          </button>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <div className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-[#1f5fae] px-3 text-sm font-bold">
-              <span aria-hidden="true" className="text-lg">
-                👥
-              </span>
-              {getPlayerCount(state.room)}
-            </div>
-            {getSpectatorCount(state.room) > 0 ? (
-              <div
-                className="flex h-10 items-center gap-1 rounded-full border border-white/50 bg-white/10 px-2 text-sm font-bold"
-                aria-label={`${getSpectatorCount(state.room)} spectators`}
-                title="Spectators"
-              >
-                <span aria-hidden="true">👁</span>
-                {getSpectatorCount(state.room)}
-              </div>
-            ) : null}
-            {isViewerOperative ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setHideBoard((current) => {
-                    const next = !current;
-                    try {
-                      localStorage.setItem("codenames.hideBoard", String(next));
-                    } catch {
-                      // Local storage may be unavailable in private browsing.
-                    }
-                    return next;
-                  });
-                }}
-                className={`flex h-10 w-10 items-center justify-center rounded-full border border-white/70 text-lg ${hideBoard ? "bg-[#51df20]" : "bg-[#1f5fae]"}`}
-                aria-label={hideBoard ? "Show board words" : "Hide board words"}
-                title={hideBoard ? "Show board words" : "Hide board words"}
-              >
-                {hideBoard ? "🙈" : "👁"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                registerPopup(
-                  <div className="space-y-3 text-sm text-(--app-text)">
-                    <p>
-                      Stay with your team, read the clue, and select one word at
-                      a time.
-                    </p>
-                    <p>
-                      The green hand confirms the selected card. Revealed cards
-                      can be tapped to view their word.
-                    </p>
-                  </div>,
-                  "News",
-                );
-                openPopup();
-              }}
-              className="rounded-full border border-white/70 bg-[#1f5fae] px-3 py-2 text-sm font-semibold"
-            >
-              News
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                registerPopup(
-                  <div className="space-y-3 text-sm text-(--app-text)">
-                    <p>
-                      Spymasters give a one-word clue and a number. Operatives
-                      discuss and choose matching cards.
-                    </p>
-                    <p>
-                      Reveal one card, then continue or pass when the turn is
-                      complete.
-                    </p>
-                  </div>,
-                  "Rules",
-                );
-                openPopup();
-              }}
-              className="rounded-full border border-white/70 bg-[#1f5fae] px-3 py-2 text-sm font-semibold"
-            >
-              Rules
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={openPopup}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-[#1f5fae] text-xl"
-            aria-label="Game settings"
-          >
-            ⚙
-          </button>
-        </div>
+      <div
+        className={`mx-auto w-full max-w-150 px-2 pb-4 pt-2 text-white transition-colors duration-300 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
+      >
+        <GameHeaderBar
+          playerCount={getPlayerCount(state.room)}
+          spectatorCount={getSpectatorCount(state.room)}
+          operativeViewer={isViewerOperative}
+          boardHidden={hideBoard}
+          onLeave={onLeave}
+          onToggleBoard={() => {
+            setHideBoard((current) => {
+              const next = !current;
+              try {
+                localStorage.setItem("codenames.hideBoard", String(next));
+              } catch {
+                // Local storage may be unavailable in private browsing.
+              }
+              return next;
+            });
+          }}
+          onRules={() => {
+            registerPopup(
+              <div className="space-y-3 text-sm text-(--app-text)">
+                <p>
+                  Spymasters give a one-word clue and a number. Operatives
+                  discuss and choose matching cards.
+                </p>
+                <p>
+                  Reveal one card, then continue or pass when the turn is
+                  complete.
+                </p>
+              </div>,
+              "Rules",
+            );
+            openPopup();
+          }}
+          onSettings={openPopup}
+        />
         {devMode ? (
           <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1266,9 +915,14 @@ export function GamePage({
               Timer:{" "}
               {roomSettings.timer === "none" ? "Off" : `${roomSettings.timer}s`}
             </div>
-            {turnSecondsRemaining !== null ? (
+            {spymasterSecondsRemaining !== null ? (
               <div className="rounded-2xl bg-white/10 px-3 py-2">
-                Turn left: {turnSecondsRemaining}s
+                Spymaster: {spymasterSecondsRemaining}s
+              </div>
+            ) : null}
+            {operativeSecondsRemaining !== null ? (
+              <div className="rounded-2xl bg-white/10 px-3 py-2">
+                Operatives: {operativeSecondsRemaining}s
               </div>
             ) : null}
             <div className="rounded-2xl bg-white/10 px-3 py-2">
@@ -1280,428 +934,104 @@ export function GamePage({
           </div>
         ) : null}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
-          <div
-            className={`col-start-1 row-start-1 rounded-xl border-2 ${isBlueTurn ? "border-[#76f21b]" : "border-[#23d4ff]/70"} bg-[#159dce] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
-                Operatives
-              </p>
-            </div>
-            <div className="mt-2 flex items-end justify-between">
-              <div className="flex items-end gap-2">
-                <div className="text-5xl font-black leading-none">
-                  {blueCardsRemaining}
-                </div>
-                <div className="mb-0.5 flex h-10 w-7 flex-col justify-end overflow-hidden rounded-sm border-2 border-white/45 bg-[#116a91] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-                  <div className="h-5 bg-[#0b77a7]" />
-                  <div className="h-4 bg-[#dbe8e8]" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center -space-x-2">
-                  {blueOperatives.slice(0, 3).map((p) => (
-                    <button
-                      key={p.userId}
-                      type="button"
-                      onClick={() => handleGamePlayerClick(p)}
-                      disabled={!isRoomOwner}
-                      className="flex flex-col items-center rounded-full disabled:cursor-default"
-                      aria-label={`Manage ${p.displayName}`}
-                    >
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        title={p.displayName}
-                        className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
-                      />
-                      <span className="max-w-14 truncate rounded-sm bg-black/65 px-1 text-[8px] font-bold leading-tight text-white">
-                        {p.displayName}
-                      </span>
-                    </button>
-                  ))}
-                  {blueOperatives.length === 0 ? (
-                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
-                      🐟
-                    </div>
-                  ) : null}
-                  {blueOperatives.length > 3 ? (
-                    <div className="ml-2 rounded-full bg-white/10 px-2 py-1 text-xs">
-                      +{blueOperatives.length - 3}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
+          <TeamPanel
+            className="col-start-1 row-start-1"
+            team="blue"
+            remainingCards={blueCardsRemaining}
+            operatives={blueOperatives}
+            active={isBlueTurn}
+            canManagePlayers={isRoomOwner}
+            onPlayerClick={handleGamePlayerClick}
+          />
 
-          <div className="col-start-2 row-span-2 row-start-1 h-53 overflow-y-auto rounded-xl border-2 border-[#777] bg-[#3e3e3e] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
-            <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
-              Game log
-            </div>
-            {timerDuration && turnSecondsRemaining !== null ? (
-              <div className="mt-1 rounded-full bg-[#bfeff5] px-2 py-0.5 text-center text-sm font-black text-[#17212b]">
-                {Math.floor(turnSecondsRemaining / 60)
-                  .toString()
-                  .padStart(2, "0")}
-                :
-                {Math.floor(turnSecondsRemaining % 60)
-                  .toString()
-                  .padStart(2, "0")}
-                <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-[#3e8290]">
-                  <div
-                    className="h-full rounded-full bg-[#27b9d1] transition-[width] duration-500"
-                    style={{ width: `${timerProgress}%` }}
-                  />
-                </div>
-              </div>
-            ) : null}
-            <div className="mt-2 space-y-1.5 text-left text-[10px] text-white/80">
-              {gameLog.length > 0 ? (
-                gameLog.map((entry) => {
-                  const player = state.room?.players.find(
-                    (roomPlayer) => roomPlayer.userId === entry.playerId,
-                  );
-                  const teamColor =
-                    entry.team === "blue"
-                      ? {
-                          border: "border-cyan-300",
-                          badge: "bg-[#08a6d0]",
-                          row: "bg-[#159dce]",
-                        }
-                      : {
-                          border: "border-red-300",
-                          badge: "bg-[#d84c3e]",
-                          row: "bg-[#c94b3b]",
-                        };
+          <GameLog
+            entries={gameLog}
+            players={state.room?.players ?? []}
+            timerDuration={timerDuration}
+            secondsRemaining={activeSecondsRemaining}
+            timerProgress={timerProgress}
+            isSpymaster={isActiveSpymaster}
+          />
 
-                  return (
-                    <div key={entry.id} className="flex items-end gap-1.5">
-                      <img
-                        src={avatarUrlForPlayer(player)}
-                        alt={player?.displayName ?? entry.team}
-                        title={player?.displayName ?? entry.team}
-                        className={`h-7 w-7 shrink-0 rounded-full border-2 object-cover ${teamColor.border}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-0.5 flex items-center gap-1">
-                          <span
-                            className={`max-w-full truncate rounded-sm px-1 text-[9px] font-black uppercase ${teamColor.badge}`}
-                          >
-                            {player?.displayName ?? entry.team}
-                          </span>
-                          {entry.kind === "hint" ? (
-                            <span className="text-[8px] uppercase text-white/60">
-                              hint
-                            </span>
-                          ) : null}
-                        </div>
-                        <div
-                          className={`flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 font-black text-white ${teamColor.row}`}
-                        >
-                          <span className="min-w-0 flex-1 truncate uppercase">
-                            {entry.word}
-                          </span>
-                          {entry.number !== undefined ? (
-                            <span className="rounded-full bg-white px-1.5 py-0.5 text-black">
-                              {entry.number}
-                            </span>
-                          ) : null}
-                          {entry.kind === "reveal" ? (
-                            <span
-                              className={
-                                entry.correct ? "text-lime-300" : "text-red-200"
-                              }
-                              aria-label={
-                                entry.correct ? "Correct guess" : "Wrong guess"
-                              }
-                            >
-                              {entry.correct ? "✓" : "×"}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-lg bg-black/55 px-2 py-1.5 text-center">
-                  No hint yet
-                </div>
-              )}
-            </div>
-          </div>
+          <TeamPanel
+            className="col-start-3 row-start-1"
+            team="red"
+            remainingCards={redCardsRemaining}
+            operatives={redOperatives}
+            active={isRedTurn}
+            canManagePlayers={isRoomOwner}
+            onPlayerClick={handleGamePlayerClick}
+          />
+          <SpymasterPanel
+            className="col-start-1 row-start-2"
+            team="blue"
+            player={blueSpymaster}
+            active={isBlueTurn}
+            canManagePlayers={isRoomOwner}
+            onPlayerClick={handleGamePlayerClick}
+          />
 
-          <div
-            className={`col-start-3 row-start-1 rounded-xl border-2 ${isRedTurn ? "border-[#76f21b]" : "border-[#e88963]"} bg-[#c94b3b] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
-                Operatives
-              </p>
-            </div>
-            <div className="mt-2 flex items-end justify-between">
-              <div className="flex items-end gap-2">
-                <div className="text-5xl font-black leading-none">
-                  {redCardsRemaining}
-                </div>
-                <div className="mb-0.5 flex h-10 w-7 flex-col justify-end overflow-hidden rounded-sm border-2 border-white/45 bg-[#a23d38] shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-                  <div className="h-5 bg-[#d84c3e]" />
-                  <div className="h-4 bg-[#f1d4c4]" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center -space-x-2">
-                  {redOperatives.slice(0, 3).map((p) => (
-                    <button
-                      key={p.userId}
-                      type="button"
-                      onClick={() => handleGamePlayerClick(p)}
-                      disabled={!isRoomOwner}
-                      className="flex flex-col items-center rounded-full disabled:cursor-default"
-                      aria-label={`Manage ${p.displayName}`}
-                    >
-                      <img
-                        src={avatarUrlForPlayer(p)}
-                        alt={p.displayName}
-                        title={p.displayName}
-                        className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
-                      />
-                      <span className="max-w-14 truncate rounded-sm bg-black/65 px-1 text-[8px] font-bold leading-tight text-white">
-                        {p.displayName}
-                      </span>
-                    </button>
-                  ))}
-                  {redOperatives.length === 0 ? (
-                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xl">
-                      🐙
-                    </div>
-                  ) : null}
-                  {redOperatives.length > 3 ? (
-                    <div className="ml-2 rounded-full bg-white/10 px-2 py-1 text-xs">
-                      +{redOperatives.length - 3}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div
-            className={`col-start-1 row-start-2 rounded-xl border-2 ${isBlueTurn ? "border-[#76f21b]" : "border-[#23d4ff]"} bg-[#168fc5] p-1.5 text-white`}
-          >
-            <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
-              Spymasters
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-3 relative">
-              <div className="relative flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() =>
-                    blueSpymaster && handleGamePlayerClick(blueSpymaster)
-                  }
-                  disabled={!isRoomOwner || !blueSpymaster}
-                  className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#9ef3ff] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
-                  aria-label={
-                    blueSpymaster
-                      ? `Manage ${blueSpymaster.displayName}`
-                      : "No blue spymaster"
-                  }
-                >
-                  {blueSpymaster ? (
-                    <img
-                      src={avatarUrlForPlayer(blueSpymaster)}
-                      alt={blueSpymaster.displayName}
-                      title={blueSpymaster.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xl">🐟</span>
-                  )}
-                </button>
-                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
-                  {blueSpymaster?.displayName ?? "None"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`col-start-3 row-start-2 rounded-xl border-2 ${isRedTurn ? "border-[#76f21b]" : "border-[#f39b84]"} bg-[#c94b3b] p-1.5 text-white`}
-          >
-            <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
-              Spymasters
-            </div>
-            <div className="mt-3 flex items-center justify-center gap-3 relative">
-              <div className="relative flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() =>
-                    redSpymaster && handleGamePlayerClick(redSpymaster)
-                  }
-                  disabled={!isRoomOwner || !redSpymaster}
-                  className="h-12 w-12 overflow-hidden rounded-full border-4 border-[#ffc3be] bg-white/10 flex items-center justify-center shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
-                  aria-label={
-                    redSpymaster
-                      ? `Manage ${redSpymaster.displayName}`
-                      : "No red spymaster"
-                  }
-                >
-                  {redSpymaster ? (
-                    <img
-                      src={avatarUrlForPlayer(redSpymaster)}
-                      alt={redSpymaster.displayName}
-                      title={redSpymaster.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xl">🐙</span>
-                  )}
-                </button>
-                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-full shadow-md">
-                  {redSpymaster?.displayName ?? "None"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-center gap-2 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-none tracking-tight text-white">
-          <span>{turnInstruction}</span>
-          <button
-            type="button"
-            onClick={() => {
-              registerPopup(
-                <div className="space-y-3 text-sm text-(--app-text)">
-                  <p>Spymasters give one clue word and a number.</p>
-                  <p>
-                    Operatives tap a card to select it, then use the green
-                    button to confirm.
-                  </p>
-                  <p>Tap a revealed card to show or hide its word.</p>
-                </div>,
-                "How to play",
-              );
-              openPopup();
-            }}
-            aria-label="How to play"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#54df20] text-base text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)] transition-transform hover:scale-110 active:scale-95"
-          >
-            <span aria-hidden="true">?</span>
-          </button>
-        </div>
-        <div className="mt-2 rounded-[10px] border border-white/15 bg-[#0879b8] p-1.5">
-          <BoardGrid
-            cards={state.game.board}
-            role={state.game.role}
-            selectedCardId={state.game.selectedCardId}
-            canSelectCard={canSelectCard}
-            onSelectCard={handleSelectCard}
-            onConfirmCard={handleConfirmCard}
-            hideWords={isViewerOperative ? hideBoard : false}
-            selectedPlayersByCard={visibleSelectedPlayersByCard}
+          <SpymasterPanel
+            className="col-start-3 row-start-2"
+            team="red"
+            player={redSpymaster}
+            active={isRedTurn}
+            canManagePlayers={isRoomOwner}
+            onPlayerClick={handleGamePlayerClick}
           />
         </div>
+        <TurnBanner
+          instruction={turnInstruction}
+          player={turnPlayer}
+          onHelp={() => {
+            registerPopup(
+              <div className="space-y-3 text-sm text-(--app-text)">
+                <p>Spymasters give one clue word and a number.</p>
+                <p>
+                  Operatives tap a card to select it, then use the green button
+                  to confirm.
+                </p>
+                <p>Tap a revealed card to show or hide its word.</p>
+              </div>,
+              "How to play",
+            );
+            openPopup();
+          }}
+        />
+        <GameBoardSurface
+          game={state.game}
+          canSelectCard={canSelectCard}
+          onSelectCard={selectCard}
+          onConfirmCard={handleConfirmCard}
+          selectedHintCardIds={selectedHintCardIds}
+          onToggleHintCard={
+            state.game.role === "spymaster" ? handleToggleHintCard : undefined
+          }
+          hideWords={isViewerOperative ? hideBoard : false}
+          selectedPlayersByCard={visibleSelectedPlayersByCard}
+        />
         {canSubmitHint ? (
-          <form
-            onSubmit={handleSubmitHint}
-            className="sticky bottom-2 z-20 mt-3 flex items-end gap-2 rounded-2xl border-2 border-white/25 bg-[#292929] p-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
-          >
-            <div className="min-w-0 flex-1 space-y-2">
-              <label
-                htmlFor="hintWord"
-                className="text-xs uppercase tracking-[0.18em] text-white/70"
-              >
-                Hint Word
-              </label>
-              <input
-                id="hintWord"
-                type="text"
-                value={hintDraft.word}
-                onChange={(e) =>
-                  setHintDraft((current) => ({
-                    ...current,
-                    word: e.target.value,
-                  }))
-                }
-                placeholder="Enter one word (no spaces)"
-                disabled={hintSubmitting}
-                className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
-                autoFocus
-              />
-            </div>
-
-            <div className="w-24 shrink-0 space-y-2">
-              <label
-                htmlFor="hintNumber"
-                className="text-xs uppercase tracking-[0.18em] text-white/70"
-              >
-                Number of Cards (1-25)
-              </label>
-              <input
-                id="hintNumber"
-                type="number"
-                min="1"
-                max="25"
-                value={hintDraft.number}
-                onChange={(e) =>
-                  setHintDraft((current) => ({
-                    ...current,
-                    number: e.target.value,
-                  }))
-                }
-                placeholder="How many cards?"
-                disabled={hintSubmitting}
-                className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-3 text-white placeholder:text-white/40 disabled:opacity-60"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={
-                hintSubmitting || !hintDraft.word.trim() || !hintDraft.number
-              }
-              aria-label="Send hint"
-              className="flex h-12 shrink-0 items-center justify-center rounded-full bg-[#51df20] px-4 py-3 text-sm font-black text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)] disabled:opacity-60"
-            >
-              {hintSubmitting ? "..." : "Send"}
-            </button>
-          </form>
-        ) : hasActiveHint ? (
-          <div className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-2xl border-2 border-white/25 bg-[#292929] px-2 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)]">
-            <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl bg-white px-3 py-2 text-center text-xl font-black uppercase tracking-tight text-black">
-              {state.game.currentHintWord} ({state.game.currentHintNumber})
-            </div>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#159dce] text-xl font-black">
-              {state.game.currentHintNumber}
-            </div>
-            {canPassTurn || canTakeTurn ? (
-              <button
-                type="button"
-                onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
-                className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
-                aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
-              >
-                {canTakeTurn ? "Take turn" : "Pass"}
-              </button>
-            ) : null}
-          </div>
-        ) : canPassTurn || canTakeTurn ? (
-          <div className="sticky bottom-2 z-20 mt-3 flex items-center justify-end rounded-2xl border-2 border-white/25 bg-[#292929] px-3 py-3 shadow-[0_4px_14px_rgba(0,0,0,0.4)]">
-            <button
-              type="button"
-              onClick={canTakeTurn ? handleTakeTurn : handlePassTurn}
-              className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
-              aria-label={canTakeTurn ? "Take turn" : "Pass turn"}
-            >
-              {canTakeTurn ? "Take turn" : "Pass"}
-            </button>
-          </div>
-        ) : isActiveOperative ? (
-          <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
-            <div className="flex-1 px-2 text-left text-sm font-semibold text-white/80">
-              Your spymaster has not given a clue yet.
-            </div>
-          </div>
+          <HintComposer
+            word={hintDraft.word}
+            number={hintDraft.number}
+            submitting={hintSubmitting}
+            onWordChange={(word) =>
+              setHintDraft((current) => ({ ...current, word }))
+            }
+            onNumberChange={handleHintNumberChange}
+            onSubmit={() => submitHint(hintDraft.word, hintDraft.number)}
+          />
         ) : null}
+        <TurnActionBar
+          hintWord={state.game.currentHintWord}
+          hintNumber={state.game.currentHintNumber}
+          remainingGuesses={state.game.remainingGuesses}
+          canPass={canPassTurn}
+          canTake={canTakeTurn}
+          activeOperative={isActiveOperative}
+          onPass={passTurn}
+          onTake={takeTurn}
+        />
         {hintMessage ? (
           <div className="mt-3">
             <StatusPanel

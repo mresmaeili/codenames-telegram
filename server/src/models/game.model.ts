@@ -87,6 +87,15 @@ const gameSchema = new Schema<GameDocument>(
       type: Date,
       default: null,
     },
+    phase: {
+      type: String,
+      enum: ["spymaster", "operatives"],
+      default: "spymaster",
+    },
+    phaseStartedAt: {
+      type: Date,
+      default: Date.now,
+    },
     turnStartedAt: {
       type: Date,
       default: Date.now,
@@ -98,6 +107,34 @@ const gameSchema = new Schema<GameDocument>(
           number: { type: Number, required: true },
           team: { type: String, enum: ["red", "blue"], required: true },
           submittedAt: { type: Date, required: true },
+        },
+      ],
+      default: [],
+    },
+    rounds: {
+      type: [
+        {
+          id: { type: String, required: true },
+          team: { type: String, enum: ["red", "blue"], required: true },
+          hint: {
+            word: { type: String, required: true, trim: true },
+            number: { type: Number, required: true },
+            team: { type: String, enum: ["red", "blue"], required: true },
+            submittedAt: { type: Date, required: true },
+            playerId: { type: String, default: null },
+          },
+          guesses: {
+            type: [
+              {
+                word: { type: String, required: true, trim: true },
+                cardIndex: { type: Number, required: true },
+                playerId: { type: String, default: null },
+                correct: { type: Boolean, required: true },
+                revealedAt: { type: Date, required: true },
+              },
+            ],
+            default: [],
+          },
         },
       ],
       default: [],

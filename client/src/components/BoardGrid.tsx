@@ -14,6 +14,8 @@ interface BoardGridProps {
   canSelectCard?: boolean;
   onSelectCard?: (cardIndex: number) => void;
   onConfirmCard?: (cardIndex: number) => void;
+  selectedHintCardIds?: Set<number>;
+  onToggleHintCard?: (cardIndex: number) => void;
   hideWords?: boolean;
   selectedPlayersByCard?: Record<number, Room["players"]>;
 }
@@ -25,6 +27,8 @@ export function BoardGrid({
   canSelectCard = false,
   onSelectCard,
   onConfirmCard,
+  selectedHintCardIds = new Set(),
+  onToggleHintCard,
   hideWords = false,
   selectedPlayersByCard = {},
 }: BoardGridProps) {
@@ -43,6 +47,10 @@ export function BoardGrid({
               word={spymasterCard.word}
               color={spymasterCard.color}
               revealed={spymasterCard.revealed}
+              selected={selectedHintCardIds.has(index)}
+              onClick={
+                onToggleHintCard ? () => onToggleHintCard(index) : undefined
+              }
             />
           );
         }

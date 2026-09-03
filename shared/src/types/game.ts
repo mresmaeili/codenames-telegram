@@ -1,6 +1,7 @@
 export type CardColor = "red" | "blue" | "neutral" | "assassin";
 export type GameStatus = "active" | "finished";
 export type Turn = "red" | "blue";
+export type GamePhase = "spymaster" | "operatives";
 export type GameCompletionReason =
   | "all-red-cards-revealed"
   | "all-blue-cards-revealed"
@@ -17,6 +18,22 @@ export interface HintEntry {
   number: number;
   team: Turn;
   submittedAt: Date;
+  playerId?: string | null;
+}
+
+export interface GameGuess {
+  word: string;
+  cardIndex: number;
+  playerId: string | null;
+  correct: boolean;
+  revealedAt: Date;
+}
+
+export interface GameRound {
+  id: string;
+  team: Turn;
+  hint: HintEntry;
+  guesses: GameGuess[];
 }
 
 export interface PublicCard {
@@ -42,8 +59,11 @@ export interface Game {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  phase?: GamePhase;
+  phaseStartedAt?: Date | null;
   turnStartedAt?: Date | null;
   hintHistory: HintEntry[];
+  rounds?: GameRound[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
@@ -67,8 +87,11 @@ export interface GameViewBase {
   currentHintWord: string | null;
   currentHintNumber: number | null;
   hintSubmittedAt: Date | null;
+  phase?: GamePhase;
+  phaseStartedAt?: Date | null;
   turnStartedAt?: Date | null;
   hintHistory: HintEntry[];
+  rounds?: GameRound[];
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
