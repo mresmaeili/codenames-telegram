@@ -48,6 +48,295 @@ interface GamePageState {
   error: string | null;
 }
 
+function GameLoadingState() {
+  return (
+    <PageContainer>
+      <StatusPanel
+        title="Loading game"
+        description="We are restoring the latest room and board state now."
+        tone="info"
+      />
+    </PageContainer>
+  );
+}
+
+function GameErrorState({
+  error,
+  onLeave,
+}: {
+  error: string | null;
+  onLeave: () => void;
+}) {
+  return (
+    <PageContainer>
+      <div className="space-y-4 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
+        <StatusPanel
+          title="Board unavailable"
+          description={
+            error ??
+            "We could not restore the game state. Please try again in a moment."
+          }
+          tone="error"
+        />
+        <button
+          type="button"
+          onClick={onLeave}
+          className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
+        >
+          Return to lobby
+        </button>
+      </div>
+    </PageContainer>
+  );
+}
+
+function GameInspectorPanel({
+  refreshingGame,
+  onRefresh,
+}: {
+  refreshingGame: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/75">
+            Dev inspector
+          </p>
+          <p className="mt-1 text-sm text-white/80">
+            Manual refresh and raw state.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshingGame}
+          className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {refreshingGame ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GameCompletionBanner({
+  completionSummary,
+  isRoomOwner,
+  onRematch,
+}: {
+  completionSummary: string | null;
+  isRoomOwner: boolean;
+  onRematch: () => void;
+}) {
+  return (
+    <div className="mb-3 rounded-3xl border border-white/20 bg-black/20 p-4">
+      <p className="text-lg font-black uppercase tracking-tight">
+        Game complete
+      </p>
+      <p className="mt-1 text-sm text-white/80">
+        {completionSummary ?? "All cards are revealed."}
+      </p>
+      {isRoomOwner ? (
+        <button
+          type="button"
+          onClick={onRematch}
+          className="mt-3 w-full rounded-full bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0a63d4]"
+        >
+          Reset game and return to lobby
+        </button>
+      ) : (
+        <p className="mt-3 text-sm text-white/70">
+          Waiting for the room admin to reset the game.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function GameMetaSummary({
+  roomSettings,
+  spymasterSecondsRemaining,
+  operativeSecondsRemaining,
+}: {
+  roomSettings: Room["settings"] | undefined;
+  spymasterSecondsRemaining: number | null;
+  operativeSecondsRemaining: number | null;
+}) {
+  if (!roomSettings) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3 grid grid-cols-2 gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
+      <div className="rounded-2xl bg-white/10 px-3 py-2">
+        Timer:{" "}
+        {roomSettings.timer === "none" ? "Off" : `${roomSettings.timer}s`}
+      </div>
+      {spymasterSecondsRemaining !== null ? (
+        <div className="rounded-2xl bg-white/10 px-3 py-2">
+          Spymaster: {spymasterSecondsRemaining}s
+        </div>
+      ) : null}
+      {operativeSecondsRemaining !== null ? (
+        <div className="rounded-2xl bg-white/10 px-3 py-2">
+          Operatives: {operativeSecondsRemaining}s
+        </div>
+      ) : null}
+      <div className="rounded-2xl bg-white/10 px-3 py-2">
+        Language: {roomSettings.language}
+      </div>
+      <div className="rounded-2xl bg-white/10 px-3 py-2">
+        Pack: {roomSettings.wordPack}
+      </div>
+    </div>
+  );
+}
+
+function RoomSettingsPopupContent({
+  room,
+  isRoomOwner,
+  onClose,
+  onResetTeams,
+  onShuffleTeams,
+}: {
+  room: Room;
+  isRoomOwner: boolean;
+  onClose: () => void;
+  onResetTeams: () => void;
+  onShuffleTeams: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
+          Room settings
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
+        >
+          Close
+        </button>
+      </div>
+      <div className="rounded-[22px] bg-black px-4 py-4">
+        <p className="text-center text-base font-black text-white">
+          Players in the room
+        </p>
+        <div className="mt-3 flex flex-wrap justify-center gap-3">
+          {room.players.map((roomPlayer) => (
+            <div
+              key={roomPlayer.userId}
+              className="flex w-16 flex-col items-center gap-1"
+            >
+              <img
+                src={avatarUrlForPlayer(roomPlayer)}
+                alt={roomPlayer.displayName}
+                className="h-11 w-11 rounded-full border-2 border-white object-cover"
+              />
+              <span className="max-w-16 truncate rounded-sm bg-white/15 px-1 text-[10px] font-bold text-white">
+                {roomPlayer.displayName}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {isRoomOwner ? (
+        <div className="space-y-3">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onResetTeams}
+              className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
+            >
+              Reset teams
+            </button>
+            <button
+              type="button"
+              onClick={onShuffleTeams}
+              className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
+            >
+              Randomize teams
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
+          Only the room owner can change settings.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlayerAssignmentPopupContent({
+  player,
+  isRoomCreator,
+  isCreator,
+  isAdmin,
+  onAssign,
+  onToggleAdmin,
+}: {
+  player: Room["players"][number];
+  isRoomCreator: boolean;
+  isCreator: boolean;
+  isAdmin: boolean;
+  onAssign: (
+    team: "blue" | "red" | null,
+    role: "operative" | "spymaster",
+  ) => void;
+  onToggleAdmin: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-center text-lg font-black text-white">
+        {player.displayName}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          ["blue", "operative", "Blue operatives"],
+          ["red", "operative", "Red operatives"],
+          ["blue", "spymaster", "Blue spymasters"],
+          ["red", "spymaster", "Red spymasters"],
+        ].map(([team, role, label]) => (
+          <button
+            key={`${team}-${role}`}
+            type="button"
+            onClick={() =>
+              onAssign(
+                team as "blue" | "red",
+                role as "operative" | "spymaster",
+              )
+            }
+            className={`rounded-full px-3 py-3 text-sm font-black text-white ${team === "blue" ? "bg-[#149dde]" : "bg-[#ff554b]"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onAssign(null, "operative")}
+        className="w-full rounded-full border-2 border-white px-3 py-3 text-sm font-black text-white"
+      >
+        Spectators
+      </button>
+      {isRoomCreator && !isCreator ? (
+        <button
+          type="button"
+          onClick={onToggleAdmin}
+          className="w-full rounded-full bg-[#2fd000] px-3 py-3 text-sm font-black text-white"
+        >
+          {isAdmin ? "Remove admin" : "Promote"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function logEntriesFromRounds(game: GameView): GameLogEntry[] {
   return (game.rounds ?? []).flatMap((round) => [
     {
@@ -523,69 +812,13 @@ export function GamePage({
     }
 
     registerPopup(
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-xs uppercase tracking-[0.24em] text-(--app-muted)">
-            Room settings
-          </div>
-          <button
-            type="button"
-            onClick={closePopup}
-            className="rounded-full border border-(--app-border) px-3 py-1 text-sm"
-          >
-            Close
-          </button>
-        </div>
-        <div className="rounded-[22px] bg-black px-4 py-4">
-          <p className="text-center text-base font-black text-white">
-            Players in the room
-          </p>
-          <div className="mt-3 flex flex-wrap justify-center gap-3">
-            {state.room.players.map((roomPlayer) => (
-              <div
-                key={roomPlayer.userId}
-                className="flex w-16 flex-col items-center gap-1"
-              >
-                <img
-                  src={avatarUrlForPlayer(roomPlayer)}
-                  alt={roomPlayer.displayName}
-                  className="h-11 w-11 rounded-full border-2 border-white object-cover"
-                />
-                <span className="max-w-16 truncate rounded-sm bg-white/15 px-1 text-[10px] font-bold text-white">
-                  {roomPlayer.displayName}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {isRoomOwner ? (
-          <div className="space-y-3">
-            {/* Allow spectators and Private room controls removed from popup */}
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleResetTeams}
-                className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
-              >
-                Reset teams
-              </button>
-              <button
-                type="button"
-                onClick={handleShuffleTeams}
-                className="flex-1 rounded-full border border-(--app-border) px-4 py-2 text-sm font-semibold"
-              >
-                Randomize teams
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-(--app-border) bg-(--app-surface) p-3 text-sm text-(--app-muted)">
-            Only the room owner can change settings.
-          </div>
-        )}
-      </div>,
+      <RoomSettingsPopupContent
+        room={state.room}
+        isRoomOwner={isRoomOwner}
+        onClose={closePopup}
+        onResetTeams={handleResetTeams}
+        onShuffleTeams={handleShuffleTeams}
+      />,
       "Room settings",
     );
   }, [registerPopup, isRoomOwner, state.room]);
@@ -720,99 +953,35 @@ export function GamePage({
     const isAdmin = state.room.ownerIds.includes(player.telegramId);
     const isCreator = player.telegramId === state.room.ownerId;
     registerPopup(
-      <div className="space-y-3">
-        <p className="text-center text-lg font-black text-white">
-          {player.displayName}
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            ["blue", "operative", "Blue operatives"],
-            ["red", "operative", "Red operatives"],
-            ["blue", "spymaster", "Blue spymasters"],
-            ["red", "spymaster", "Red spymasters"],
-          ].map(([team, role, label]) => (
-            <button
-              key={`${team}-${role}`}
-              type="button"
-              onClick={() =>
-                handleAssignPlayerFromGame(
-                  player.telegramId,
-                  team as "blue" | "red",
-                  role as "operative" | "spymaster",
-                )
-              }
-              className={`rounded-full px-3 py-3 text-sm font-black text-white ${team === "blue" ? "bg-[#149dde]" : "bg-[#ff554b]"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() =>
-            handleAssignPlayerFromGame(player.telegramId, null, "operative")
-          }
-          className="w-full rounded-full border-2 border-white px-3 py-3 text-sm font-black text-white"
-        >
-          Spectators
-        </button>
-        {isRoomCreator && !isCreator ? (
-          <button
-            type="button"
-            onClick={() => {
-              socket?.emit("room:setAdmin", {
-                roomCode: state.room?.roomCode,
-                creatorTelegramId: user.telegramId,
-                targetTelegramId: player.telegramId,
-                isAdmin: !isAdmin,
-              });
-              closePopup();
-            }}
-            className="w-full rounded-full bg-[#2fd000] px-3 py-3 text-sm font-black text-white"
-          >
-            {isAdmin ? "Remove admin" : "Promote"}
-          </button>
-        ) : null}
-      </div>,
+      <PlayerAssignmentPopupContent
+        player={player}
+        isRoomCreator={isRoomCreator}
+        isCreator={isCreator}
+        isAdmin={isAdmin}
+        onAssign={(team, role) =>
+          handleAssignPlayerFromGame(player.telegramId, team, role)
+        }
+        onToggleAdmin={() => {
+          socket?.emit("room:setAdmin", {
+            roomCode: state.room?.roomCode,
+            creatorTelegramId: user.telegramId,
+            targetTelegramId: player.telegramId,
+            isAdmin: !isAdmin,
+          });
+          closePopup();
+        }}
+      />,
       "Assign role",
     );
     openPopup();
   }
 
   if (state.loading) {
-    return (
-      <PageContainer>
-        <StatusPanel
-          title="Loading game"
-          description="We are restoring the latest room and board state now."
-          tone="info"
-        />
-      </PageContainer>
-    );
+    return <GameLoadingState />;
   }
 
   if (state.error || !state.room || !state.game) {
-    return (
-      <PageContainer>
-        <div className="space-y-4 rounded-3xl border border-(--app-border) bg-(--app-surface) p-4">
-          <StatusPanel
-            title="Board unavailable"
-            description={
-              state.error ??
-              "We could not restore the game state. Please try again in a moment."
-            }
-            tone="error"
-          />
-          <button
-            type="button"
-            onClick={onLeave}
-            className="rounded-full border border-(--app-border) px-4 py-2 text-sm font-medium text-(--app-text)"
-          >
-            Return to lobby
-          </button>
-        </div>
-      </PageContainer>
-    );
+    return <GameErrorState error={state.error} onLeave={onLeave} />;
   }
 
   return (
@@ -856,26 +1025,10 @@ export function GamePage({
           onSettings={openPopup}
         />
         {devMode ? (
-          <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/75">
-                  Dev inspector
-                </p>
-                <p className="mt-1 text-sm text-white/80">
-                  Manual refresh and raw state.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={refreshGameState}
-                disabled={refreshingGame}
-                className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {refreshingGame ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-          </div>
+          <GameInspectorPanel
+            refreshingGame={refreshingGame}
+            onRefresh={refreshGameState}
+          />
         ) : null}
         {isReconnecting ? (
           <div className="mb-3">
@@ -887,52 +1040,17 @@ export function GamePage({
           </div>
         ) : null}
         {gameFinished ? (
-          <div className="mb-3 rounded-3xl border border-white/20 bg-black/20 p-4">
-            <p className="text-lg font-black uppercase tracking-tight">
-              Game complete
-            </p>
-            <p className="mt-1 text-sm text-white/80">
-              {completionSummary ?? "All cards are revealed."}
-            </p>
-            {isRoomOwner ? (
-              <button
-                type="button"
-                onClick={handleRematch}
-                className="mt-3 w-full rounded-full bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0a63d4]"
-              >
-                Reset game and return to lobby
-              </button>
-            ) : (
-              <p className="mt-3 text-sm text-white/70">
-                Waiting for the room admin to reset the game.
-              </p>
-            )}
-          </div>
+          <GameCompletionBanner
+            completionSummary={completionSummary}
+            isRoomOwner={isRoomOwner}
+            onRematch={handleRematch}
+          />
         ) : null}
-        {roomSettings ? (
-          <div className="mb-3 grid grid-cols-2 gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
-            <div className="rounded-2xl bg-white/10 px-3 py-2">
-              Timer:{" "}
-              {roomSettings.timer === "none" ? "Off" : `${roomSettings.timer}s`}
-            </div>
-            {spymasterSecondsRemaining !== null ? (
-              <div className="rounded-2xl bg-white/10 px-3 py-2">
-                Spymaster: {spymasterSecondsRemaining}s
-              </div>
-            ) : null}
-            {operativeSecondsRemaining !== null ? (
-              <div className="rounded-2xl bg-white/10 px-3 py-2">
-                Operatives: {operativeSecondsRemaining}s
-              </div>
-            ) : null}
-            <div className="rounded-2xl bg-white/10 px-3 py-2">
-              Language: {roomSettings.language}
-            </div>
-            <div className="rounded-2xl bg-white/10 px-3 py-2">
-              Pack: {roomSettings.wordPack}
-            </div>
-          </div>
-        ) : null}
+        <GameMetaSummary
+          roomSettings={roomSettings}
+          spymasterSecondsRemaining={spymasterSecondsRemaining}
+          operativeSecondsRemaining={operativeSecondsRemaining}
+        />
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
           <TeamPanel
             className="col-start-1 row-start-1"
