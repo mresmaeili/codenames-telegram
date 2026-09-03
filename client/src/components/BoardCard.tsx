@@ -30,7 +30,7 @@ export function BoardCard({
   showRevealedWord = false,
   selectedPlayers = [],
 }: BoardCardProps) {
-  const isFlipped = selectedPlaceholder || Boolean(revealedColor);
+  const isFlipped = Boolean(revealedColor);
   const hiddenWord = hideWord || (Boolean(revealedColor) && !showRevealedWord);
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",

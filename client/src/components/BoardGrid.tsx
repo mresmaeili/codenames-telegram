@@ -11,6 +11,8 @@ interface BoardGridProps {
   cards: PublicCard[] | SpymasterCardModel[];
   role?: "operative" | "spymaster";
   selectedCardId?: string | null;
+  selectedByPlayerId?: string | null;
+  viewerPlayerId?: string | null;
   canSelectCard?: boolean;
   onSelectCard?: (cardIndex: number) => void;
   onConfirmCard?: (cardIndex: number) => void;
@@ -24,6 +26,8 @@ export function BoardGrid({
   cards,
   role = "operative",
   selectedCardId,
+  selectedByPlayerId,
+  viewerPlayerId,
   canSelectCard = false,
   onSelectCard,
   onConfirmCard,
@@ -58,7 +62,10 @@ export function BoardGrid({
         const publicCard = card as PublicCard;
         const isSelected = selectedCardId === String(index);
         const isSelectable = canSelectCard && !publicCard.revealed;
-        const isConfirmable = isSelected && !publicCard.revealed;
+        const isConfirmable =
+          isSelected &&
+          selectedByPlayerId === viewerPlayerId &&
+          !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible =
           publicCard.revealed || visibleRevealedWords.has(index);

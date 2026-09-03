@@ -1118,6 +1118,7 @@ export function GamePage({
         />
         <GameBoardSurface
           game={state.game}
+          viewerPlayerId={viewerPlayer?.userId}
           canSelectCard={canSelectCard}
           onSelectCard={selectCard}
           onConfirmCard={handleConfirmCard}
