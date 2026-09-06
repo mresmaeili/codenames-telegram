@@ -4,6 +4,7 @@ import { useState } from "react";
 import type {
   PublicCard,
   SpymasterCard as SpymasterCardModel,
+  Turn,
 } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 
@@ -18,6 +19,7 @@ interface BoardGridProps {
   onConfirmCard?: (cardIndex: number) => void;
   selectedHintCardIds?: Set<number>;
   onToggleHintCard?: (cardIndex: number) => void;
+  hintTeam?: Turn;
   hideWords?: boolean;
   selectedPlayersByCard?: Record<number, Room["players"]>;
 }
@@ -33,6 +35,7 @@ export function BoardGrid({
   onConfirmCard,
   selectedHintCardIds = new Set(),
   onToggleHintCard,
+  hintTeam,
   hideWords = false,
   selectedPlayersByCard = {},
 }: BoardGridProps) {
@@ -45,15 +48,29 @@ export function BoardGrid({
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
+          const canSelectHintCard =
+            !spymasterCard.revealed && spymasterCard.color === hintTeam;
           return (
             <SpymasterCard
               key={`${spymasterCard.word}-${index}`}
               word={spymasterCard.word}
               color={spymasterCard.color}
               revealed={spymasterCard.revealed}
-              selected={selectedHintCardIds.has(index)}
+              showRevealedWord={visibleRevealedWords.has(index)}
+              selected={canSelectHintCard && selectedHintCardIds.has(index)}
               onClick={
-                onToggleHintCard ? () => onToggleHintCard(index) : undefined
+                spymasterCard.revealed
+                  ? () => {
+                      setVisibleRevealedWords((current) => {
+                        const next = new Set(current);
+                        if (next.has(index)) next.delete(index);
+                        else next.add(index);
+                        return next;
+                      });
+                    }
+                  : canSelectHintCard && onToggleHintCard
+                    ? () => onToggleHintCard(index)
+                    : undefined
               }
             />
           );
@@ -67,8 +84,7 @@ export function BoardGrid({
           selectedByPlayerId === viewerPlayerId &&
           !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
-        const isRevealedWordVisible =
-          publicCard.revealed || visibleRevealedWords.has(index);
+        const isRevealedWordVisible = visibleRevealedWords.has(index);
         const ariaLabel = publicCard.revealed
           ? `Revealed ${publicCard.word}`
           : isConfirmable

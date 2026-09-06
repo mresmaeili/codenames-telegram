@@ -5,6 +5,7 @@ import App from "@/App";
 import { env } from "@/config/env";
 import { isDevModeEnabled } from "@/lib/dev";
 import {
+  getTelegramInitData,
   initializeTelegramMiniApp,
   waitForTelegramMiniApp,
 } from "@/lib/telegram";
@@ -15,7 +16,9 @@ async function bootstrap() {
   const devMode = isDevModeEnabled();
 
   if (devMode) {
-    console.debug("[Main] Dev mode enabled, skipping Telegram SDK initialization.");
+    console.debug(
+      "[Main] Dev mode enabled, skipping Telegram SDK initialization.",
+    );
   } else {
     const telegramAvailable = await waitForTelegramMiniApp(2000);
 
@@ -34,7 +37,11 @@ async function bootstrap() {
     initializeTelegramMiniApp();
   }
 
-  createSocketClient({ endpoint: env.SOCKET_URL });
+  const initData = devMode ? null : await getTelegramInitData();
+  createSocketClient({
+    endpoint: env.SOCKET_URL,
+    auth: devMode ? { dev: true } : initData ? { initData } : undefined,
+  });
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>

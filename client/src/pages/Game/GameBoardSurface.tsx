@@ -37,6 +37,7 @@ export function GameBoardSurface({
         onSelectCard={onSelectCard}
         onConfirmCard={onConfirmCard}
         selectedHintCardIds={selectedHintCardIds}
+        hintTeam={game.currentTurn}
         onToggleHintCard={onToggleHintCard}
         hideWords={hideWords}
         selectedPlayersByCard={selectedPlayersByCard}

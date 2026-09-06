@@ -448,6 +448,23 @@ gameRouter.post("/:gameId/pass", async (request, response) => {
       selectedCardId: result.game.selectedCardId,
       selectedByPlayerId: result.game.selectedByPlayerId,
       selectedAt: result.game.selectedAt,
+      rounds: (game.rounds ?? []).map((round, index, rounds) =>
+        index === rounds.length - 1
+          ? {
+              ...round,
+              passes: [
+                ...(round.passes ?? []),
+                {
+                  playerId:
+                    roomRecord.players.find(
+                      (player) => player.telegramId === senderTelegramId,
+                    )?.userId ?? null,
+                  passedAt: new Date(),
+                },
+              ],
+            }
+          : round,
+      ),
       phase: "spymaster",
       phaseStartedAt: new Date(),
       turnStartedAt: new Date(),

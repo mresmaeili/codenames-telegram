@@ -81,6 +81,30 @@ type SelectionSocketPayload = GameSelectInputPayload;
 
 type PassSocketPayload = GamePassInputPayload;
 
+function getActorTelegramId(
+  socket: Socket,
+  claimedTelegramId: unknown,
+): number {
+  const socketData = socket.data ?? {};
+  if (
+    env.DEV_MODE &&
+    (socketData.devMode === true || typeof socketData.telegramId !== "number")
+  ) {
+    if (typeof claimedTelegramId === "number") return claimedTelegramId;
+    throw new Error("Invalid actor identity.");
+  }
+
+  const authenticatedTelegramId = socket.data.telegramId;
+  if (
+    typeof authenticatedTelegramId !== "number" ||
+    authenticatedTelegramId !== claimedTelegramId
+  ) {
+    throw new Error("Authenticated identity does not match the actor.");
+  }
+
+  return authenticatedTelegramId;
+}
+
 function hasTurnTimerExpired(
   game: {
     hintSubmittedAt?: Date | null;
@@ -245,7 +269,7 @@ export function registerRoomSocketHandlers(
 
       const room = await createRoom({
         ownerId: payload.ownerId,
-        ownerTelegramId: payload.ownerTelegramId,
+        ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
         ownerDisplayName: payload.ownerDisplayName,
       });
 
@@ -270,6 +294,18 @@ export function registerRoomSocketHandlers(
         return;
       }
 
+      if (
+        !(
+          env.DEV_MODE &&
+          (socket.data?.devMode === true ||
+            typeof socket.data?.telegramId !== "number")
+        ) &&
+        socket.data.telegramId !== payload.telegramId
+      ) {
+        socket.emit("room:error", { message: "Invalid socket identity." });
+        return;
+      }
+
       const room = await joinRoom({
         roomCode: payload.roomCode,
         telegramId: payload.telegramId,
@@ -282,7 +318,6 @@ export function registerRoomSocketHandlers(
         telegramId: payload.telegramId,
         roomCode: room.roomCode,
       };
-      socket.emit("room:joined", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
       const message =
@@ -312,12 +347,11 @@ export function registerRoomSocketHandlers(
 
         const room = await updateRoomPlayerAssignment({
           roomCode: payload.roomCode,
-          telegramId: payload.telegramId,
+          telegramId: getActorTelegramId(socket, payload.telegramId),
           team: payload.team,
           role: payload.role,
         });
 
-        socket.emit("room:updated", room);
         io.to(room.roomCode).emit("room:updated", room);
         callback?.({});
       } catch (error) {
@@ -346,11 +380,10 @@ export function registerRoomSocketHandlers(
 
         const room = await transferRoomOwnership({
           roomCode: payload.roomCode,
-          ownerTelegramId: payload.ownerTelegramId,
+          ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
           targetTelegramId: payload.targetTelegramId,
         });
 
-        socket.emit("room:updated", room);
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -376,12 +409,14 @@ export function registerRoomSocketHandlers(
 
       const room = await setRoomAdmin({
         roomCode: payload.roomCode,
-        creatorTelegramId: payload.creatorTelegramId,
+        creatorTelegramId: getActorTelegramId(
+          socket,
+          payload.creatorTelegramId,
+        ),
         targetTelegramId: payload.targetTelegramId,
         isAdmin: payload.isAdmin,
       });
 
-      socket.emit("room:updated", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
       const message =
@@ -409,13 +444,12 @@ export function registerRoomSocketHandlers(
 
         const room = await assignRoomPlayer({
           roomCode: payload.roomCode,
-          actorTelegramId: payload.actorTelegramId,
+          actorTelegramId: getActorTelegramId(socket, payload.actorTelegramId),
           targetTelegramId: payload.targetTelegramId,
           team: payload.team,
           role: payload.role,
         });
 
-        socket.emit("room:updated", room);
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -441,10 +475,9 @@ export function registerRoomSocketHandlers(
 
         const room = await shuffleRoomTeams({
           roomCode: payload.roomCode,
-          ownerTelegramId: payload.ownerTelegramId,
+          ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
         });
 
-        socket.emit("room:updated", room);
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -468,10 +501,9 @@ export function registerRoomSocketHandlers(
 
       const room = await resetRoomTeams({
         roomCode: payload.roomCode,
-        ownerTelegramId: payload.ownerTelegramId,
+        ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
       });
 
-      socket.emit("room:updated", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
       const message =
@@ -516,11 +548,6 @@ export function registerRoomSocketHandlers(
       });
 
       await socket.join(updatedRoom.roomCode);
-      socket.emit("room:botAdded", {
-        room: updatedRoom,
-        botName,
-        telegramId,
-      });
       io.to(updatedRoom.roomCode).emit("room:updated", updatedRoom);
     } catch (error) {
       const message =
@@ -639,8 +666,13 @@ export function registerRoomSocketHandlers(
           return;
         }
 
+        const requesterTelegramId = getActorTelegramId(
+          socket,
+          payload.requesterTelegramId,
+        );
+
         const requester = room.players.find(
-          (p) => p.telegramId === payload.requesterTelegramId,
+          (p) => p.telegramId === requesterTelegramId,
         );
         if (!requester || requester.role !== "spymaster") {
           socket.emit("game:error", {
@@ -714,7 +746,7 @@ export function registerRoomSocketHandlers(
 
         const room = await updateRoomSettings({
           roomCode: payload.roomCode,
-          ownerTelegramId: payload.ownerTelegramId,
+          ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
           settings: {
             maxPlayers: settingsPayload.maxPlayers,
             allowSpectators: settingsPayload.allowSpectators,
@@ -726,7 +758,6 @@ export function registerRoomSocketHandlers(
           },
         });
 
-        socket.emit("room:updated", room);
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -750,11 +781,13 @@ export function registerRoomSocketHandlers(
 
       const room = await startRoom({
         roomCode: payload.roomCode,
-        ownerTelegramId: payload.ownerTelegramId,
+        ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
       });
 
-      const { game } = await createGame({ roomCode: payload.roomCode });
-      socket.emit("room:starting", room);
+      const game = room.id ? await gameRepository.findByRoomId(room.id) : null;
+      if (!game) {
+        throw new Error("Game was not created for the room.");
+      }
       io.to(room.roomCode).emit("room:updated", room);
       socket.emit("game:initialized", {
         gameId: game._id.toString(),
@@ -792,7 +825,8 @@ export function registerRoomSocketHandlers(
 
       const owner = room.players.find(
         (player) =>
-          player.telegramId === payload.ownerTelegramId &&
+          player.telegramId ===
+            getActorTelegramId(socket, payload.ownerTelegramId) &&
           room.ownerIds.includes(player.telegramId),
       );
       if (!owner) {
@@ -812,7 +846,6 @@ export function registerRoomSocketHandlers(
       const { game: newGame } = await createGame({
         roomCode: payload.roomCode,
       });
-      socket.emit("room:starting", room);
       io.to(room.roomCode).emit("room:updated", room);
       socket.emit("game:initialized", {
         gameId: newGame._id.toString(),
@@ -848,7 +881,9 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      const isOwner = room.ownerIds.includes(payload.ownerTelegramId);
+      const isOwner = room.ownerIds.includes(
+        getActorTelegramId(socket, payload.ownerTelegramId),
+      );
       if (!isOwner) {
         socket.emit("room:error", {
           message: "Only the room owner can reset the game.",
@@ -916,6 +951,8 @@ export function registerRoomSocketHandlers(
         return;
       }
 
+      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
+
       const game = await gameRepository.findById(payload.gameId);
       if (!game) {
         socket.emit("game:error", { message: "Game not found." });
@@ -965,7 +1002,7 @@ export function registerRoomSocketHandlers(
           hintHistory: game.hintHistory ?? [],
         },
         room: { players: room.players },
-        senderTelegramId: payload.telegramId,
+        senderTelegramId: actorTelegramId,
         word: payload.word,
         number: payload.number,
       });
@@ -1004,15 +1041,6 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      io.to(payload.roomCode.toUpperCase()).emit("game:hinted", {
-        gameId: updatedGame._id.toString(),
-        currentHintWord: updatedGame.currentHintWord,
-        currentHintNumber: updatedGame.currentHintNumber,
-        remainingGuesses: updatedGame.remainingGuesses,
-        hintSubmittedAt: updatedGame.hintSubmittedAt,
-        hintHistory: updatedGame.hintHistory,
-        rounds: updatedGame.rounds ?? [],
-      });
       await emitGameState(
         io,
         payload.roomCode.toUpperCase(),
@@ -1052,6 +1080,8 @@ export function registerRoomSocketHandlers(
         return;
       }
 
+      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
+
       const selectionContext = {
         game: {
           status: game.status,
@@ -1070,7 +1100,7 @@ export function registerRoomSocketHandlers(
           completedAt: game.completedAt ?? null,
         },
         room: { players: room.players },
-        senderTelegramId: payload.telegramId,
+        senderTelegramId: actorTelegramId,
         cardId: payload.cardId,
       };
 
@@ -1110,12 +1140,6 @@ export function registerRoomSocketHandlers(
           return;
         }
 
-        io.to(payload.roomCode.toUpperCase()).emit("game:selected", {
-          gameId: selectedGame._id.toString(),
-          selectedCardId: selectedGame.selectedCardId,
-          selectedByPlayerId: selectedGame.selectedByPlayerId,
-          selectedAt: selectedGame.selectedAt,
-        });
         await emitGameState(
           io,
           payload.roomCode.toUpperCase(),
@@ -1128,7 +1152,7 @@ export function registerRoomSocketHandlers(
       const revealResult = applyCardReveal({
         game: selectionResult.game,
         room: { players: room.players },
-        senderTelegramId: payload.telegramId,
+        senderTelegramId: actorTelegramId,
       });
 
       const selectedCardColor =
@@ -1154,7 +1178,7 @@ export function registerRoomSocketHandlers(
         : applyTurnOutcome({
             game: revealResult.game,
             room: { players: room.players },
-            senderTelegramId: payload.telegramId,
+            senderTelegramId: actorTelegramId,
             revealedCardColor: selectedCardColor,
           }).game;
 
@@ -1178,12 +1202,7 @@ export function registerRoomSocketHandlers(
 
       const updatedGame = await gameRepository.update(payload.gameId, {
         board: revealResult.game.board,
-        redCardsRemaining: revealResult.game.board.filter(
-          (card) => card.color === "red" && !card.revealed,
-        ).length,
-        blueCardsRemaining: revealResult.game.board.filter(
-          (card) => card.color === "blue" && !card.revealed,
-        ).length,
+        ...getRemainingCardCounts(revealResult.game.board),
         status: resolvedGame.status,
         currentTurn: resolvedGame.currentTurn,
         remainingGuesses: resolvedGame.remainingGuesses,
@@ -1217,33 +1236,6 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      io.to(payload.roomCode.toUpperCase()).emit("game:revealed", {
-        gameId: updatedGame._id.toString(),
-        board: updatedGame.board,
-        currentTurn: updatedGame.currentTurn,
-        remainingGuesses: updatedGame.remainingGuesses,
-        redCardsRemaining: updatedGame.board.filter(
-          (card) => card.color === "red" && !card.revealed,
-        ).length,
-        blueCardsRemaining: updatedGame.board.filter(
-          (card) => card.color === "blue" && !card.revealed,
-        ).length,
-        currentHintWord: updatedGame.currentHintWord,
-        currentHintNumber: updatedGame.currentHintNumber,
-        status: updatedGame.status,
-        selectedCardId: updatedGame.selectedCardId,
-        selectedByPlayerId: updatedGame.selectedByPlayerId,
-        selectedAt: updatedGame.selectedAt,
-        winningTeam: updatedGame.winningTeam,
-        completionReason: updatedGame.completionReason,
-        completedAt: updatedGame.completedAt,
-        turnStartedAt: updatedGame.turnStartedAt,
-        phase: updatedGame.phase,
-        phaseStartedAt: updatedGame.phaseStartedAt,
-        revealedCardIndex,
-        revealedCardColor: revealedCard?.color ?? null,
-        revealedByPlayerId,
-      });
       await emitGameState(
         io,
         payload.roomCode.toUpperCase(),
@@ -1267,6 +1259,8 @@ export function registerRoomSocketHandlers(
         socket.emit("game:error", { message: "Invalid pass payload." });
         return;
       }
+
+      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
 
       const game = await gameRepository.findById(payload.gameId);
       if (!game) {
@@ -1331,7 +1325,7 @@ export function registerRoomSocketHandlers(
           selectedAt: game.selectedAt ?? null,
         },
         room: { players: room.players },
-        senderTelegramId: payload.telegramId,
+        senderTelegramId: actorTelegramId,
         allowTimeout: timeoutAllowed,
       });
 
@@ -1344,6 +1338,23 @@ export function registerRoomSocketHandlers(
         selectedCardId: result.game.selectedCardId,
         selectedByPlayerId: result.game.selectedByPlayerId,
         selectedAt: result.game.selectedAt,
+        rounds: (game.rounds ?? []).map((round, index, rounds) =>
+          index === rounds.length - 1
+            ? {
+                ...round,
+                passes: [
+                  ...(round.passes ?? []),
+                  {
+                    playerId:
+                      room.players.find(
+                        (player) => player.telegramId === actorTelegramId,
+                      )?.userId ?? null,
+                    passedAt: new Date(),
+                  },
+                ],
+              }
+            : round,
+        ),
         phase: "spymaster",
         phaseStartedAt: new Date(),
         turnStartedAt: new Date(),
@@ -1354,19 +1365,6 @@ export function registerRoomSocketHandlers(
         return;
       }
 
-      io.to(payload.roomCode.toUpperCase()).emit("game:passed", {
-        gameId: updatedGame._id.toString(),
-        currentTurn: updatedGame.currentTurn,
-        remainingGuesses: updatedGame.remainingGuesses,
-        currentHintWord: updatedGame.currentHintWord,
-        currentHintNumber: updatedGame.currentHintNumber,
-        selectedCardId: updatedGame.selectedCardId,
-        selectedByPlayerId: updatedGame.selectedByPlayerId,
-        selectedAt: updatedGame.selectedAt,
-        turnStartedAt: updatedGame.turnStartedAt,
-        phase: updatedGame.phase,
-        phaseStartedAt: updatedGame.phaseStartedAt,
-      });
       await emitGameState(
         io,
         payload.roomCode.toUpperCase(),

@@ -10,6 +10,39 @@ import { GameModel } from "../models/game.model.js";
 import { UserModel } from "../models/user.model.js";
 import { WordPoolModel } from "../models/word.model.js";
 
+interface ConnectedSocketMock {
+  data: { telegramId: number };
+  emit: (event: string, payload: unknown) => void;
+}
+
+function createIoMock(
+  emitted: Array<{ event: string; payload: unknown }>,
+  connectedSockets: ConnectedSocketMock[],
+) {
+  return {
+    to: () => ({
+      emit: (event: string, payload: unknown) => {
+        emitted.push({ event, payload });
+      },
+    }),
+    in: () => ({
+      fetchSockets: async () => connectedSockets,
+    }),
+  };
+}
+
+function createConnectedSocket(
+  telegramId: number,
+  emitted: Array<{ event: string; payload: unknown }>,
+) {
+  return {
+    data: { telegramId },
+    emit: (event: string, payload: unknown) => {
+      emitted.push({ event, payload });
+    },
+  };
+}
+
 test("registerRoomSocketHandlers handles duplicate room joins without crashing", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindOne = (
@@ -19,6 +52,7 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
   const socket = {
+    data: { telegramId: 2 },
     join: async () => undefined,
     leave: async () => undefined,
     emit: (event: string, payload: unknown) => {
@@ -55,7 +89,10 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
     displayName: "Guest",
   });
 
-  assert.ok(emitted.some((event) => event.event === "room:joined"));
+  assert.equal(
+    emitted.some((event) => event.event === "room:joined"),
+    false,
+  );
 
   roomRepository.findByCode = originalFindByCode;
   (
@@ -63,7 +100,7 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
   ).findOne = originalFindOne;
 });
 
-test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitted", async () => {
+test("registerRoomSocketHandlers persists a valid hint without a duplicate event", async () => {
   const originalFindById = gameRepository.findById;
   const originalUpdate = gameRepository.update;
   const originalRoomFindOne = RoomModel.findOne;
@@ -72,6 +109,7 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
   const socket = {
+    data: { telegramId: 10 },
     join: async () => undefined,
     leave: async () => undefined,
     emit: (event: string, payload: unknown) => {
@@ -82,14 +120,6 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
     },
   } as unknown as Parameters<typeof registerRoomSocketHandlers>[1];
 
-  const io = {
-    to: () => ({
-      emit: (event: string, payload: unknown) => {
-        emitted.push({ event, payload });
-      },
-    }),
-  } as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
-
   const room = createRoomDocument({
     roomCode: "ABC123",
     players: [
@@ -99,6 +129,14 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
         displayName: "Agent One",
         team: "red",
         role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "user-2",
+        telegramId: 11,
+        displayName: "Agent Two",
+        team: "red",
+        role: "operative",
         joinedAt: new Date("2024-01-01T00:00:00.000Z"),
       },
     ],
@@ -126,6 +164,11 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
     completedAt: null,
   };
 
+  const io = createIoMock(emitted, [
+    createConnectedSocket(10, emitted),
+    createConnectedSocket(11, emitted),
+  ]) as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
+
   gameRepository.findById = async () => game as any;
   RoomModel.findOne = () => ({ exec: async () => room }) as any;
   gameRepository.update = async () =>
@@ -152,12 +195,37 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
     number: 2,
   });
 
-  assert.ok(emitted.some((event) => event.event === "game:hinted"));
-  const hintedEvent = emitted.find((event) => event.event === "game:hinted");
-  assert.ok(hintedEvent);
-  assert.deepEqual(
-    (hintedEvent?.payload as { currentHintWord: string }).currentHintWord,
+  assert.equal(
+    emitted.some((event) => event.event === "game:hinted"),
+    false,
+  );
+  const stateEvents = emitted.filter((event) => event.event === "game:state");
+  assert.equal(stateEvents.length, 2);
+  const spymasterState = stateEvents.find(
+    (event) =>
+      (event.payload as { game: { role: string } }).game.role === "spymaster",
+  );
+  const operativeState = stateEvents.find(
+    (event) =>
+      (event.payload as { game: { role: string } }).game.role === "operative",
+  );
+  assert.equal(
+    (spymasterState?.payload as { game: { currentHintWord: string } }).game
+      .currentHintWord,
     "forest",
+  );
+  assert.equal(
+    (operativeState?.payload as { game: { currentHintWord: string } }).game
+      .currentHintWord,
+    "forest",
+  );
+  assert.equal(
+    (
+      operativeState?.payload as {
+        game: { board: Array<{ color: string | null }> };
+      }
+    ).game.board[0]?.color,
+    null,
   );
 
   gameRepository.findById = originalFindById;
@@ -165,7 +233,7 @@ test("registerRoomSocketHandlers emits game:hinted when a valid hint is submitte
   RoomModel.findOne = originalRoomFindOne;
 });
 
-test("registerRoomSocketHandlers emits game:revealed when a valid card is selected", async () => {
+test("registerRoomSocketHandlers persists a valid card reveal without a duplicate event", async () => {
   const originalFindById = gameRepository.findById;
   const originalUpdate = gameRepository.update;
   const originalRoomFindOne = RoomModel.findOne;
@@ -174,6 +242,7 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
   const socket = {
+    data: { telegramId: 10 },
     join: async () => undefined,
     leave: async () => undefined,
     emit: (event: string, payload: unknown) => {
@@ -184,13 +253,9 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
     },
   } as unknown as Parameters<typeof registerRoomSocketHandlers>[1];
 
-  const io = {
-    to: () => ({
-      emit: (event: string, payload: unknown) => {
-        emitted.push({ event, payload });
-      },
-    }),
-  } as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
+  const io = createIoMock(emitted, [
+    createConnectedSocket(10, emitted),
+  ]) as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
 
   const room = createRoomDocument({
     roomCode: "ABC123",
@@ -259,37 +324,9 @@ test("registerRoomSocketHandlers emits game:revealed when a valid card is select
     cardId: "0",
   });
 
-  assert.ok(emitted.some((event) => event.event === "game:revealed"));
-  const revealedEvent = emitted.find(
-    (event) => event.event === "game:revealed",
-  );
-  assert.ok(revealedEvent);
-  assert.deepEqual(
-    (revealedEvent?.payload as { board: Array<{ revealed: boolean }> }).board[0]
-      .revealed,
-    true,
-  );
-  assert.strictEqual(
-    (revealedEvent?.payload as { remainingGuesses: number }).remainingGuesses,
-    0,
-  );
   assert.equal(
-    (revealedEvent?.payload as { redCardsRemaining: number }).redCardsRemaining,
-    0,
-  );
-  assert.equal(
-    (revealedEvent?.payload as { blueCardsRemaining: number })
-      .blueCardsRemaining,
-    1,
-  );
-  assert.equal(
-    (revealedEvent?.payload as { revealedCardIndex: number }).revealedCardIndex,
-    0,
-  );
-  assert.equal(
-    (revealedEvent?.payload as { revealedByPlayerId: string })
-      .revealedByPlayerId,
-    "user-1",
+    emitted.some((event) => event.event === "game:revealed"),
+    false,
   );
 
   gameRepository.findById = originalFindById;
@@ -306,6 +343,7 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
   const socket = {
+    data: { telegramId: 10 },
     join: async () => undefined,
     leave: async () => undefined,
     emit: (event: string, payload: unknown) => {
@@ -316,13 +354,9 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
     },
   } as unknown as Parameters<typeof registerRoomSocketHandlers>[1];
 
-  const io = {
-    to: () => ({
-      emit: (event: string, payload: unknown) => {
-        emitted.push({ event, payload });
-      },
-    }),
-  } as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
+  const io = createIoMock(emitted, [
+    createConnectedSocket(10, emitted),
+  ]) as unknown as Parameters<typeof registerRoomSocketHandlers>[0];
 
   const room = createRoomDocument({
     roomCode: "ABC123",
@@ -385,7 +419,10 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   });
 
   assert.equal(game.selectedCardId, "0");
-  assert.ok(emitted.some((event) => event.event === "game:selected"));
+  assert.equal(
+    emitted.some((event) => event.event === "game:selected"),
+    false,
+  );
 
   await selectHandler({
     gameId: "game-id",
@@ -401,17 +438,22 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   assert.equal(game.currentTurn, "blue");
   assert.equal(game.selectedCardId, null);
 
-  const revealedEvent = emitted.find(
-    (event) => event.event === "game:revealed",
-  );
-  assert.ok(revealedEvent);
+  const stateEvents = emitted.filter((event) => event.event === "game:state");
+  assert.equal(stateEvents.length, 2);
+  const latestState = stateEvents[stateEvents.length - 1]?.payload as {
+    game: {
+      blueCardsRemaining: number;
+      redCardsRemaining: number;
+      remainingGuesses: number;
+    };
+  };
+  assert.equal(latestState.game.blueCardsRemaining, 1);
+  assert.equal(latestState.game.redCardsRemaining, 1);
+  assert.equal(latestState.game.remainingGuesses, 1);
+
   assert.equal(
-    (revealedEvent?.payload as { remainingGuesses: number }).remainingGuesses,
-    1,
-  );
-  assert.equal(
-    (revealedEvent?.payload as { currentTurn: string }).currentTurn,
-    "blue",
+    emitted.some((event) => event.event === "game:revealed"),
+    false,
   );
 
   gameRepository.findById = originalFindById;
@@ -431,6 +473,7 @@ test("registerRoomSocketHandlers accepts an owner rematch request and initialize
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
   const socket = {
+    data: { telegramId: 10 },
     join: async () => undefined,
     leave: async () => undefined,
     emit: (event: string, payload: unknown) => {

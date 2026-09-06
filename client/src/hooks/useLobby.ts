@@ -110,6 +110,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     if (socket && user) {
       joinRoomSocket();
       socket.on("connect", joinRoomSocket);
+      socket.on("connected", joinRoomSocket);
       socket.on("room:updated", handleRoomUpdated);
     }
 
@@ -118,6 +119,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       isMounted = false;
       if (socket) {
         socket.off("connect", joinRoomSocket);
+        socket.off("connected", joinRoomSocket);
         socket.off("room:updated", handleRoomUpdated);
       }
     };

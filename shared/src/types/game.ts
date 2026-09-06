@@ -29,11 +29,17 @@ export interface GameGuess {
   revealedAt: Date;
 }
 
+export interface GamePass {
+  playerId: string | null;
+  passedAt: Date;
+}
+
 export interface GameRound {
   id: string;
   team: Turn;
   hint: HintEntry;
   guesses: GameGuess[];
+  passes?: GamePass[];
 }
 
 export interface PublicCard {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { GameLog, type GameLogEntry } from "./GameLog";
 import { TeamPanel } from "./TeamPanel";
@@ -355,6 +355,13 @@ function logEntriesFromRounds(game: GameView): GameLogEntry[] {
       playerId: guess.playerId,
       correct: guess.correct,
     })),
+    ...(round.passes ?? []).map((pass, index) => ({
+      id: `${round.id}-pass-${index}-${pass.passedAt}`,
+      kind: "pass" as const,
+      team: round.team,
+      word: "Pass",
+      playerId: pass.playerId,
+    })),
   ]);
 }
 
@@ -426,15 +433,13 @@ export function GamePage({
   const [operativeSecondsRemaining, setOperativeSecondsRemaining] = useState<
     number | null
   >(null);
-  const [gameLog, setGameLog] = useState<GameLogEntry[]>([]);
+  const gameLog = state.game ? logEntriesFromRounds(state.game) : [];
   const [selectedPlayersByCard, setSelectedPlayersByCard] = useState<
     Record<number, Room["players"]>
   >({});
-  const logGameIdRef = useRef<string | null>(null);
 
   useGameStateSync(socket, ({ room, game }) => {
     setState({ room, game, loading: false, error: null });
-    setGameLog(logEntriesFromRounds(game));
     setIsReconnecting(false);
   });
 
@@ -451,13 +456,8 @@ export function GamePage({
   });
 
   useEffect(() => {
-    const gameId = state.game?.id ?? state.game?.roomId ?? null;
-    if (gameId !== logGameIdRef.current) {
-      logGameIdRef.current = gameId;
-      setSelectedPlayersByCard({});
-      setGameLog(logEntriesFromRounds(state.game!));
-    }
-  }, [state.game]);
+    setSelectedPlayersByCard({});
+  }, [state.game?.id, state.game?.roomId]);
 
   useEffect(() => {
     const timerSetting = state.room?.settings.timer;
@@ -547,7 +547,6 @@ export function GamePage({
       }
 
       const game = normalizeGameCounts((await gameResponse.json()) as GameView);
-
       setState((current) => {
         const currentGameUpdatedAt = current.game?.updatedAt
           ? new Date(current.game.updatedAt).getTime()
@@ -596,10 +595,6 @@ export function GamePage({
     }
 
     if (socket && socket.connected) {
-      joinRoomSocket();
-    }
-
-    function handleConnect() {
       joinRoomSocket();
     }
 
@@ -693,7 +688,8 @@ export function GamePage({
         }
       };
 
-      socket.on("connect", handleConnect);
+      socket.on("connect", handleReconnect);
+      socket.on("connected", handleReconnect);
       socket.on("disconnect", handleDisconnect);
       socket.on("game:initialized", handleGameInitialized);
       socket.on("game:keycard", handleKeycardReveal);
@@ -701,7 +697,8 @@ export function GamePage({
 
       return () => {
         isMounted = false;
-        socket.off("connect", handleConnect);
+        socket.off("connect", handleReconnect);
+        socket.off("connected", handleReconnect);
         socket.off("disconnect", handleDisconnect);
         socket.off("game:initialized", handleGameInitialized);
         socket.off("game:keycard", handleKeycardReveal);
@@ -878,6 +875,15 @@ export function GamePage({
 
   function handleToggleHintCard(cardIndex: number) {
     if (!canSubmitHint || hintSubmitting) return;
+    const selectedCard = state.game?.board[cardIndex];
+    if (
+      !selectedCard ||
+      state.game?.role !== "spymaster" ||
+      selectedCard.color !== state.game.currentTurn
+    ) {
+      return;
+    }
+
     setSelectedHintCardIds((current) => {
       const next = new Set(current);
       if (next.has(cardIndex)) next.delete(cardIndex);

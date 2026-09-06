@@ -2,6 +2,10 @@ import { io, Socket } from "socket.io-client";
 
 interface SocketClientOptions {
   endpoint: string;
+  auth?: {
+    initData?: string;
+    dev?: boolean;
+  };
 }
 
 interface SocketClientStatus {
@@ -25,6 +29,7 @@ export function createSocketClient(options: SocketClientOptions): Socket {
 
   socketEndpoint = options.endpoint;
   socketInstance = io(options.endpoint, {
+    auth: options.auth,
     transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: Infinity,

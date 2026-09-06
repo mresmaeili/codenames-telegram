@@ -135,6 +135,15 @@ const gameSchema = new Schema<GameDocument>(
             ],
             default: [],
           },
+          passes: {
+            type: [
+              {
+                playerId: { type: String, default: null },
+                passedAt: { type: Date, required: true },
+              },
+            ],
+            default: [],
+          },
         },
       ],
       default: [],

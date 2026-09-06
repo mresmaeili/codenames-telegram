@@ -4,7 +4,7 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 
 export interface GameLogEntry {
   id: string;
-  kind: "hint" | "reveal";
+  kind: "hint" | "reveal" | "pass";
   team: Turn;
   word: string;
   number?: number;
@@ -24,12 +24,20 @@ interface GameLogProps {
 interface GameLogRound {
   hint: GameLogEntry;
   guesses: GameLogEntry[];
+  passes: GameLogEntry[];
 }
 
 function groupRounds(entries: GameLogEntry[]): GameLogRound[] {
   return entries.reduce<GameLogRound[]>((rounds, entry) => {
-    if (entry.kind === "hint") rounds.push({ hint: entry, guesses: [] });
-    else if (rounds.length > 0) rounds[rounds.length - 1].guesses.push(entry);
+    if (entry.kind === "hint") {
+      rounds.push({ hint: entry, guesses: [], passes: [] });
+    } else if (rounds.length > 0) {
+      if (entry.kind === "pass") {
+        rounds[rounds.length - 1].passes.push(entry);
+      } else {
+        rounds[rounds.length - 1].guesses.push(entry);
+      }
+    }
     return rounds;
   }, []);
 }
@@ -134,6 +142,29 @@ export function GameLog({
                           >
                             {guess.correct ? "✓" : "×"}
                           </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {round.passes.length > 0 ? (
+                  <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto pl-8">
+                    {round.passes.map((pass) => {
+                      const passPlayer = players.find(
+                        (player) => player.userId === pass.playerId,
+                      );
+                      return (
+                        <div
+                          key={pass.id}
+                          className="flex shrink-0 items-center gap-1 rounded-sm bg-[#555] px-1 py-0.5 font-black text-white"
+                        >
+                          <img
+                            src={avatarUrlForPlayer(passPlayer)}
+                            alt={passPlayer?.displayName ?? pass.team}
+                            title={passPlayer?.displayName ?? pass.team}
+                            className="h-5 w-5 rounded-full border border-white/80 object-cover"
+                          />
+                          <span>Pass</span>
                         </div>
                       );
                     })}
