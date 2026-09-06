@@ -27,7 +27,7 @@ export function createSocketServer(
     transports: ["websocket", "polling"],
   });
 
-  io.on("connection", async (socket: Socket) => {
+  io.use(async (socket, next) => {
     const auth = socket.handshake.auth as {
       initData?: unknown;
       dev?: unknown;
@@ -40,16 +40,18 @@ export function createSocketServer(
         const user = await authenticateTelegramUser(auth.initData);
         socket.data.telegramId = user.telegramId;
       } catch {
-        socket.emit("error", { message: "Socket authentication failed." });
-        socket.disconnect(true);
+        next(new Error("Socket authentication failed."));
         return;
       }
     } else {
-      socket.emit("error", { message: "Socket authentication is required." });
-      socket.disconnect(true);
+      next(new Error("Socket authentication is required."));
       return;
     }
 
+    next();
+  });
+
+  io.on("connection", (socket: Socket) => {
     registerRoomSocketHandlers(io, socket);
 
     socket.emit("connected", {
