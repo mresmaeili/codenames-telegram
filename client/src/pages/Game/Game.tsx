@@ -18,7 +18,6 @@ import { apiUrl } from "@/config/env";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
-import { isDevModeEnabled } from "@/lib/dev";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -87,71 +86,6 @@ function GameErrorState({
         </button>
       </div>
     </PageContainer>
-  );
-}
-
-function GameInspectorPanel({
-  refreshingGame,
-  onRefresh,
-}: {
-  refreshingGame: boolean;
-  onRefresh: () => void;
-}) {
-  return (
-    <div className="mb-3 rounded-3xl border border-white/20 bg-[#0d4aa3] p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/75">
-            Dev inspector
-          </p>
-          <p className="mt-1 text-sm text-white/80">
-            Manual refresh and raw state.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={refreshingGame}
-          className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {refreshingGame ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function GameCompletionBanner({
-  completionSummary,
-  isRoomOwner,
-  onRematch,
-}: {
-  completionSummary: string | null;
-  isRoomOwner: boolean;
-  onRematch: () => void;
-}) {
-  return (
-    <div className="mb-3 rounded-3xl border border-white/20 bg-black/20 p-4">
-      <p className="text-lg font-black uppercase tracking-tight">
-        Game complete
-      </p>
-      <p className="mt-1 text-sm text-white/80">
-        {completionSummary ?? "All cards are revealed."}
-      </p>
-      {isRoomOwner ? (
-        <button
-          type="button"
-          onClick={onRematch}
-          className="mt-3 w-full rounded-full bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0a63d4]"
-        >
-          Start rematch
-        </button>
-      ) : (
-        <p className="mt-3 text-sm text-white/70">
-          Waiting for the room admin to reset the game.
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -337,6 +271,93 @@ function PlayerAssignmentPopupContent({
   );
 }
 
+function PlayerRosterPopupContent({
+  room,
+  canManagePlayers,
+  onPlayerClick,
+}: {
+  room: Room;
+  canManagePlayers: boolean;
+  onPlayerClick: (player: Room["players"][number]) => void;
+}) {
+  const groups = [
+    {
+      key: "blue",
+      label: "Blue team",
+      players: room.players.filter((player) => player.team === "blue"),
+      labelClass: "text-[#75e5ff]",
+    },
+    {
+      key: "red",
+      label: "Red team",
+      players: room.players.filter((player) => player.team === "red"),
+      labelClass: "text-[#ffaaa0]",
+    },
+    {
+      key: "spectators",
+      label: "Spectators",
+      players: room.players.filter((player) => player.team === null),
+      labelClass: "text-white/65",
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-xs font-black uppercase tracking-[0.2em] text-white/70">
+        Room players
+      </p>
+      {groups.map((group) => (
+        <div key={group.key} className="space-y-2">
+          <p
+            className={`text-[10px] font-black uppercase tracking-[0.16em] ${group.labelClass}`}
+          >
+            {group.label}
+          </p>
+          {group.players.length > 0 ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-2">
+              {group.players.map((player) => {
+                const borderClass =
+                  player.team === "blue"
+                    ? "border-[#37c8ff]"
+                    : player.team === "red"
+                      ? "border-[#ff7666]"
+                      : "border-white/50";
+
+                return (
+                  <button
+                    key={player.userId}
+                    type="button"
+                    onClick={() => onPlayerClick(player)}
+                    disabled={!canManagePlayers}
+                    className="flex w-16 flex-col items-center gap-1 text-white disabled:cursor-default"
+                    aria-label={`${canManagePlayers ? "Manage" : "View"} ${player.displayName}`}
+                  >
+                    <img
+                      src={avatarUrlForPlayer(player)}
+                      alt={player.displayName}
+                      className={`h-11 w-11 rounded-full border-3 object-cover shadow-[0_3px_8px_rgba(0,0,0,0.3)] ${borderClass}`}
+                    />
+                    <span className="w-full truncate text-center text-[10px] font-bold">
+                      {player.displayName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-white/45">None</p>
+          )}
+        </div>
+      ))}
+      {!canManagePlayers ? (
+        <p className="text-center text-xs text-white/60">
+          Only room admins can assign roles.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function logEntriesFromRounds(game: GameView): GameLogEntry[] {
   return (game.rounds ?? []).flatMap((round) => [
     {
@@ -416,18 +437,9 @@ export function GamePage({
   const socket = useMemo(() => getSocketClient(), []);
 
   const [refreshingGame, setRefreshingGame] = useState(false);
-  const devMode = isDevModeEnabled();
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
-  const [hideBoard, setHideBoard] = useState(() => {
-    try {
-      const raw = localStorage.getItem("codenames.hideBoard");
-      return raw === "true";
-    } catch (error) {
-      return false;
-    }
-  });
   const [spymasterSecondsRemaining, setSpymasterSecondsRemaining] = useState<
     number | null
   >(null);
@@ -474,9 +486,18 @@ export function GamePage({
   }, [state.game?.board]);
 
   useEffect(() => {
-    const timerSetting = state.room?.settings.timer;
+    const settings = state.room?.settings;
+    const legacyDuration =
+      settings?.timer && settings.timer !== "none" ? Number(settings.timer) : 0;
+    const baseDuration =
+      state.game?.phase === "operatives"
+        ? (settings?.operativeTimer ?? legacyDuration)
+        : (settings?.spymasterTimer ?? legacyDuration);
+    const isFirstClue =
+      state.game?.phase === "spymaster" &&
+      (state.game?.hintHistory?.length ?? 0) === 0;
     const duration =
-      timerSetting && timerSetting !== "none" ? Number(timerSetting) : null;
+      baseDuration + (isFirstClue ? (settings?.firstClueBonus ?? 0) : 0);
     if (!duration || !state.game || state.game.status !== "active") {
       setSpymasterSecondsRemaining(null);
       setOperativeSecondsRemaining(null);
@@ -512,6 +533,11 @@ export function GamePage({
     state.game?.hintSubmittedAt,
     state.game?.status,
     state.room?.settings.timer,
+    state.room?.settings.spymasterTimer,
+    state.room?.settings.operativeTimer,
+    state.room?.settings.firstClueBonus,
+    state.game?.phase,
+    state.game?.hintHistory?.length,
     state.room?.players,
     user?.telegramId,
   ]);
@@ -772,10 +798,19 @@ export function GamePage({
       : selectedPlayersByCard;
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
-  const timerDuration =
+  const legacyTimerDuration =
     roomSettings?.timer && roomSettings.timer !== "none"
       ? Number(roomSettings.timer)
-      : null;
+      : 0;
+  const timerDuration = state.game
+    ? (state.game.phase === "operatives"
+        ? (roomSettings?.operativeTimer ?? legacyTimerDuration)
+        : (roomSettings?.spymasterTimer ?? legacyTimerDuration)) +
+      (state.game.phase === "spymaster" &&
+      (state.game.hintHistory?.length ?? 0) === 0
+        ? (roomSettings?.firstClueBonus ?? 0)
+        : 0)
+    : 0;
   const timerProgress =
     timerDuration && activeSecondsRemaining !== null
       ? Math.max(
@@ -783,14 +818,6 @@ export function GamePage({
           Math.min(100, (activeSecondsRemaining / timerDuration) * 100),
         )
       : 0;
-  const completionSummary = gameFinished
-    ? state.game?.completionReason === "assassin-revealed"
-      ? `${state.game.winningTeam ?? "The opposing team"} wins after the assassin was revealed.`
-      : state.game?.winningTeam
-        ? `${state.game.winningTeam} team wins after revealing all of their cards.`
-        : "The game has finished."
-    : null;
-
   const isRoomOwner = Boolean(
     state.room &&
     state.room.players.some(
@@ -836,15 +863,17 @@ export function GamePage({
       "operative",
   );
   const selectedCardActive = Boolean(state.game?.selectedCardId);
-  const turnInstruction = isViewerSpymaster
-    ? "Give your operatives a clue"
-    : isViewerOperative
-      ? hasActiveHint
-        ? selectedCardActive
-          ? "Tap the guess button to confirm"
-          : "Tap to choose a word"
-        : "Wait for your spymaster to give you a clue"
-      : "Watch the turn";
+  const turnInstruction = gameFinished
+    ? `${state.game?.winningTeam ?? "Winning"} team wins`
+    : isViewerSpymaster
+      ? "Give your operatives a clue"
+      : isViewerOperative
+        ? hasActiveHint
+          ? selectedCardActive
+            ? "Tap the guess button to confirm"
+            : "Tap to choose a word"
+          : "Wait for your spymaster to give you a clue"
+        : "Watch the turn";
   const activeOperative = state.room?.players.find(
     (player) =>
       player.team === state.game?.currentTurn && player.role !== "spymaster",
@@ -900,10 +929,25 @@ export function GamePage({
     setHintDraft((current) => ({ ...current, number: value }));
   }
 
-  function handleRematch() {
+  function handleResetGame() {
     const activeSocket = getSocketClient();
     if (!state.room || !user?.telegramId || !activeSocket) {
-      setHintMessage("Unable to request a rematch.");
+      setHintMessage("Unable to return the room to the lobby.");
+      return;
+    }
+
+    activeSocket.emit("room:resetGame", {
+      roomCode: state.room.roomCode,
+      ownerTelegramId: user.telegramId,
+    });
+    setHintMessage("Returning everyone to the lobby...");
+    toast.success("Returning everyone to the lobby.");
+  }
+
+  function handleQuickRematch() {
+    const activeSocket = getSocketClient();
+    if (!state.room || !user?.telegramId || !activeSocket) {
+      setHintMessage("Unable to start a quick rematch.");
       return;
     }
 
@@ -911,8 +955,8 @@ export function GamePage({
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
     });
-    setHintMessage("Requesting rematch...");
-    toast.success("Rematch requested.");
+    setHintMessage("Starting a quick rematch...");
+    toast.success("Starting a quick rematch.");
   }
 
   async function refreshGameState() {
@@ -1001,6 +1045,20 @@ export function GamePage({
     openPopup();
   }
 
+  function handleShowPlayers() {
+    if (!state.room) return;
+
+    registerPopup(
+      <PlayerRosterPopupContent
+        room={state.room}
+        canManagePlayers={isRoomOwner}
+        onPlayerClick={handleGamePlayerClick}
+      />,
+      "Players",
+    );
+    openPopup();
+  }
+
   if (state.loading) {
     return <GameLoadingState />;
   }
@@ -1017,45 +1075,13 @@ export function GamePage({
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
           spectatorCount={getSpectatorCount(state.room)}
-          operativeViewer={isViewerOperative}
-          boardHidden={hideBoard}
+          refreshingGame={refreshingGame}
+          onShowPlayers={handleShowPlayers}
           onLeave={onLeave}
           onReturnToLobby={onReturnToLobby}
-          onToggleBoard={() => {
-            setHideBoard((current) => {
-              const next = !current;
-              try {
-                localStorage.setItem("codenames.hideBoard", String(next));
-              } catch {
-                // Local storage may be unavailable in private browsing.
-              }
-              return next;
-            });
-          }}
-          onRules={() => {
-            registerPopup(
-              <div className="space-y-3 text-sm text-(--app-text)">
-                <p>
-                  Spymasters give a one-word clue and a number. Operatives
-                  discuss and choose matching cards.
-                </p>
-                <p>
-                  Reveal one card, then continue or pass when the turn is
-                  complete.
-                </p>
-              </div>,
-              "Rules",
-            );
-            openPopup();
-          }}
+          onRefresh={refreshGameState}
           onSettings={openPopup}
         />
-        {devMode ? (
-          <GameInspectorPanel
-            refreshingGame={refreshingGame}
-            onRefresh={refreshGameState}
-          />
-        ) : null}
         {isReconnecting ? (
           <div className="mb-3">
             <StatusPanel
@@ -1065,15 +1091,8 @@ export function GamePage({
             />
           </div>
         ) : null}
-        {gameFinished ? (
-          <GameCompletionBanner
-            completionSummary={completionSummary}
-            isRoomOwner={isRoomOwner}
-            onRematch={handleRematch}
-          />
-        ) : null}
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-stretch gap-1.5">
-          <div className="col-start-1 row-span-2 flex flex-col gap-1.5">
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-start gap-1.5">
+          <div className="col-start-1 row-span-2 flex min-h-0 flex-col gap-1.5">
             <TeamPanel
               team="blue"
               remainingCards={blueCardsRemaining}
@@ -1103,7 +1122,7 @@ export function GamePage({
             timerProgress={timerProgress}
           />
 
-          <div className="col-start-3 row-span-2 flex flex-col gap-1.5">
+          <div className="col-start-3 row-span-2 flex min-h-0 flex-col gap-1.5">
             <TeamPanel
               team="red"
               remainingCards={redCardsRemaining}
@@ -1152,9 +1171,27 @@ export function GamePage({
           onToggleHintCard={
             state.game.role === "spymaster" ? handleToggleHintCard : undefined
           }
-          hideWords={isViewerOperative ? hideBoard : false}
+          hideWords={false}
           selectedPlayersByCard={visibleSelectedPlayersByCard}
         />
+        {gameFinished && isRoomOwner ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleQuickRematch}
+              className="w-full rounded-full border-2 border-[#b8ff8e] bg-[#51df20] px-3 py-3 text-xs font-black uppercase tracking-[0.06em] text-[#123d08] shadow-[0_4px_10px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Quick rematch
+            </button>
+            <button
+              type="button"
+              onClick={handleResetGame}
+              className="w-full rounded-full border-2 border-white/70 bg-white px-3 py-3 text-xs font-black uppercase tracking-[0.06em] text-[#0a63d4] shadow-[0_4px_10px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Return to lobby
+            </button>
+          </div>
+        ) : null}
         {canSubmitHint ? (
           <HintComposer
             word={hintDraft.word}

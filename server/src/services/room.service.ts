@@ -99,8 +99,12 @@ function createDefaultSettings(): RoomSettings {
     privateRoom: false,
     gameMode: "standard",
     timer: "60",
+    spymasterTimer: 180,
+    operativeTimer: 120,
+    firstClueBonus: 120,
     language: "fa",
     wordPack: "classic",
+    customWords: [],
   };
 }
 
@@ -257,6 +261,20 @@ function validateRoomSettings(settings: RoomSettings): void {
     throw new Error("Invalid timer setting.");
   }
 
+  const spymasterTimer = settings.spymasterTimer ?? 180;
+  const operativeTimer = settings.operativeTimer ?? 120;
+  const firstClueBonus = settings.firstClueBonus ?? 120;
+  if (
+    !Number.isInteger(spymasterTimer) ||
+    spymasterTimer < 0 ||
+    !Number.isInteger(operativeTimer) ||
+    operativeTimer < 0 ||
+    !Number.isInteger(firstClueBonus) ||
+    firstClueBonus < 0
+  ) {
+    throw new Error("Timer values must be non-negative whole numbers.");
+  }
+
   if (
     settings.language !== "fa" &&
     settings.language !== "en" &&
@@ -266,8 +284,19 @@ function validateRoomSettings(settings: RoomSettings): void {
     throw new Error("Invalid language setting.");
   }
 
-  if (settings.wordPack !== "classic" && settings.wordPack !== "party") {
+  if (
+    settings.wordPack !== "classic" &&
+    settings.wordPack !== "party" &&
+    settings.wordPack !== "custom"
+  ) {
     throw new Error("Invalid word pack setting.");
+  }
+
+  if (
+    settings.wordPack === "custom" &&
+    (!Array.isArray(settings.customWords) || settings.customWords.length < 25)
+  ) {
+    throw new Error("At least 25 custom words are required.");
   }
 }
 
@@ -726,7 +755,11 @@ export async function assignRoomPlayer(
     throw new Error("Target user is not a member of this room.");
   }
 
-  if (assignmentValues.team === null && !room.settings.allowSpectators) {
+  if (
+    assignmentValues.team === null &&
+    !room.settings.allowSpectators &&
+    room.status === "waiting"
+  ) {
     throw new Error("Spectators are not allowed in this room.");
   }
 

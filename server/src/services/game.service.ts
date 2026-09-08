@@ -243,7 +243,12 @@ export async function createGame(
   }
 
   const startingTeam = createStartingTeam();
-  const words = await getWordPoolForGame(room.settings.language ?? "fa");
+  const words = await getWordPoolForGame(
+    room.settings.language ?? "fa",
+    room.settings.wordPack === "custom"
+      ? (room.settings.customWords ?? [])
+      : [],
+  );
   if (words.length < BOARD_SIZE) {
     throw new Error("Not enough words available for the requested game board.");
   }

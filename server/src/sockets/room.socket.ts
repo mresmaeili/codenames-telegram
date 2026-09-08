@@ -118,9 +118,26 @@ function hasTurnTimerExpired(
     turnStartedAt?: Date | null;
     createdAt?: Date;
   },
-  room: { settings: { timer?: string } },
+  room: {
+    settings: {
+      timer?: string;
+      spymasterTimer?: number;
+      operativeTimer?: number;
+      firstClueBonus?: number;
+    };
+  },
 ): boolean {
-  const timerSeconds = Number(room.settings.timer);
+  const phase = (game as { phase?: string }).phase;
+  const isOperativePhase = phase === "operatives";
+  const baseTimer = isOperativePhase
+    ? (room.settings.operativeTimer ?? Number(room.settings.timer))
+    : (room.settings.spymasterTimer ?? Number(room.settings.timer));
+  const timerSeconds =
+    !isOperativePhase &&
+    !(game as { hintSubmittedAt?: Date | null }).hintSubmittedAt &&
+    (game as { hintHistory?: unknown[] }).hintHistory?.length === 0
+      ? baseTimer + (room.settings.firstClueBonus ?? 0)
+      : baseTimer;
   if (
     !Number.isFinite(timerSeconds) ||
     timerSeconds <= 0 ||
@@ -816,8 +833,12 @@ export function registerRoomSocketHandlers(
           privateRoom?: unknown;
           gameMode?: unknown;
           timer?: unknown;
+          spymasterTimer?: unknown;
+          operativeTimer?: unknown;
+          firstClueBonus?: unknown;
           language?: unknown;
           wordPack?: unknown;
+          customWords?: unknown;
         };
 
         if (
@@ -826,8 +847,16 @@ export function registerRoomSocketHandlers(
           typeof settingsPayload.privateRoom !== "boolean" ||
           typeof settingsPayload.gameMode !== "string" ||
           typeof settingsPayload.timer !== "string" ||
+          typeof settingsPayload.spymasterTimer !== "number" ||
+          typeof settingsPayload.operativeTimer !== "number" ||
+          typeof settingsPayload.firstClueBonus !== "number" ||
           typeof settingsPayload.language !== "string" ||
-          typeof settingsPayload.wordPack !== "string"
+          typeof settingsPayload.wordPack !== "string" ||
+          (settingsPayload.customWords !== undefined &&
+            (!Array.isArray(settingsPayload.customWords) ||
+              !settingsPayload.customWords.every(
+                (word): word is string => typeof word === "string",
+              )))
         ) {
           socket.emit("room:error", {
             message: "Invalid room settings payload.",
@@ -844,8 +873,15 @@ export function registerRoomSocketHandlers(
             privateRoom: settingsPayload.privateRoom,
             gameMode: settingsPayload.gameMode as "standard" | "rush",
             timer: settingsPayload.timer as "none" | "30" | "60" | "90",
+            spymasterTimer: settingsPayload.spymasterTimer,
+            operativeTimer: settingsPayload.operativeTimer,
+            firstClueBonus: settingsPayload.firstClueBonus,
             language: settingsPayload.language as "fa" | "en" | "es" | "he",
-            wordPack: settingsPayload.wordPack as "classic" | "party",
+            wordPack: settingsPayload.wordPack as
+              | "classic"
+              | "party"
+              | "custom",
+            customWords: settingsPayload.customWords as string[] | undefined,
           },
         });
 

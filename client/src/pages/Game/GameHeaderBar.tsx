@@ -3,24 +3,22 @@ import { useState } from "react";
 interface GameHeaderBarProps {
   playerCount: number;
   spectatorCount: number;
-  operativeViewer: boolean;
-  boardHidden: boolean;
+  refreshingGame: boolean;
+  onShowPlayers: () => void;
   onLeave: () => void;
   onReturnToLobby: () => void;
-  onToggleBoard: () => void;
-  onRules: () => void;
+  onRefresh: () => void;
   onSettings: () => void;
 }
 
 export function GameHeaderBar({
   playerCount,
   spectatorCount,
-  operativeViewer,
-  boardHidden,
+  refreshingGame,
+  onShowPlayers,
   onLeave,
   onReturnToLobby,
-  onToggleBoard,
-  onRules,
+  onRefresh,
   onSettings,
 }: GameHeaderBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,12 +35,18 @@ export function GameHeaderBar({
         ⋮
       </button>
       <div className="flex min-w-0 items-center gap-1.5">
-        <div className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-[#1f5fae] px-3 text-sm font-bold">
+        <button
+          type="button"
+          onClick={onShowPlayers}
+          className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-[#1f5fae] px-3 text-sm font-bold transition hover:bg-white/15 active:scale-95"
+          aria-label={`Show ${playerCount} players`}
+          title="Show players"
+        >
           <span aria-hidden="true" className="text-lg">
             👥
           </span>
           {playerCount}
-        </div>
+        </button>
         {spectatorCount > 0 ? (
           <div
             className="flex h-10 items-center gap-1 rounded-full border border-white/50 bg-white/10 px-2 text-sm font-bold"
@@ -53,23 +57,15 @@ export function GameHeaderBar({
             {spectatorCount}
           </div>
         ) : null}
-        {operativeViewer ? (
-          <button
-            type="button"
-            onClick={onToggleBoard}
-            className={`flex h-10 w-10 items-center justify-center rounded-full border border-white/70 text-lg ${boardHidden ? "bg-[#51df20]" : "bg-[#1f5fae]"}`}
-            aria-label={boardHidden ? "Show board words" : "Hide board words"}
-            title={boardHidden ? "Show board words" : "Hide board words"}
-          >
-            {boardHidden ? "🙈" : "👁"}
-          </button>
-        ) : null}
         <button
           type="button"
-          onClick={onRules}
-          className="rounded-full border-2 border-white/80 bg-white/5 px-4 py-2 text-sm font-bold transition hover:bg-white/15 active:scale-95"
+          onClick={onRefresh}
+          disabled={refreshingGame}
+          className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/80 bg-white/5 text-xl transition hover:bg-white/15 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+          aria-label="Refresh game"
+          title="Refresh game"
         >
-          Rules
+          ↻
         </button>
       </div>
       <button

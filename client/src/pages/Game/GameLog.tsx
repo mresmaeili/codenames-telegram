@@ -63,7 +63,7 @@ export function GameLog({
 }: GameLogProps) {
   return (
     <div
-      className={`${className} h-full min-h-[18rem] overflow-y-auto rounded-[26px] bg-[#4a4a4a] p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)]`}
+      className={`${className} flex h-[18.25rem] max-h-[18.25rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-[26px] bg-[#4a4a4a] p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)]`}
     >
       <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
         Game log
@@ -72,7 +72,7 @@ export function GameLog({
         <div
           className={`mt-2 rounded-full px-2 py-1 text-center font-black ${secondsRemaining < 0 ? "bg-[#f15f4a] text-white" : "bg-[#f5cf70] text-[#20160b]"}`}
         >
-          <div className="text-[clamp(1.35rem,5vw,2rem)] leading-none tracking-tight">
+          <div className="text-[clamp(1rem,3.5vw,1.35rem)] leading-none tracking-tight">
             {formatTimer(secondsRemaining)}
           </div>
           <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/20">
@@ -83,7 +83,7 @@ export function GameLog({
           </div>
         </div>
       ) : null}
-      <div className="mt-2 space-y-2 text-left text-[10px] text-white/80">
+      <div className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-scroll overscroll-contain pr-1 text-left text-[10px] text-white/80 [scrollbar-gutter:stable]">
         {entries.length > 0 ? (
           groupRounds(entries).map((round) => {
             const hintPlayer = players.find(
@@ -123,7 +123,7 @@ export function GameLog({
                   </span>
                 </div>
                 {round.guesses.length > 0 ? (
-                  <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto pl-8">
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pl-8">
                     {round.guesses.map((guess) => {
                       const guessPlayer = players.find(
                         (player) => player.userId === guess.playerId,
@@ -147,7 +147,7 @@ export function GameLog({
                             title={guessPlayer?.displayName ?? guess.team}
                             className="h-5 w-5 rounded-full border border-white/80 object-cover"
                           />
-                          <span className="max-w-16 truncate uppercase">
+                          <span className="max-w-16 whitespace-normal break-words text-center uppercase">
                             {guess.word}
                           </span>
                           <span
@@ -166,7 +166,7 @@ export function GameLog({
                   </div>
                 ) : null}
                 {round.passes.length > 0 ? (
-                  <div className="mt-1 flex min-w-0 items-center gap-1 overflow-x-auto pl-8">
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1 pl-8">
                     {round.passes.map((pass) => {
                       const passPlayer = players.find(
                         (player) => player.userId === pass.playerId,

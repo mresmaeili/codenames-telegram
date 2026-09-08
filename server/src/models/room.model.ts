@@ -81,6 +81,9 @@ const roomSettingsSchema = new Schema<RoomSettings>(
       enum: ["none", "30", "60", "90"],
       default: "60",
     },
+    spymasterTimer: { type: Number, required: true, default: 180 },
+    operativeTimer: { type: Number, required: true, default: 120 },
+    firstClueBonus: { type: Number, required: true, default: 120 },
     language: {
       type: String,
       required: true,
@@ -90,9 +93,10 @@ const roomSettingsSchema = new Schema<RoomSettings>(
     wordPack: {
       type: String,
       required: true,
-      enum: ["classic", "party"],
+      enum: ["classic", "party", "custom"],
       default: "classic",
     },
+    customWords: { type: [String], default: [] },
   },
   { _id: false },
 );

@@ -206,7 +206,7 @@ export function HomePage() {
 
       setRoomCode(payload.roomCode);
       setFormValue(payload.roomCode);
-      setActiveView("lobby");
+      setActiveView(payload.status === "playing" ? "game" : "lobby");
       setFeedback("Room created successfully.");
     } catch (createError) {
       const message =

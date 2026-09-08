@@ -45,8 +45,12 @@ export interface SettingsFormState {
   privateRoom: boolean;
   gameMode: "standard" | "rush";
   timer: "none" | "30" | "60" | "90";
+  spymasterTimer: number;
+  operativeTimer: number;
+  firstClueBonus: number;
   language: "fa" | "en" | "es" | "he";
-  wordPack: "classic" | "party";
+  wordPack: "classic" | "party" | "custom";
+  customWords: string[];
 }
 
 type HostControlAction = "timer" | "language" | "word-pack";
@@ -114,8 +118,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     privateRoom: false,
     gameMode: "standard",
     timer: "60",
+    spymasterTimer: 180,
+    operativeTimer: 120,
+    firstClueBonus: 120,
     language: "fa",
     wordPack: "classic",
+    customWords: [],
   });
   const [settingsPopupAction, setSettingsPopupAction] =
     useState<HostControlAction | null>(null);
@@ -125,7 +133,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    setSettingsForm(room.settings);
+    setSettingsForm({
+      ...room.settings,
+      spymasterTimer: room.settings.spymasterTimer ?? 180,
+      operativeTimer: room.settings.operativeTimer ?? 120,
+      firstClueBonus: room.settings.firstClueBonus ?? 120,
+      customWords: room.settings.customWords ?? [],
+    });
   }, [room]);
 
   // If the room transitions to playing, notify parent to switch to game view.
@@ -383,17 +397,30 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       ownerTelegramId: user.telegramId,
       settings: settingsForm,
     });
+    handleCloseSettingsPopup();
     toast.info("Saving game settings...");
     window.setTimeout(() => setHostActionPending(false), 1200);
-  }, [isOwner, room, settingsForm, socket, toast, user]);
+  }, [
+    handleCloseSettingsPopup,
+    isOwner,
+    room,
+    settingsForm,
+    socket,
+    toast,
+    user,
+  ]);
 
-  // Small editor used inside the word-pack popup — select pack type.
+  // Compact custom word editor used inside the word-pack popup.
   function WordPackEditor() {
+    const customWordsText = settingsForm.customWords.join("\n");
+    const uniqueWordCount = settingsForm.customWords.length;
+
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {[
           { value: "classic", label: "Classic Pack" },
           { value: "party", label: "Party Pack" },
+          { value: "custom", label: "Custom Word Pack" },
         ].map((option) => (
           <button
             key={option.value}
@@ -413,6 +440,36 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             {option.label}
           </button>
         ))}
+        {settingsForm.wordPack === "custom" ? (
+          <div className="rounded-[22px] bg-black p-2">
+            <textarea
+              value={customWordsText}
+              onChange={(event) =>
+                setSettingsForm((current) => ({
+                  ...current,
+                  customWords: [
+                    ...new Set(
+                      event.target.value
+                        .split(/\r?\n/)
+                        .map((word) => word.trim())
+                        .filter(Boolean),
+                    ),
+                  ],
+                }))
+              }
+              placeholder="Enter a custom word"
+              rows={9}
+              className="w-full resize-y rounded-xl border border-white/30 bg-[#020817] px-3 py-3 font-mono text-base text-white outline-none placeholder:text-white/45 focus:border-white"
+              aria-label="Custom words"
+            />
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs text-white/65">
+              <span>One word per line | Keep it short and simple</span>
+              <strong className="shrink-0 text-sm text-white">
+                Unique words: {uniqueWordCount}
+              </strong>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -470,19 +527,60 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             {settingsForm.timer !== "none" ? (
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  ["Spymaster timer", settingsForm.timer],
-                  ["Operative timer", settingsForm.timer],
+                  ["Spymaster timer", settingsForm.spymasterTimer],
+                  ["Operative timer", settingsForm.operativeTimer],
                 ].map(([label, value]) => (
                   <div
                     key={label}
                     className="rounded-[22px] bg-black px-3 py-3 text-white"
                   >
                     <p className="text-sm font-semibold">{label}</p>
-                    <div className="mt-2 rounded-xl bg-[#d7d7d7] px-3 py-2 text-right text-lg font-bold text-[#191919]">
-                      {value}s
-                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="30"
+                      value={value}
+                      onChange={(event) => {
+                        const nextValue = Math.max(
+                          0,
+                          Number(event.target.value) || 0,
+                        );
+                        setSettingsForm((current) => ({
+                          ...current,
+                          timer: "90",
+                          ...(label === "Spymaster timer"
+                            ? { spymasterTimer: nextValue }
+                            : { operativeTimer: nextValue }),
+                        }));
+                      }}
+                      className="mt-2 w-full rounded-xl bg-[#d7d7d7] px-3 py-2 text-right text-lg font-bold text-[#191919]"
+                      aria-label={String(label)}
+                    />
                   </div>
                 ))}
+                <div className="col-span-2 rounded-[22px] bg-black px-3 py-3 text-white">
+                  <p className="text-sm font-semibold">
+                    Extra time for first clue
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    step="30"
+                    value={settingsForm.firstClueBonus}
+                    onChange={(event) =>
+                      setSettingsForm((current) => ({
+                        ...current,
+                        timer: "90",
+                        firstClueBonus: Math.max(
+                          0,
+                          Number(event.target.value) || 0,
+                        ),
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl bg-[#d7d7d7] px-3 py-2 text-right text-lg font-bold text-[#191919]"
+                    aria-label="Extra time for first clue"
+                  />
+                </div>
               </div>
             ) : (
               <div className="rounded-[22px] bg-black px-4 py-7 text-center text-white">
@@ -507,9 +605,24 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 }
                 onChange={(event) => {
                   const values = ["none", "30", "60", "90"] as const;
+                  const presets = [
+                    { spymasterTimer: 0, operativeTimer: 0, firstClueBonus: 0 },
+                    {
+                      spymasterTimer: 90,
+                      operativeTimer: 60,
+                      firstClueBonus: 60,
+                    },
+                    {
+                      spymasterTimer: 180,
+                      operativeTimer: 120,
+                      firstClueBonus: 120,
+                    },
+                  ];
+                  const index = Number(event.target.value);
                   setSettingsForm((current) => ({
                     ...current,
-                    timer: values[Number(event.target.value)] ?? "none",
+                    timer: values[index] ?? "90",
+                    ...(presets[index] ?? {}),
                   }));
                 }}
                 className="h-2 w-full accent-[#2cc86c]"
@@ -525,14 +638,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                 </span>
                 <span
                   className={
-                    settingsForm.timer === "30" ? "text-[#2cc86c]" : ""
+                    settingsForm.spymasterTimer === 90 ? "text-[#2cc86c]" : ""
                   }
                 >
                   Quick
                 </span>
                 <span
                   className={
-                    settingsForm.timer === "60" ? "text-[#2cc86c]" : ""
+                    settingsForm.spymasterTimer === 180 ? "text-[#2cc86c]" : ""
                   }
                 >
                   Relaxed

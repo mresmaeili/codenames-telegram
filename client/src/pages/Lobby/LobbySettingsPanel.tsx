@@ -115,7 +115,9 @@ export function LobbySettingsPanel({
             </div>
           </div>
           <div className="mt-1 text-base font-black">
-            {settingsForm.timer === "none" ? "OFF" : `${settingsForm.timer}s`}
+            {settingsForm.timer === "none"
+              ? "OFF"
+              : `${settingsForm.spymasterTimer}s / ${settingsForm.operativeTimer}s`}
           </div>
         </button>
 
@@ -133,7 +135,11 @@ export function LobbySettingsPanel({
             Word pack
           </div>
           <div className="mt-1 text-base font-black">
-            {settingsForm.wordPack === "classic" ? "Classic" : "Party"}
+            {settingsForm.wordPack === "classic"
+              ? "Classic"
+              : settingsForm.wordPack === "party"
+                ? "Party"
+                : "Custom"}
           </div>
         </button>
       </div>

@@ -311,7 +311,11 @@ export async function saveWordPool(input: WordPoolInput) {
 
 export async function getWordPoolForGame(
   language: WordLanguage | string = "fa",
+  customWords: string[] = [],
 ) {
+  if (customWords.length >= 25) {
+    return normalizeWordInput(customWords.join("\n")).slice(0, 500);
+  }
   const normalizedLanguage: WordLanguage = language === "en" ? "en" : "fa";
 
   const savedPool = await WordPoolModel.findOne({

@@ -19,8 +19,12 @@ export interface RoomSettings {
   privateRoom: boolean;
   gameMode: "standard" | "rush";
   timer: "none" | "30" | "60" | "90";
+  spymasterTimer?: number;
+  operativeTimer?: number;
+  firstClueBonus?: number;
   language: "fa" | "en" | "es" | "he";
-  wordPack: "classic" | "party";
+  wordPack: "classic" | "party" | "custom";
+  customWords?: string[];
 }
 
 export interface Room {
