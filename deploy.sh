@@ -139,7 +139,7 @@ fi
 info "Checking if PM2 process 'codenames-server' is already registered..."
 if pm2 describe codenames-server >/dev/null 2>&1; then
   info "PM2 process found; restarting 'codenames-server'..."
-  if ! pm2 restart codenames-server; then
+  if ! pm2 restart codenames-server --update-env; then
     error "Failed to restart 'codenames-server' via pm2.";
     exit 5;
   fi
