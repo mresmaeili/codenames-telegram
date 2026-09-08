@@ -354,6 +354,7 @@ function logEntriesFromRounds(game: GameView): GameLogEntry[] {
       word: guess.word,
       playerId: guess.playerId,
       correct: guess.correct,
+      color: game.board[guess.cardIndex]?.color ?? null,
     })),
     ...(round.passes ?? []).map((pass, index) => ({
       id: `${round.id}-pass-${index}-${pass.passedAt}`,

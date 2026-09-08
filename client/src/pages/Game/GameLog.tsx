@@ -1,4 +1,4 @@
-import type { Turn } from "@/../shared/src/types/game";
+import type { CardColor, Turn } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 
@@ -10,6 +10,7 @@ export interface GameLogEntry {
   number?: number;
   playerId: string | null;
   correct?: boolean;
+  color?: CardColor | null;
 }
 
 interface GameLogProps {
@@ -118,10 +119,18 @@ export function GameLog({
                       const guessPlayer = players.find(
                         (player) => player.userId === guess.playerId,
                       );
+                      const guessColor =
+                        guess.color === "blue"
+                          ? "bg-[#08a6d0]"
+                          : guess.color === "red"
+                            ? "bg-[#f4513f]"
+                            : guess.color === "assassin"
+                              ? "bg-[#252525]"
+                              : "bg-[#5a5a5a]";
                       return (
                         <div
                           key={guess.id}
-                          className={`flex shrink-0 items-center gap-0.5 rounded-sm px-1 py-0.5 font-black text-white ${teamColor.badge}`}
+                          className={`flex shrink-0 items-center gap-0.5 rounded-sm px-1 py-0.5 font-black text-white ${guessColor}`}
                         >
                           <img
                             src={avatarUrlForPlayer(guessPlayer)}

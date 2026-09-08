@@ -292,9 +292,19 @@ export async function revealCard(
     senderTelegramId: command.telegramId,
   });
 
+  const revealedIndex = Number.parseInt(game.selectedCardId ?? "", 10);
+  const revealedCard = game.board[revealedIndex];
+  const selectedCardColor = revealedCard?.color ?? null;
+  const revealedBoard = revealResult.game.board.map((card, index) => ({
+    word: card.word,
+    color: index === revealedIndex ? selectedCardColor : (card.color ?? null),
+    revealed: card.revealed,
+  }));
+
   const completionResult = applyGameCompletion({
     game: {
       ...revealResult.game,
+      board: revealedBoard,
       startingTeam: game.startingTeam,
       winningTeam: game.winningTeam ?? null,
       completionReason: game.completionReason ?? null,
@@ -302,9 +312,6 @@ export async function revealCard(
     },
   });
 
-  const revealedIndex = Number.parseInt(game.selectedCardId ?? "", 10);
-  const revealedCard = game.board[revealedIndex];
-  const selectedCardColor = revealedCard?.color ?? null;
   const resolvedGame = completionResult.completed
     ? completionResult.game
     : applyTurnOutcome({
@@ -385,12 +392,8 @@ export async function revealCard(
   const updatedGame = await gameRepository.update(
     command.gameId,
     {
-      board: revealResult.game.board.map((card) => ({
-        word: card.word,
-        color: card.color,
-        revealed: card.revealed,
-      })),
-      ...getRemainingCardCounts(revealResult.game.board),
+      board: revealedBoard,
+      ...getRemainingCardCounts(revealedBoard),
       status: resolvedGame.status,
       currentTurn: resolvedGame.currentTurn,
       remainingGuesses: resolvedGame.remainingGuesses,

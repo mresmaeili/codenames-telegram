@@ -79,7 +79,7 @@ export function BoardGrid({
         const publicCard = card as PublicCard;
         const isSelected = selectedCardId === String(index);
         const hasLocalSelection =
-          (selectedPlayersByCard[index] ?? []).length > 0;
+          canSelectCard && (selectedPlayersByCard[index] ?? []).length > 0;
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
           isSelected &&
@@ -130,7 +130,9 @@ export function BoardGrid({
                 }
                 showRevealedWord={isRevealedWordVisible}
                 selectedPlaceholder={isSelected || hasLocalSelection}
-                selectedPlayers={selectedPlayersByCard[index] ?? []}
+                selectedPlayers={
+                  canSelectCard ? (selectedPlayersByCard[index] ?? []) : []
+                }
               />
             </button>
             {isConfirmable ? (
