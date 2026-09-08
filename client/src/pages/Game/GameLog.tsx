@@ -103,7 +103,7 @@ export function GameLog({
                   };
 
             return (
-              <div key={round.hint.id} className="min-w-0">
+              <div key={round.hint.id} className="min-w-0 animate-event-in">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <img
                     src={avatarUrlForPlayer(hintPlayer)}

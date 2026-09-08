@@ -26,7 +26,7 @@ export function GameBoardSurface({
   selectedPlayersByCard,
 }: GameBoardSurfaceProps) {
   return (
-    <div className="mt-2 rounded-[10px] border border-white/15 bg-[#0879b8] p-1.5">
+    <div className="mt-2">
       <BoardGrid
         cards={game.board}
         role={game.role}

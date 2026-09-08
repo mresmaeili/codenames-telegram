@@ -42,9 +42,13 @@ export function BoardGrid({
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
     new Set(),
   );
+  const isFinishedBoard =
+    role === "operative" &&
+    cards.length > 0 &&
+    cards.every((card) => (card as PublicCard).color !== null);
 
   return (
-    <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+    <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -118,18 +122,16 @@ export function BoardGrid({
                   });
                 }
               }}
-              className={`block w-full transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || publicCard.revealed ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-not-allowed opacity-70"}`}
+              className={`block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (publicCard.revealed && canSelectCard) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
               disabled={!isSelectable && !publicCard.revealed}
             >
               <BoardCard
                 word={publicCard.word}
                 hideWord={hideWords}
-                disabled={!isInteractive}
+                disabled={false}
                 revealPlaceholder={false}
-                revealedColor={
-                  publicCard.revealed ? (publicCard.color ?? "neutral") : null
-                }
-                showRevealedWord={isRevealedWordVisible}
+                revealedColor={publicCard.color}
+                showRevealedWord={isFinishedBoard || isRevealedWordVisible}
                 selectedPlaceholder={isSelected || hasLocalSelection}
                 selectedPlayers={
                   canSelectCard ? (selectedPlayersByCard[index] ?? []) : []

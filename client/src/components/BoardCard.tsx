@@ -35,7 +35,10 @@ export function BoardCard({
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",
   ];
-  if (selectedPlaceholder) outerClasses.push("ring-2 ring-(--app-accent)");
+  if (selectedPlaceholder)
+    outerClasses.push(
+      "ring-2 ring-(--app-accent) shadow-[0_0_0_3px_rgba(110,229,27,0.22),0_6px_14px_rgba(0,0,0,0.22)]",
+    );
   if (disabled) outerClasses.push("opacity-60 pointer-events-none");
 
   const tileColor = revealedColor
@@ -46,12 +49,12 @@ export function BoardCard({
 
   return (
     <div
-      className={`relative flex aspect-[0.82] min-h-18 items-center justify-center rounded-[5px] border-2 ${selectedPlaceholder ? "border-[#f8e2c8]" : "border-[#0a6e9f]"} ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 ${selectedPlaceholder ? "border-[#f8e2c8]" : "border-[#0a6e9f]"} ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       {(!revealedColor || showRevealedWord) && (
         <div
-          className={`absolute flex items-center justify-center rounded-xs border p-1 text-center ${selectedPlaceholder ? "inset-1.25 border-[#6e4d32] bg-[#fffaf2] shadow-[inset_0_0_0_3px_rgba(255,241,220,0.18)]" : revealedColor ? "inset-1.25 border-black/15 bg-[#fffaf2] shadow-[0_2px_4px_rgba(0,0,0,0.15)]" : "inset-1.25 border-black/15 bg-[#fffaf2]"}`}
+          className={`absolute flex items-center justify-center rounded-xs p-1 text-center ${selectedPlaceholder ? "inset-1.25 border-2 border-[#6e4d32] bg-[#fffaf2] shadow-[inset_0_0_0_3px_rgba(255,241,220,0.18)]" : revealedColor ? "inset-1.25 border-0 bg-[#fffaf2] shadow-[0_2px_4px_rgba(0,0,0,0.15)]" : "inset-1.25 border-0 bg-[#fffaf2]"}`}
         >
           {selectedPlayers.length > 0 ? (
             <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
