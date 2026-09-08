@@ -83,6 +83,8 @@ type HintSocketPayload = GameHintInputPayload;
 
 type SelectionSocketPayload = GameSelectInputPayload;
 
+type GameActionAcknowledgement = (error?: { message: string }) => void;
+
 type PassSocketPayload = GamePassInputPayload;
 
 function getActorTelegramId(
@@ -1062,75 +1064,81 @@ export function registerRoomSocketHandlers(
     }
   });
 
-  socket.on("game:select", async (payload: SelectionSocketPayload) => {
-    try {
-      if (
-        typeof payload.gameId !== "string" ||
-        typeof payload.roomCode !== "string" ||
-        typeof payload.telegramId !== "number" ||
-        typeof payload.cardId !== "string"
-      ) {
-        socket.emit("game:error", { message: "Invalid selection payload." });
-        return;
-      }
+  socket.on(
+    "game:select",
+    async (
+      payload: SelectionSocketPayload,
+      acknowledge?: GameActionAcknowledgement,
+    ) => {
+      try {
+        if (
+          typeof payload.gameId !== "string" ||
+          typeof payload.roomCode !== "string" ||
+          typeof payload.telegramId !== "number" ||
+          typeof payload.cardId !== "string"
+        ) {
+          socket.emit("game:error", { message: "Invalid selection payload." });
+          return;
+        }
 
-      const game = await gameRepository.findById(payload.gameId);
-      if (!game) {
-        socket.emit("game:error", { message: "Game not found." });
-        return;
-      }
+        const game = await gameRepository.findById(payload.gameId);
+        if (!game) {
+          socket.emit("game:error", { message: "Game not found." });
+          return;
+        }
 
-      const room = await RoomModel.findOne({
-        roomCode: payload.roomCode.toUpperCase(),
-      }).exec();
-      if (!room) {
-        socket.emit("game:error", { message: "Room not found." });
-        return;
-      }
+        const room = await RoomModel.findOne({
+          roomCode: payload.roomCode.toUpperCase(),
+        }).exec();
+        if (!room) {
+          socket.emit("game:error", { message: "Room not found." });
+          return;
+        }
 
-      if (!gameBelongsToRoom(game, room)) {
-        socket.emit("game:error", {
-          message: "Game does not belong to this room.",
-        });
-        return;
-      }
+        if (!gameBelongsToRoom(game, room)) {
+          socket.emit("game:error", {
+            message: "Game does not belong to this room.",
+          });
+          return;
+        }
 
-      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
+        const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
 
-      if (payload.confirm === true) {
-        const result = await revealCard({
-          gameId: payload.gameId,
-          roomCode: payload.roomCode,
-          telegramId: actorTelegramId,
-        });
+        if (payload.confirm === true) {
+          const result = await revealCard({
+            gameId: payload.gameId,
+            roomCode: payload.roomCode,
+            telegramId: actorTelegramId,
+          });
 
-        await emitGameState(
-          io,
-          payload.roomCode.toUpperCase(),
-          result.room as unknown as Room,
-          result.game,
-        );
-        return;
-      }
+          await emitGameState(
+            io,
+            payload.roomCode.toUpperCase(),
+            result.room as unknown as Room,
+            result.game,
+          );
+          acknowledge?.();
+          return;
+        }
 
-      if (payload.confirm === false) {
-        const selectedResult = await selectCard({
-          gameId: payload.gameId,
-          roomCode: payload.roomCode,
-          telegramId: actorTelegramId,
-          cardId: payload.cardId,
-        });
+        if (payload.confirm === false) {
+          const selectedResult = await selectCard({
+            gameId: payload.gameId,
+            roomCode: payload.roomCode,
+            telegramId: actorTelegramId,
+            cardId: payload.cardId,
+          });
 
-        await emitGameState(
-          io,
-          payload.roomCode.toUpperCase(),
-          selectedResult.room as unknown as Room,
-          selectedResult.game,
-        );
-        return;
-      }
+          await emitGameState(
+            io,
+            payload.roomCode.toUpperCase(),
+            selectedResult.room as unknown as Room,
+            selectedResult.game,
+          );
+          return;
+        }
 
-      /* legacy inline confirm/reveal path
+        /* legacy inline confirm/reveal path
       const selectionContext = {
         game: {
           status: game.status,
@@ -1274,12 +1282,14 @@ export function registerRoomSocketHandlers(
         room as unknown as Room,
         updatedGame,
       ); */
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to select card.";
-      socket.emit("game:error", { message });
-    }
-  });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to select card.";
+        acknowledge?.({ message });
+        socket.emit("game:error", { message });
+      }
+    },
+  );
 
   socket.on("game:pass", async (payload: PassSocketPayload) => {
     try {

@@ -107,7 +107,11 @@ export function useGameActions({
       cardId: game.selectedCardId,
       confirm: true,
     };
-    socket.emit("game:select", payload);
+    socket.emit("game:select", payload, (error?: { message?: string }) => {
+      if (error?.message) {
+        setHintMessage(error.message);
+      }
+    });
   }
 
   function passTurn(): void {

@@ -28,6 +28,21 @@ export function hydrateGameSnapshot(snapshot: GameStateSnapshot): {
       ...hint,
       submittedAt: new Date(hint.submittedAt),
     })),
+    rounds: (snapshot.game.rounds ?? []).map((round) => ({
+      ...round,
+      hint: {
+        ...round.hint,
+        submittedAt: new Date(round.hint.submittedAt),
+      },
+      guesses: round.guesses.map((guess) => ({
+        ...guess,
+        revealedAt: new Date(guess.revealedAt),
+      })),
+      passes: (round.passes ?? []).map((pass) => ({
+        ...pass,
+        passedAt: new Date(pass.passedAt),
+      })),
+    })),
   } as GameView;
 
   return { room: snapshot.room, game };

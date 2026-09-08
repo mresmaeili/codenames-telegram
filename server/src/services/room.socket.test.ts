@@ -445,11 +445,20 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
       blueCardsRemaining: number;
       redCardsRemaining: number;
       remainingGuesses: number;
+      board: Array<{ word: string; revealed: boolean }>;
+      rounds: Array<{
+        guesses: Array<{ word: string; playerId: string | null }>;
+      }>;
     };
   };
   assert.equal(latestState.game.blueCardsRemaining, 1);
   assert.equal(latestState.game.redCardsRemaining, 1);
   assert.equal(latestState.game.remainingGuesses, 1);
+  assert.equal(latestState.game.board[0]?.revealed, true);
+  assert.equal(latestState.game.rounds.length, 1);
+  assert.equal(latestState.game.rounds[0]?.guesses.length, 1);
+  assert.equal(latestState.game.rounds[0]?.guesses[0]?.word, "river");
+  assert.equal(latestState.game.rounds[0]?.guesses[0]?.playerId, "user-1");
 
   assert.equal(
     emitted.some((event) => event.event === "game:revealed"),
