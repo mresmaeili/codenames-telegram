@@ -1,12 +1,18 @@
 import { Router } from "express";
 
-import { RoomModel } from "../models/room.model.js";
 import { gameRepository } from "../repositories/game.repository.js";
+import { RoomModel } from "../models/room.model.js";
 import {
   getGameByRoomCode,
   getRemainingCardCounts,
 } from "../services/game.service.js";
-import { applyHintSubmission } from "../services/hint.service.js";
+import {
+  GameCommandError,
+  passTurn,
+  revealCard,
+  selectCard,
+  submitHint,
+} from "../services/game-command.service.js";
 import { applyCardSelection } from "../services/selection.service.js";
 import { applyCardReveal } from "../services/reveal.service.js";
 import { applyTurnOutcome, applyTurnPass } from "../services/turn.service.js";
@@ -42,21 +48,6 @@ gameRouter.get("/:roomCode", async (request, response, next) => {
 
 gameRouter.post("/:gameId/hint", async (request, response) => {
   try {
-    const gameId = request.params.gameId;
-    const game = await gameRepository.findById(gameId);
-
-    if (!game) {
-      response.status(404).json({ message: "Game not found." });
-      return;
-    }
-
-    const roomRecord = await RoomModel.findById(game.roomId).exec();
-
-    if (!roomRecord) {
-      response.status(404).json({ message: "Room not found." });
-      return;
-    }
-
     const senderTelegramId = request.body?.telegramId;
     const word = request.body?.word;
     const number = request.body?.number;
@@ -70,88 +61,20 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
       return;
     }
 
-    const validation = validateGameplayAction({
-      game: {
-        status: game.status,
-        currentTurn: game.currentTurn,
-        startingTeam: game.startingTeam,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        board: game.board,
-        selectedCardId: game.selectedCardId ?? null,
-        selectedByPlayerId: game.selectedByPlayerId ?? null,
-        selectedAt: game.selectedAt ?? null,
-        winningTeam: game.winningTeam ?? null,
-        completionReason: game.completionReason ?? null,
-        completedAt: game.completedAt ?? null,
-      },
-    });
-
-    if (!validation.ok) {
-      response.status(400).json({ message: validation.error });
-      return;
-    }
-
-    const result = applyHintSubmission({
-      game: {
-        status: game.status,
-        currentTurn: game.currentTurn,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        hintHistory: game.hintHistory ?? [],
-      },
-      room: {
-        players: roomRecord.players,
-      },
-      senderTelegramId,
+    const result = await submitHint({
+      gameId: request.params.gameId,
+      telegramId: senderTelegramId,
       word,
       number,
     });
 
-    const hint = result.game.hintHistory[result.game.hintHistory.length - 1];
-    const roundHint = {
-      ...hint,
-      playerId:
-        roomRecord.players.find(
-          (player) => player.telegramId === senderTelegramId,
-        )?.userId ?? null,
-    };
-    const rounds = [
-      ...(game.rounds ?? []),
-      {
-        id: `round-${hint.submittedAt.toISOString()}`,
-        team: hint.team,
-        hint: roundHint,
-        guesses: [],
-      },
-    ];
-
-    const updatedGame = await gameRepository.update(
-      gameId,
-      {
-        currentHintWord: result.game.currentHintWord,
-        currentHintNumber: result.game.currentHintNumber,
-        remainingGuesses: result.game.remainingGuesses,
-        hintSubmittedAt: result.game.hintSubmittedAt,
-        hintHistory: result.game.hintHistory,
-        rounds,
-        phase: "operatives",
-        phaseStartedAt: result.game.hintSubmittedAt,
-      },
-      game.updatedAt,
-    );
-
-    if (!updatedGame) {
-      response.status(500).json({ message: "Unable to update game hint." });
+    response.status(200).json(result.game);
+  } catch (error) {
+    if (error instanceof GameCommandError) {
+      response.status(error.statusCode).json({ message: error.message });
       return;
     }
 
-    response.status(200).json(updatedGame);
-  } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to submit hint.";
     response.status(400).json({ message });
@@ -160,21 +83,6 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
 
 gameRouter.post("/:gameId/select", async (request, response) => {
   try {
-    const gameId = request.params.gameId;
-    const game = await gameRepository.findById(gameId);
-
-    if (!game) {
-      response.status(404).json({ message: "Game not found." });
-      return;
-    }
-
-    const roomRecord = await RoomModel.findById(game.roomId).exec();
-
-    if (!roomRecord) {
-      response.status(404).json({ message: "Room not found." });
-      return;
-    }
-
     const senderTelegramId = request.body?.telegramId;
     const cardId = request.body?.cardId;
 
@@ -183,67 +91,19 @@ gameRouter.post("/:gameId/select", async (request, response) => {
       return;
     }
 
-    const validation = validateGameplayAction({
-      game: {
-        status: game.status,
-        currentTurn: game.currentTurn,
-        startingTeam: game.startingTeam,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        board: game.board,
-        selectedCardId: game.selectedCardId ?? null,
-        selectedByPlayerId: game.selectedByPlayerId ?? null,
-        selectedAt: game.selectedAt ?? null,
-        winningTeam: game.winningTeam ?? null,
-        completionReason: game.completionReason ?? null,
-        completedAt: game.completedAt ?? null,
-      },
-    });
-
-    if (!validation.ok) {
-      response.status(400).json({ message: validation.error });
-      return;
-    }
-
-    const result = applyCardSelection({
-      game: {
-        status: game.status,
-        currentTurn: game.currentTurn,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        board: game.board,
-        selectedCardId: game.selectedCardId ?? null,
-        selectedByPlayerId: game.selectedByPlayerId ?? null,
-        selectedAt: game.selectedAt ?? null,
-      },
-      room: {
-        players: roomRecord.players,
-      },
-      senderTelegramId,
+    const result = await selectCard({
+      gameId: request.params.gameId,
+      telegramId: senderTelegramId,
       cardId,
     });
 
-    const updatedGame = await gameRepository.update(
-      gameId,
-      {
-        selectedCardId: result.game.selectedCardId,
-        selectedByPlayerId: result.game.selectedByPlayerId,
-        selectedAt: result.game.selectedAt,
-      },
-      game.updatedAt,
-    );
-
-    if (!updatedGame) {
-      response.status(500).json({ message: "Unable to update selection." });
+    response.status(200).json(result.game);
+  } catch (error) {
+    if (error instanceof GameCommandError) {
+      response.status(error.statusCode).json({ message: error.message });
       return;
     }
 
-    response.status(200).json(updatedGame);
-  } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to select card.";
     response.status(400).json({ message });
@@ -252,6 +112,22 @@ gameRouter.post("/:gameId/select", async (request, response) => {
 
 gameRouter.post("/:gameId/reveal", async (request, response) => {
   try {
+    const senderTelegramId = request.body?.telegramId;
+
+    if (typeof senderTelegramId !== "number") {
+      response.status(400).json({ message: "Invalid reveal payload." });
+      return;
+    }
+
+    const result = await revealCard({
+      gameId: request.params.gameId,
+      telegramId: senderTelegramId,
+    });
+
+    response.status(200).json(result.game);
+    return;
+
+    /* legacy inline reveal path retained temporarily during cleanup
     const gameId = request.params.gameId;
     const game = await gameRepository.findById(gameId);
 
@@ -400,8 +276,13 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       return;
     }
 
-    response.status(200).json(updatedGame);
+    response.status(200).json(updatedGame); */
   } catch (error) {
+    if (error instanceof GameCommandError) {
+      response.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+
     const message =
       error instanceof Error ? error.message : "Unable to reveal card.";
     response.status(400).json({ message });
@@ -410,21 +291,6 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
 
 gameRouter.post("/:gameId/pass", async (request, response) => {
   try {
-    const gameId = request.params.gameId;
-    const game = await gameRepository.findById(gameId);
-
-    if (!game) {
-      response.status(404).json({ message: "Game not found." });
-      return;
-    }
-
-    const roomRecord = await RoomModel.findById(game.roomId).exec();
-
-    if (!roomRecord) {
-      response.status(404).json({ message: "Room not found." });
-      return;
-    }
-
     const senderTelegramId = request.body?.telegramId;
 
     if (typeof senderTelegramId !== "number") {
@@ -432,67 +298,18 @@ gameRouter.post("/:gameId/pass", async (request, response) => {
       return;
     }
 
-    const result = applyTurnPass({
-      game: {
-        status: game.status,
-        currentTurn: game.currentTurn,
-        remainingGuesses: game.remainingGuesses,
-        currentHintWord: game.currentHintWord ?? null,
-        currentHintNumber: game.currentHintNumber ?? null,
-        hintSubmittedAt: game.hintSubmittedAt ?? null,
-        board: game.board,
-        selectedCardId: game.selectedCardId ?? null,
-        selectedByPlayerId: game.selectedByPlayerId ?? null,
-        selectedAt: game.selectedAt ?? null,
-      },
-      room: {
-        players: roomRecord.players,
-      },
-      senderTelegramId,
+    const result = await passTurn({
+      gameId: request.params.gameId,
+      telegramId: senderTelegramId,
     });
 
-    const updatedGame = await gameRepository.update(
-      gameId,
-      {
-        currentTurn: result.game.currentTurn,
-        remainingGuesses: result.game.remainingGuesses,
-        currentHintWord: result.game.currentHintWord,
-        currentHintNumber: result.game.currentHintNumber,
-        hintSubmittedAt: result.game.hintSubmittedAt,
-        selectedCardId: result.game.selectedCardId,
-        selectedByPlayerId: result.game.selectedByPlayerId,
-        selectedAt: result.game.selectedAt,
-        rounds: (game.rounds ?? []).map((round, index, rounds) =>
-          index === rounds.length - 1
-            ? {
-                ...round,
-                passes: [
-                  ...(round.passes ?? []),
-                  {
-                    playerId:
-                      roomRecord.players.find(
-                        (player) => player.telegramId === senderTelegramId,
-                      )?.userId ?? null,
-                    passedAt: new Date(),
-                  },
-                ],
-              }
-            : round,
-        ),
-        phase: "spymaster",
-        phaseStartedAt: new Date(),
-        turnStartedAt: new Date(),
-      },
-      game.updatedAt,
-    );
-
-    if (!updatedGame) {
-      response.status(500).json({ message: "Unable to pass turn." });
+    response.status(200).json(result.game);
+  } catch (error) {
+    if (error instanceof GameCommandError) {
+      response.status(error.statusCode).json({ message: error.message });
       return;
     }
 
-    response.status(200).json(updatedGame);
-  } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to pass turn.";
     response.status(400).json({ message });

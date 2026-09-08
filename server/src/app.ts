@@ -1,5 +1,8 @@
 import cors from "cors";
 import express from "express";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 import { env } from "./config/env.js";
 import {
@@ -18,6 +21,11 @@ import { UserModel } from "./models/user.model.js";
 
 export function createApp() {
   const app = express();
+  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+  const clientDistPath = [
+    path.resolve(moduleDirectory, "../../client/dist"),
+    path.resolve(moduleDirectory, "../../../../client/dist"),
+  ].find((candidate) => existsSync(candidate));
 
   app.use(express.json());
   app.use(
@@ -49,6 +57,25 @@ export function createApp() {
   app.use("/api/games", gameRouter);
   app.use("/api/words", wordRouter);
   app.use("/api/avatars", avatarRouter);
+
+  if (clientDistPath) {
+    app.use(express.static(clientDistPath));
+    app.use((request, response, next) => {
+      const acceptsHtml = request.headers.accept?.includes("text/html");
+      const isApiRequest =
+        request.path.startsWith("/api/") ||
+        request.path.startsWith("/auth") ||
+        request.path.startsWith("/health") ||
+        request.path.startsWith("/socket.io");
+
+      if (request.method === "GET" && acceptsHtml && !isApiRequest) {
+        response.sendFile(path.join(clientDistPath, "index.html"));
+        return;
+      }
+
+      next();
+    });
+  }
 
   // Background: auto-generate ghibli avatars for users with a source photo
   // when an avatar provider is configured. Runs non-blocking on startup.

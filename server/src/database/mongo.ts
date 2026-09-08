@@ -76,7 +76,10 @@ export async function connectToDatabase(): Promise<void> {
   }
 
   try {
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     throw new Error(`Failed to connect to MongoDB: ${message}`);

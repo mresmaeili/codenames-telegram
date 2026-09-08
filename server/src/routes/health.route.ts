@@ -5,8 +5,11 @@ import { getDatabaseHealthStatus } from "../database/mongo.js";
 export const healthRouter = Router();
 
 healthRouter.get("/", (_request, response) => {
-  response.status(200).json({
-    status: "ok",
-    database: getDatabaseHealthStatus(),
+  const database = getDatabaseHealthStatus();
+  const healthy = database.status === "connected";
+
+  response.status(healthy ? 200 : 503).json({
+    status: healthy ? "ok" : "unavailable",
+    database,
   });
 });

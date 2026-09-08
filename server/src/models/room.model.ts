@@ -146,6 +146,7 @@ const roomSchema = new Schema<RoomDocument>(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   },
 );
 

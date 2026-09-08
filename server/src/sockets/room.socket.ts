@@ -18,7 +18,11 @@ import {
   getRemainingCardCounts,
   buildGameView,
 } from "../services/game.service.js";
-import { applyHintSubmission } from "../services/hint.service.js";
+import {
+  revealCard,
+  selectCard,
+  submitHint,
+} from "../services/game-command.service.js";
 import { applyCardSelection } from "../services/selection.service.js";
 import { applyCardReveal } from "../services/reveal.service.js";
 import { applyTurnPass, applyTurnOutcome } from "../services/turn.service.js";
@@ -1037,111 +1041,19 @@ export function registerRoomSocketHandlers(
       }
 
       const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
-
-      const game = await gameRepository.findById(payload.gameId);
-      if (!game) {
-        socket.emit("game:error", { message: "Game not found." });
-        return;
-      }
-
-      const room = await RoomModel.findOne({
-        roomCode: payload.roomCode.toUpperCase(),
-      }).exec();
-      if (!room) {
-        socket.emit("game:error", { message: "Room not found." });
-        return;
-      }
-
-      if (!gameBelongsToRoom(game, room)) {
-        socket.emit("game:error", {
-          message: "Game does not belong to this room.",
-        });
-        return;
-      }
-
-      const validation = validateGameplayAction({
-        game: {
-          status: game.status,
-          currentTurn: game.currentTurn,
-          startingTeam: game.startingTeam,
-          remainingGuesses: game.remainingGuesses,
-          currentHintWord: game.currentHintWord ?? null,
-          currentHintNumber: game.currentHintNumber ?? null,
-          hintSubmittedAt: game.hintSubmittedAt ?? null,
-          board: game.board,
-          selectedCardId: game.selectedCardId ?? null,
-          selectedByPlayerId: game.selectedByPlayerId ?? null,
-          selectedAt: game.selectedAt ?? null,
-          winningTeam: game.winningTeam ?? null,
-          completionReason: game.completionReason ?? null,
-          completedAt: game.completedAt ?? null,
-        },
-      });
-
-      if (!validation.ok) {
-        socket.emit("game:error", { message: validation.error });
-        return;
-      }
-
-      const result = applyHintSubmission({
-        game: {
-          status: game.status,
-          currentTurn: game.currentTurn,
-          remainingGuesses: game.remainingGuesses,
-          currentHintWord: game.currentHintWord ?? null,
-          currentHintNumber: game.currentHintNumber ?? null,
-          hintSubmittedAt: game.hintSubmittedAt ?? null,
-          hintHistory: game.hintHistory ?? [],
-        },
-        room: { players: room.players },
-        senderTelegramId: actorTelegramId,
+      const result = await submitHint({
+        gameId: payload.gameId,
+        roomCode: payload.roomCode,
+        telegramId: actorTelegramId,
         word: payload.word,
         number: payload.number,
       });
 
-      const hint = result.game.hintHistory[result.game.hintHistory.length - 1];
-      const roundHint = {
-        ...hint,
-        playerId:
-          room.players.find(
-            (player) => player.telegramId === payload.telegramId,
-          )?.userId ?? null,
-      };
-      const rounds = [
-        ...(game.rounds ?? []),
-        {
-          id: `round-${hint.submittedAt.toISOString()}`,
-          team: hint.team,
-          hint: roundHint,
-          guesses: [],
-        },
-      ];
-
-      const updatedGame = await gameRepository.update(
-        payload.gameId,
-        {
-          currentHintWord: result.game.currentHintWord,
-          currentHintNumber: result.game.currentHintNumber,
-          remainingGuesses: result.game.remainingGuesses,
-          hintSubmittedAt: result.game.hintSubmittedAt,
-          hintHistory: result.game.hintHistory,
-          rounds,
-          phase: "operatives",
-          phaseStartedAt: result.game.hintSubmittedAt,
-        },
-        game.updatedAt,
-      );
-
-      if (!updatedGame) {
-        socket.emit("game:error", { message: "Unable to update game hint." });
-        return;
-      }
-
       await emitGameState(
         io,
         payload.roomCode.toUpperCase(),
-        room as unknown as Room,
-        updatedGame,
+        result.room as unknown as Room,
+        result.game,
       );
     } catch (error) {
       const message =
@@ -1185,6 +1097,40 @@ export function registerRoomSocketHandlers(
 
       const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
 
+      if (payload.confirm === true) {
+        const result = await revealCard({
+          gameId: payload.gameId,
+          roomCode: payload.roomCode,
+          telegramId: actorTelegramId,
+        });
+
+        await emitGameState(
+          io,
+          payload.roomCode.toUpperCase(),
+          result.room as unknown as Room,
+          result.game,
+        );
+        return;
+      }
+
+      if (payload.confirm === false) {
+        const selectedResult = await selectCard({
+          gameId: payload.gameId,
+          roomCode: payload.roomCode,
+          telegramId: actorTelegramId,
+          cardId: payload.cardId,
+        });
+
+        await emitGameState(
+          io,
+          payload.roomCode.toUpperCase(),
+          selectedResult.room as unknown as Room,
+          selectedResult.game,
+        );
+        return;
+      }
+
+      /* legacy inline confirm/reveal path
       const selectionContext = {
         game: {
           status: game.status,
@@ -1230,31 +1176,6 @@ export function registerRoomSocketHandlers(
           : applyCardSelection({
               ...selectionContext,
             });
-
-      if (payload.confirm === false) {
-        const selectedGame = await gameRepository.update(
-          payload.gameId,
-          {
-            selectedCardId: selectionResult.game.selectedCardId,
-            selectedByPlayerId: selectionResult.game.selectedByPlayerId,
-            selectedAt: selectionResult.game.selectedAt,
-          },
-          game.updatedAt,
-        );
-
-        if (!selectedGame) {
-          socket.emit("game:error", { message: "Unable to select card." });
-          return;
-        }
-
-        await emitGameState(
-          io,
-          payload.roomCode.toUpperCase(),
-          room as unknown as Room,
-          selectedGame,
-        );
-        return;
-      }
 
       const revealResult = applyCardReveal({
         game: selectionResult.game,
@@ -1352,7 +1273,7 @@ export function registerRoomSocketHandlers(
         payload.roomCode.toUpperCase(),
         room as unknown as Room,
         updatedGame,
-      );
+      ); */
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to select card.";

@@ -68,14 +68,6 @@ server {
   ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
 
-  location = /index.html {
-    proxy_pass http://127.0.0.1:3001;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    add_header Cache-Control "no-cache" always;
-  }
-
   location / {
     proxy_pass http://127.0.0.1:3001;
     proxy_http_version 1.1;
@@ -113,4 +105,15 @@ npm run start --workspace server
 
 ## Health Check
 
-The application exposes a health endpoint at `/health`.
+The application exposes `/health`. It returns HTTP `200` only when MongoDB is
+connected and HTTP `503` otherwise. Verify both the browser shell and health
+endpoint after deployment:
+
+```bash
+curl -f https://your-domain.com/health
+curl -I https://your-domain.com/
+```
+
+The Node server serves the built `client/dist` files and falls back to
+`index.html` for browser routes, while Nginx forwards HTTP and Socket.IO
+WebSocket traffic to port `3001`.
