@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 
 import App from "@/App";
 import { env } from "@/config/env";
-import { isDevModeEnabled } from "@/lib/dev";
+import { getDevModeUser, isDevModeEnabled } from "@/lib/dev";
 import {
   getTelegramInitData,
   initializeTelegramMiniApp,
@@ -38,9 +38,14 @@ async function bootstrap() {
   }
 
   const initData = devMode ? null : await getTelegramInitData();
+  const devUser = devMode ? getDevModeUser() : null;
   createSocketClient({
     endpoint: env.SOCKET_URL,
-    auth: devMode ? { dev: true } : initData ? { initData } : undefined,
+    auth: devMode
+      ? { dev: true, telegramId: devUser?.telegramId }
+      : initData
+        ? { initData }
+        : undefined,
   });
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

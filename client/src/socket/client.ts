@@ -5,6 +5,7 @@ interface SocketClientOptions {
   auth?: {
     initData?: string;
     dev?: boolean;
+    telegramId?: number;
   };
 }
 

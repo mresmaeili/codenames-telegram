@@ -31,10 +31,14 @@ export function createSocketServer(
     const auth = socket.handshake.auth as {
       initData?: unknown;
       dev?: unknown;
+      telegramId?: unknown;
     };
 
     if (env.DEV_MODE && auth.dev === true) {
       socket.data.devMode = true;
+      if (typeof auth.telegramId === "number") {
+        socket.data.telegramId = auth.telegramId;
+      }
     } else if (typeof auth.initData === "string" && auth.initData.trim()) {
       try {
         const user = await authenticateTelegramUser(auth.initData);
