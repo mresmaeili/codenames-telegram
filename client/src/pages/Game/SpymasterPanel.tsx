@@ -37,12 +37,12 @@ export function SpymasterPanel({
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-[26px] border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]`}
+      className={`${className} overflow-hidden rounded-2xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-2 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
       <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
         Spymasters
       </div>
-      <div className="mt-3 flex flex-col items-center justify-center gap-2">
+      <div className="mt-2 flex flex-col items-center justify-center gap-1">
         <button
           type="button"
           onClick={() => player && onPlayerClick(player)}

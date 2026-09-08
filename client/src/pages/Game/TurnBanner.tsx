@@ -9,7 +9,7 @@ interface TurnBannerProps {
 
 export function TurnBanner({ instruction, player, onHelp }: TurnBannerProps) {
   return (
-    <div className="mt-3 flex min-h-10 items-center justify-center gap-2 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-none tracking-tight text-white">
+    <div className="mt-2 flex min-h-10 items-center justify-center gap-1.5 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white">
       <span>{instruction}</span>
       {player ? (
         <img

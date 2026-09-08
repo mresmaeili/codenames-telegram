@@ -24,7 +24,7 @@ export function GameHeaderBar({
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="sticky top-0 z-20 mb-2 flex items-center justify-between gap-2 border-b border-white/15 bg-inherit/95 py-2 backdrop-blur-sm">
+    <div className="sticky top-0 z-20 mb-1 flex items-center justify-between gap-1 border-b border-white/15 bg-inherit/95 py-1 backdrop-blur-sm">
       <button
         type="button"
         onClick={() => setMenuOpen((current) => !current)}

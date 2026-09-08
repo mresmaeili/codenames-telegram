@@ -45,7 +45,7 @@ export function TeamPanel({
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-[26px] border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]`}
+      className={`${className} overflow-hidden rounded-2xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-2.5 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
       <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
         Operatives

@@ -1070,7 +1070,7 @@ export function GamePage({
   return (
     <PageContainer>
       <div
-        className={`mx-auto w-full max-w-150 px-2 pb-4 pt-2 text-white transition-colors duration-300 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
+        className={`mx-auto flex min-h-[100dvh] w-full max-w-150 flex-col px-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
       >
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
@@ -1091,8 +1091,8 @@ export function GamePage({
             />
           </div>
         ) : null}
-        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-start gap-1.5">
-          <div className="col-start-1 row-span-2 flex min-h-0 flex-col gap-1.5">
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-start gap-1">
+          <div className="col-start-1 row-span-2 flex min-h-0 flex-col gap-1">
             <TeamPanel
               team="blue"
               remainingCards={blueCardsRemaining}
@@ -1122,7 +1122,7 @@ export function GamePage({
             timerProgress={timerProgress}
           />
 
-          <div className="col-start-3 row-span-2 flex min-h-0 flex-col gap-1.5">
+          <div className="col-start-3 row-span-2 flex min-h-0 flex-col gap-1">
             <TeamPanel
               team="red"
               remainingCards={redCardsRemaining}

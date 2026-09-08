@@ -63,7 +63,7 @@ export function GameLog({
 }: GameLogProps) {
   return (
     <div
-      className={`${className} flex h-[18.25rem] max-h-[18.25rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-[26px] bg-[#4a4a4a] p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)]`}
+      className={`${className} flex h-[18.25rem] max-h-[18.25rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-[#4a4a4a] p-2.5 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)]`}
     >
       <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
         Game log
