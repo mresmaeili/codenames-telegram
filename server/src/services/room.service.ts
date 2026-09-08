@@ -451,6 +451,7 @@ export async function createRoom(
 
 export async function joinRoom(
   input: JoinRoomInput,
+  retryCount = 0,
 ): Promise<CreateRoomResult> {
   if (!input.roomCode.trim()) {
     throw new Error("Room code is required.");
@@ -502,7 +503,20 @@ export async function joinRoom(
   }
   room.players.push(nextPlayer);
 
-  const updatedRoom = await room.save();
+  let updatedRoom: RoomDocument;
+  try {
+    updatedRoom = await room.save();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.name === "VersionError" &&
+      retryCount < 2
+    ) {
+      return joinRoom(input, retryCount + 1);
+    }
+
+    throw error;
+  }
 
   return await serializeRoom(updatedRoom);
 }

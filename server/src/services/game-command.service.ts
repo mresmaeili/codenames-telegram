@@ -314,7 +314,36 @@ export async function revealCard(
         revealedCardColor: selectedCardColor,
       }).game;
 
-  const rounds = [...(game.rounds ?? [])];
+  const rounds = (game.rounds ?? []).map((round) => ({
+    id: round.id,
+    team: round.team,
+    hint: round.hint
+      ? {
+          word: round.hint.word,
+          number: round.hint.number,
+          team: round.hint.team,
+          submittedAt: round.hint.submittedAt,
+          playerId: round.hint.playerId ?? null,
+        }
+      : {
+          word: game.currentHintWord ?? "",
+          number: game.currentHintNumber ?? 0,
+          team: game.currentTurn,
+          submittedAt: game.hintSubmittedAt ?? new Date(),
+          playerId: null,
+        },
+    guesses: (round.guesses ?? []).map((guess) => ({
+      word: guess.word,
+      cardIndex: guess.cardIndex,
+      playerId: guess.playerId ?? null,
+      correct: guess.correct,
+      revealedAt: guess.revealedAt,
+    })),
+    passes: (round.passes ?? []).map((pass) => ({
+      playerId: pass.playerId ?? null,
+      passedAt: pass.passedAt,
+    })),
+  }));
   let currentRound = rounds[rounds.length - 1];
   if (
     !currentRound &&
@@ -332,6 +361,7 @@ export async function revealCard(
         playerId: null,
       },
       guesses: [],
+      passes: [],
     };
     rounds.push(currentRound);
   }
@@ -355,7 +385,11 @@ export async function revealCard(
   const updatedGame = await gameRepository.update(
     command.gameId,
     {
-      board: revealResult.game.board,
+      board: revealResult.game.board.map((card) => ({
+        word: card.word,
+        color: card.color,
+        revealed: card.revealed,
+      })),
       ...getRemainingCardCounts(revealResult.game.board),
       status: resolvedGame.status,
       currentTurn: resolvedGame.currentTurn,

@@ -78,6 +78,8 @@ export function BoardGrid({
 
         const publicCard = card as PublicCard;
         const isSelected = selectedCardId === String(index);
+        const hasLocalSelection =
+          (selectedPlayersByCard[index] ?? []).length > 0;
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
           isSelected &&
@@ -86,7 +88,9 @@ export function BoardGrid({
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
         const ariaLabel = publicCard.revealed
-          ? `Revealed ${publicCard.word}`
+          ? isRevealedWordVisible
+            ? `Hide revealed word ${publicCard.word}`
+            : `Show revealed word ${publicCard.word}`
           : isConfirmable
             ? `Selected ${publicCard.word}. Use the guess button to confirm.`
             : isSelectable
@@ -121,11 +125,11 @@ export function BoardGrid({
                 hideWord={hideWords}
                 disabled={!isInteractive}
                 revealPlaceholder={false}
-                selectedPlaceholder={isSelected}
                 revealedColor={
                   publicCard.revealed ? (publicCard.color ?? "neutral") : null
                 }
                 showRevealedWord={isRevealedWordVisible}
+                selectedPlaceholder={isSelected || hasLocalSelection}
                 selectedPlayers={selectedPlayersByCard[index] ?? []}
               />
             </button>

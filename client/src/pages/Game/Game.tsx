@@ -439,22 +439,7 @@ export function GamePage({
   >({});
 
   useGameStateSync(socket, ({ room, game }) => {
-    setState((current) => {
-      const currentUpdatedAt = current.game?.updatedAt
-        ? new Date(current.game.updatedAt).getTime()
-        : 0;
-      const incomingUpdatedAt = new Date(game.updatedAt).getTime();
-
-      return {
-        room,
-        game:
-          current.game && currentUpdatedAt > incomingUpdatedAt
-            ? current.game
-            : game,
-        loading: false,
-        error: null,
-      };
-    });
+    setState({ room, game, loading: false, error: null });
     setIsReconnecting(false);
   });
 
@@ -473,6 +458,19 @@ export function GamePage({
   useEffect(() => {
     setSelectedPlayersByCard({});
   }, [state.game?.id, state.game?.roomId]);
+
+  useEffect(() => {
+    setSelectedPlayersByCard((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(
+          ([index]) => !state.game?.board[Number(index)]?.revealed,
+        ),
+      );
+      return Object.keys(next).length === Object.keys(current).length
+        ? current
+        : next;
+    });
+  }, [state.game?.board]);
 
   useEffect(() => {
     const timerSetting = state.room?.settings.timer;
@@ -562,18 +560,7 @@ export function GamePage({
       }
 
       const game = normalizeGameCounts((await gameResponse.json()) as GameView);
-      setState((current) => {
-        const currentGameUpdatedAt = current.game?.updatedAt
-          ? new Date(current.game.updatedAt).getTime()
-          : 0;
-        const fetchedGameUpdatedAt = new Date(game.updatedAt).getTime();
-        const latestGame =
-          current.game && currentGameUpdatedAt > fetchedGameUpdatedAt
-            ? current.game
-            : game;
-
-        return { room, game: latestGame, loading: false, error: null };
-      });
+      setState({ room, game, loading: false, error: null });
       setIsReconnecting(false);
     } catch (error) {
       const message =
@@ -947,6 +934,23 @@ export function GamePage({
     confirmSelection();
   }
 
+  function handleSelectCard(cardIndex: number) {
+    if (!viewerPlayer || !canSelectCard) {
+      return;
+    }
+
+    setSelectedPlayersByCard((current) => ({
+      ...current,
+      [cardIndex]: [
+        ...(current[cardIndex] ?? []).filter(
+          (player) => player.userId !== viewerPlayer.userId,
+        ),
+        viewerPlayer,
+      ],
+    }));
+    selectCard(cardIndex);
+  }
+
   function handleAssignPlayerFromGame(
     targetTelegramId: number,
     team: "blue" | "red" | null,
@@ -1142,7 +1146,7 @@ export function GamePage({
           game={state.game}
           viewerPlayerId={viewerPlayer?.userId}
           canSelectCard={canSelectCard}
-          onSelectCard={selectCard}
+          onSelectCard={handleSelectCard}
           onConfirmCard={handleConfirmCard}
           selectedHintCardIds={selectedHintCardIds}
           onToggleHintCard={
