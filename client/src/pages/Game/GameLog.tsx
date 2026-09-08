@@ -63,16 +63,16 @@ export function GameLog({
 }: GameLogProps) {
   return (
     <div
-      className={`${className} flex h-[18.25rem] max-h-[18.25rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-[#4a4a4a] p-2.5 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)]`}
+      className={`${className} flex h-[13rem] max-h-[13rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-[#4a4a4a] p-1.5 text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)]`}
     >
-      <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
+      <div className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-white/80">
         Game log
       </div>
       {timerDuration && secondsRemaining !== null ? (
         <div
-          className={`mt-2 rounded-full px-2 py-1 text-center font-black ${secondsRemaining < 0 ? "bg-[#f15f4a] text-white" : "bg-[#f5cf70] text-[#20160b]"}`}
+          className={`mt-1 rounded-full px-1.5 py-1 text-center font-black ${secondsRemaining < 0 ? "bg-[#f15f4a] text-white" : "bg-[#f5cf70] text-[#20160b]"}`}
         >
-          <div className="text-[clamp(1rem,3.5vw,1.35rem)] leading-none tracking-tight">
+          <div className="text-[clamp(0.8rem,3vw,1.1rem)] leading-none tracking-tight">
             {formatTimer(secondsRemaining)}
           </div>
           <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/20">
@@ -83,7 +83,7 @@ export function GameLog({
           </div>
         </div>
       ) : null}
-      <div className="mt-2 min-h-0 flex-1 space-y-2 overflow-y-scroll overscroll-contain pr-1 text-left text-[10px] text-white/80 [scrollbar-gutter:stable]">
+      <div className="mt-1 min-h-0 flex-1 space-y-1 overflow-y-scroll overscroll-contain pr-0.5 text-left text-[8px] text-white/80 [scrollbar-gutter:stable]">
         {entries.length > 0 ? (
           groupRounds(entries).map((round) => {
             const hintPlayer = players.find(
@@ -109,15 +109,15 @@ export function GameLog({
                     src={avatarUrlForPlayer(hintPlayer)}
                     alt={hintPlayer?.displayName ?? round.hint.team}
                     title={hintPlayer?.displayName ?? round.hint.team}
-                    className={`h-7 w-7 shrink-0 rounded-full border-2 object-cover ${teamColor.border}`}
+                    className={`h-5 w-5 shrink-0 rounded-full border object-cover ${teamColor.border}`}
                   />
                   <span
-                    className={`min-w-0 flex-1 truncate rounded-sm px-2 py-1 text-center text-[11px] font-black uppercase text-white ${teamColor.row}`}
+                    className={`min-w-0 flex-1 truncate rounded-sm px-1.5 py-0.5 text-center text-[9px] font-black uppercase text-white ${teamColor.row}`}
                   >
                     {round.hint.word}
                   </span>
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-sm font-black text-black ${teamColor.border}`}
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-black ${teamColor.border}`}
                   >
                     {round.hint.number}
                   </span>

@@ -1101,7 +1101,7 @@ export function GamePage({
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
             />
-            <div className="flex items-center justify-center px-3 py-2 text-[2.7rem] font-black leading-none tracking-[-0.08em] text-white">
+            <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {blueCardsRemaining}
             </div>
             <SpymasterPanel
@@ -1131,7 +1131,7 @@ export function GamePage({
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
             />
-            <div className="flex items-center justify-center px-3 py-2 text-[2.7rem] font-black leading-none tracking-[-0.08em] text-white">
+            <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {redCardsRemaining}
             </div>
             <SpymasterPanel

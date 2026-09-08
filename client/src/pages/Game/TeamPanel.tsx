@@ -45,12 +45,12 @@ export function TeamPanel({
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-2xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-2.5 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)] transition-colors duration-200`}
+      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-1.5 text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
-      <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+      <div className="mb-1 text-center text-[8px] font-black uppercase tracking-[0.14em] text-white/85">
         Operatives
       </div>
-      <div className="flex items-end justify-center gap-2">
+      <div className="flex items-end justify-center gap-1">
         <div className="flex items-end justify-center -space-x-2">
           {operatives.slice(0, 3).map((player) => (
             <button
@@ -65,15 +65,15 @@ export function TeamPanel({
                 src={avatarUrlForPlayer(player)}
                 alt={player.displayName}
                 title={player.displayName}
-                className="h-9 w-9 rounded-full border-2 border-white/60 object-cover shadow-[0_4px_10px_rgba(0,0,0,0.25)]"
+                className="h-7 w-7 rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]"
               />
-              <span className="mt-1 max-w-16 truncate text-[9px] font-bold leading-none text-white/90">
+              <span className="mt-0.5 max-w-14 truncate text-[8px] font-bold leading-none text-white/90">
                 {player.displayName}
               </span>
             </button>
           ))}
           {operatives.length === 0 ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl shadow-[0_4px_10px_rgba(0,0,0,0.25)]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-base shadow-[0_3px_7px_rgba(0,0,0,0.25)]">
               {styles.fallback}
             </div>
           ) : null}

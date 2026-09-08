@@ -37,17 +37,17 @@ export function SpymasterPanel({
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-2xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-2 text-white shadow-[0_6px_16px_rgba(0,0,0,0.18)] transition-colors duration-200`}
+      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-1.5 text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
-      <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+      <div className="text-center text-[8px] font-black uppercase tracking-[0.14em] text-white/85">
         Spymasters
       </div>
-      <div className="mt-2 flex flex-col items-center justify-center gap-1">
+      <div className="mt-1 flex flex-col items-center justify-center gap-0.5">
         <button
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 ${styles.avatar} bg-white/10 shadow-[0_6px_18px_rgba(0,0,0,0.25)]`}
+          className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
@@ -60,10 +60,10 @@ export function SpymasterPanel({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-xl">{styles.fallback}</span>
+            <span className="text-base">{styles.fallback}</span>
           )}
         </button>
-        <div className="text-center text-[10px] font-bold text-white/95">
+        <div className="text-center text-[8px] font-bold text-white/95">
           {player?.displayName ?? "None"}
         </div>
       </div>
