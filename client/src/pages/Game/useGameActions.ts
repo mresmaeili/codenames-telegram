@@ -21,6 +21,7 @@ interface UseGameActionsInput {
   setHintMessage: (message: string | null) => void;
   setHintDraft: (draft: { word: string; number: string }) => void;
   setSelectedHintCardIds: (ids: Set<number>) => void;
+  onGameUpdated?: () => void | Promise<void>;
 }
 
 export function useGameActions({
@@ -38,6 +39,7 @@ export function useGameActions({
   setHintMessage,
   setHintDraft,
   setSelectedHintCardIds,
+  onGameUpdated,
 }: UseGameActionsInput) {
   function emitError(): void {
     setHintMessage("Socket connection is unavailable.");
@@ -110,7 +112,10 @@ export function useGameActions({
     socket.emit("game:select", payload, (error?: { message?: string }) => {
       if (error?.message) {
         setHintMessage(error.message);
+        return;
       }
+
+      void onGameUpdated?.();
     });
   }
 

@@ -764,6 +764,7 @@ export function GamePage({
       setHintMessage,
       setHintDraft,
       setSelectedHintCardIds,
+      onGameUpdated: refreshGameState,
     });
   const currentSelectedCardIndex = state.game?.selectedCardId
     ? Number.parseInt(state.game.selectedCardId, 10)
