@@ -59,16 +59,15 @@ export function createSocketClient(options: SocketClientOptions): Socket {
 }
 
 export function reconnectSocketClient(): Socket | null {
-  if (socketInstance) {
-    socketInstance.disconnect();
-    socketInstance = null;
+  if (!socketInstance) {
+    return socketEndpoint
+      ? createSocketClient({ endpoint: socketEndpoint })
+      : null;
   }
 
-  if (!socketEndpoint) {
-    return null;
-  }
-
-  return createSocketClient({ endpoint: socketEndpoint });
+  socketInstance.disconnect();
+  socketInstance.connect();
+  return socketInstance;
 }
 
 export function getSocketClient(): Socket | null {

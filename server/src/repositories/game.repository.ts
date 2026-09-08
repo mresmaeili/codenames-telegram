@@ -10,6 +10,7 @@ export interface GameRepository {
   update(
     id: string,
     update: UpdateQuery<GameDocument>,
+    expectedUpdatedAt?: Date,
   ): Promise<GameDocument | null>;
 }
 
@@ -26,7 +27,10 @@ export const gameRepository: GameRepository = {
     return GameModel.findOne({ roomId }).exec();
   },
 
-  async update(id, update) {
-    return GameModel.findByIdAndUpdate(id, update, { new: true }).exec();
+  async update(id, update, expectedUpdatedAt) {
+    const filter = expectedUpdatedAt
+      ? { _id: id, updatedAt: expectedUpdatedAt }
+      : { _id: id };
+    return GameModel.findOneAndUpdate(filter, update, { new: true }).exec();
   },
 };

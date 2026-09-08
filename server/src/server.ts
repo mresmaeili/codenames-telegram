@@ -2,11 +2,13 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/mongo.js";
 import { createSocketServer } from "./sockets/socket.server.js";
+import { startGameTimer } from "./sockets/room.socket.js";
 
 const app = createApp();
 
 let server: ReturnType<typeof app.listen> | null = null;
 let socketServer: ReturnType<typeof createSocketServer> | null = null;
+let stopGameTimer: (() => void) | null = null;
 
 async function startServer() {
   try {
@@ -21,6 +23,7 @@ async function startServer() {
     socketServer = createSocketServer(server, {
       corsOrigin: env.CORS_ORIGIN,
     });
+    stopGameTimer = startGameTimer(socketServer.io);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`Failed to start server: ${message}`);
@@ -31,6 +34,9 @@ async function startServer() {
 
 async function shutdown(signal: string) {
   // graceful shutdown is handled by the process lifecycle
+
+  stopGameTimer?.();
+  stopGameTimer = null;
 
   if (server) {
     server.close(async () => {

@@ -130,16 +130,20 @@ gameRouter.post("/:gameId/hint", async (request, response) => {
       },
     ];
 
-    const updatedGame = await gameRepository.update(gameId, {
-      currentHintWord: result.game.currentHintWord,
-      currentHintNumber: result.game.currentHintNumber,
-      remainingGuesses: result.game.remainingGuesses,
-      hintSubmittedAt: result.game.hintSubmittedAt,
-      hintHistory: result.game.hintHistory,
-      rounds,
-      phase: "operatives",
-      phaseStartedAt: result.game.hintSubmittedAt,
-    });
+    const updatedGame = await gameRepository.update(
+      gameId,
+      {
+        currentHintWord: result.game.currentHintWord,
+        currentHintNumber: result.game.currentHintNumber,
+        remainingGuesses: result.game.remainingGuesses,
+        hintSubmittedAt: result.game.hintSubmittedAt,
+        hintHistory: result.game.hintHistory,
+        rounds,
+        phase: "operatives",
+        phaseStartedAt: result.game.hintSubmittedAt,
+      },
+      game.updatedAt,
+    );
 
     if (!updatedGame) {
       response.status(500).json({ message: "Unable to update game hint." });
@@ -223,11 +227,15 @@ gameRouter.post("/:gameId/select", async (request, response) => {
       cardId,
     });
 
-    const updatedGame = await gameRepository.update(gameId, {
-      selectedCardId: result.game.selectedCardId,
-      selectedByPlayerId: result.game.selectedByPlayerId,
-      selectedAt: result.game.selectedAt,
-    });
+    const updatedGame = await gameRepository.update(
+      gameId,
+      {
+        selectedCardId: result.game.selectedCardId,
+        selectedByPlayerId: result.game.selectedByPlayerId,
+        selectedAt: result.game.selectedAt,
+      },
+      game.updatedAt,
+    );
 
     if (!updatedGame) {
       response.status(500).json({ message: "Unable to update selection." });
@@ -353,35 +361,39 @@ gameRouter.post("/:gameId/reveal", async (request, response) => {
       };
     }
 
-    const updatedGame = await gameRepository.update(gameId, {
-      board: revealResult.game.board,
-      ...getRemainingCardCounts(revealResult.game.board),
-      status: resolvedGame.status,
-      currentTurn: resolvedGame.currentTurn,
-      remainingGuesses: resolvedGame.remainingGuesses,
-      currentHintWord: resolvedGame.currentHintWord,
-      currentHintNumber: resolvedGame.currentHintNumber,
-      hintSubmittedAt: resolvedGame.hintSubmittedAt,
-      selectedCardId: resolvedGame.selectedCardId,
-      selectedByPlayerId: resolvedGame.selectedByPlayerId,
-      selectedAt: resolvedGame.selectedAt,
-      winningTeam: completionResult.completed
-        ? completionResult.game.winningTeam
-        : (game.winningTeam ?? null),
-      completionReason: completionResult.completed
-        ? completionResult.game.completionReason
-        : (game.completionReason ?? null),
-      completedAt: completionResult.completed
-        ? completionResult.game.completedAt
-        : (game.completedAt ?? null),
-      rounds,
-      ...(resolvedGame.currentTurn !== game.currentTurn
-        ? { phase: "spymaster", phaseStartedAt: new Date() }
-        : {}),
-      ...(resolvedGame.currentTurn !== game.currentTurn
-        ? { turnStartedAt: new Date() }
-        : {}),
-    });
+    const updatedGame = await gameRepository.update(
+      gameId,
+      {
+        board: revealResult.game.board,
+        ...getRemainingCardCounts(revealResult.game.board),
+        status: resolvedGame.status,
+        currentTurn: resolvedGame.currentTurn,
+        remainingGuesses: resolvedGame.remainingGuesses,
+        currentHintWord: resolvedGame.currentHintWord,
+        currentHintNumber: resolvedGame.currentHintNumber,
+        hintSubmittedAt: resolvedGame.hintSubmittedAt,
+        selectedCardId: resolvedGame.selectedCardId,
+        selectedByPlayerId: resolvedGame.selectedByPlayerId,
+        selectedAt: resolvedGame.selectedAt,
+        winningTeam: completionResult.completed
+          ? completionResult.game.winningTeam
+          : (game.winningTeam ?? null),
+        completionReason: completionResult.completed
+          ? completionResult.game.completionReason
+          : (game.completionReason ?? null),
+        completedAt: completionResult.completed
+          ? completionResult.game.completedAt
+          : (game.completedAt ?? null),
+        rounds,
+        ...(resolvedGame.currentTurn !== game.currentTurn
+          ? { phase: "spymaster", phaseStartedAt: new Date() }
+          : {}),
+        ...(resolvedGame.currentTurn !== game.currentTurn
+          ? { turnStartedAt: new Date() }
+          : {}),
+      },
+      game.updatedAt,
+    );
 
     if (!updatedGame) {
       response.status(500).json({ message: "Unable to reveal card." });
@@ -439,36 +451,40 @@ gameRouter.post("/:gameId/pass", async (request, response) => {
       senderTelegramId,
     });
 
-    const updatedGame = await gameRepository.update(gameId, {
-      currentTurn: result.game.currentTurn,
-      remainingGuesses: result.game.remainingGuesses,
-      currentHintWord: result.game.currentHintWord,
-      currentHintNumber: result.game.currentHintNumber,
-      hintSubmittedAt: result.game.hintSubmittedAt,
-      selectedCardId: result.game.selectedCardId,
-      selectedByPlayerId: result.game.selectedByPlayerId,
-      selectedAt: result.game.selectedAt,
-      rounds: (game.rounds ?? []).map((round, index, rounds) =>
-        index === rounds.length - 1
-          ? {
-              ...round,
-              passes: [
-                ...(round.passes ?? []),
-                {
-                  playerId:
-                    roomRecord.players.find(
-                      (player) => player.telegramId === senderTelegramId,
-                    )?.userId ?? null,
-                  passedAt: new Date(),
-                },
-              ],
-            }
-          : round,
-      ),
-      phase: "spymaster",
-      phaseStartedAt: new Date(),
-      turnStartedAt: new Date(),
-    });
+    const updatedGame = await gameRepository.update(
+      gameId,
+      {
+        currentTurn: result.game.currentTurn,
+        remainingGuesses: result.game.remainingGuesses,
+        currentHintWord: result.game.currentHintWord,
+        currentHintNumber: result.game.currentHintNumber,
+        hintSubmittedAt: result.game.hintSubmittedAt,
+        selectedCardId: result.game.selectedCardId,
+        selectedByPlayerId: result.game.selectedByPlayerId,
+        selectedAt: result.game.selectedAt,
+        rounds: (game.rounds ?? []).map((round, index, rounds) =>
+          index === rounds.length - 1
+            ? {
+                ...round,
+                passes: [
+                  ...(round.passes ?? []),
+                  {
+                    playerId:
+                      roomRecord.players.find(
+                        (player) => player.telegramId === senderTelegramId,
+                      )?.userId ?? null,
+                    passedAt: new Date(),
+                  },
+                ],
+              }
+            : round,
+        ),
+        phase: "spymaster",
+        phaseStartedAt: new Date(),
+        turnStartedAt: new Date(),
+      },
+      game.updatedAt,
+    );
 
     if (!updatedGame) {
       response.status(500).json({ message: "Unable to pass turn." });

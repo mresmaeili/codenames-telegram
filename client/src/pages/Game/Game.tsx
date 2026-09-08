@@ -144,7 +144,7 @@ function GameCompletionBanner({
           onClick={onRematch}
           className="mt-3 w-full rounded-full bg-white px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-[#0a63d4]"
         >
-          Reset game and return to lobby
+          Start rematch
         </button>
       ) : (
         <p className="mt-3 text-sm text-white/70">
@@ -905,7 +905,7 @@ export function GamePage({
       return;
     }
 
-    activeSocket.emit("room:resetGame", {
+    activeSocket.emit("room:rematch", {
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
     });
