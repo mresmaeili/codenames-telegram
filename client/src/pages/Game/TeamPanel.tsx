@@ -45,24 +45,13 @@ export function TeamPanel({
 
   return (
     <div
-      className={`${className} rounded-xl border-2 ${active ? styles.activeBorder : styles.border} ${styles.panel} p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]`}
+      className={`${className} overflow-hidden rounded-[26px] border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]`}
     >
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
+      <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
         Operatives
-      </p>
-      <div className="mt-2 flex items-end justify-between">
-        <div className="flex items-end gap-2">
-          <div className="text-5xl font-black leading-none">
-            {remainingCards}
-          </div>
-          <div
-            className={`mb-0.5 flex h-10 w-7 flex-col justify-end overflow-hidden rounded-sm border-2 border-white/45 ${styles.card} shadow-[0_2px_4px_rgba(0,0,0,0.3)]`}
-          >
-            <div className={`h-5 ${styles.cardTop}`} />
-            <div className={`h-4 ${styles.cardBottom}`} />
-          </div>
-        </div>
-        <div className="flex items-center -space-x-2">
+      </div>
+      <div className="flex items-end justify-center gap-2">
+        <div className="flex items-end justify-center -space-x-2">
           {operatives.slice(0, 3).map((player) => (
             <button
               key={player.userId}
@@ -76,20 +65,20 @@ export function TeamPanel({
                 src={avatarUrlForPlayer(player)}
                 alt={player.displayName}
                 title={player.displayName}
-                className="h-8 w-8 rounded-full border-2 border-white/60 object-cover"
+                className="h-9 w-9 rounded-full border-2 border-white/60 object-cover shadow-[0_4px_10px_rgba(0,0,0,0.25)]"
               />
-              <span className="max-w-14 truncate rounded-sm bg-black/65 px-1 text-[8px] font-bold leading-tight text-white">
+              <span className="mt-1 max-w-16 truncate text-[9px] font-bold leading-none text-white/90">
                 {player.displayName}
               </span>
             </button>
           ))}
           {operatives.length === 0 ? (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xl">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl shadow-[0_4px_10px_rgba(0,0,0,0.25)]">
               {styles.fallback}
             </div>
           ) : null}
           {operatives.length > 3 ? (
-            <div className="ml-2 rounded-full bg-white/10 px-2 py-1 text-xs">
+            <div className="ml-2 rounded-full bg-black/20 px-2 py-1 text-[9px] font-bold">
               +{operatives.length - 3}
             </div>
           ) : null}

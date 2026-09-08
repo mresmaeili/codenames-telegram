@@ -466,31 +466,86 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             ))}
           </div>
         ) : settingsPopupAction === "timer" ? (
-          <div className="space-y-3">
-            {[
-              { value: "none", label: "OFF" },
-              { value: "30", label: "30s" },
-              { value: "60", label: "60s" },
-              { value: "90", label: "90s" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
+          <div className="space-y-4">
+            {settingsForm.timer !== "none" ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["Spymaster timer", settingsForm.timer],
+                  ["Operative timer", settingsForm.timer],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-[22px] bg-black px-3 py-3 text-white"
+                  >
+                    <p className="text-sm font-semibold">{label}</p>
+                    <div className="mt-2 rounded-xl bg-[#d7d7d7] px-3 py-2 text-right text-lg font-bold text-[#191919]">
+                      {value}s
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[22px] bg-black px-4 py-7 text-center text-white">
+                <div className="text-4xl">⏱</div>
+                <p className="mt-2 text-lg font-bold">No timer</p>
+              </div>
+            )}
+            <div className="px-1">
+              <input
+                type="range"
+                min="0"
+                max="3"
+                step="1"
+                value={
+                  settingsForm.timer === "none"
+                    ? 0
+                    : settingsForm.timer === "30"
+                      ? 1
+                      : settingsForm.timer === "60"
+                        ? 2
+                        : 3
+                }
+                onChange={(event) => {
+                  const values = ["none", "30", "60", "90"] as const;
                   setSettingsForm((current) => ({
                     ...current,
-                    timer: option.value as SettingsFormState["timer"],
-                  }))
-                }
-                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
-                  settingsForm.timer === option.value
-                    ? "border-[#2cc86c] bg-white/10 text-white"
-                    : "border-white/10 bg-(--app-background) text-(--app-text)"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+                    timer: values[Number(event.target.value)] ?? "none",
+                  }));
+                }}
+                className="h-2 w-full accent-[#2cc86c]"
+                aria-label="Timer preset"
+              />
+              <div className="mt-2 grid grid-cols-4 text-center text-xs font-black uppercase tracking-wide text-white/75">
+                <span
+                  className={
+                    settingsForm.timer === "none" ? "text-[#2cc86c]" : ""
+                  }
+                >
+                  Off
+                </span>
+                <span
+                  className={
+                    settingsForm.timer === "30" ? "text-[#2cc86c]" : ""
+                  }
+                >
+                  Quick
+                </span>
+                <span
+                  className={
+                    settingsForm.timer === "60" ? "text-[#2cc86c]" : ""
+                  }
+                >
+                  Relaxed
+                </span>
+                <span
+                  className={
+                    settingsForm.timer === "90" ? "text-[#2cc86c]" : ""
+                  }
+                >
+                  Custom
+                </span>
+              </div>
+            </div>
           </div>
         ) : settingsPopupAction === "word-pack" ? (
           <WordPackEditor />
@@ -717,12 +772,12 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   return (
     <PageContainer>
       <div className="mx-auto w-full max-w-150 bg-[#070b12] px-3 pb-4 pt-0 text-white">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/10 bg-[#070b12]/95 py-2 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/15 bg-[#070b12]/96 py-2 backdrop-blur-md">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={onLeave}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl text-white hover:bg-white/20 active:bg-white/30"
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/75 bg-white/5 text-xl text-white transition hover:bg-white/15 active:scale-95"
               aria-label="Leave lobby"
             >
               ×

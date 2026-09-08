@@ -37,17 +37,17 @@ export function SpymasterPanel({
 
   return (
     <div
-      className={`${className} rounded-xl border-2 ${active ? "border-[#76f21b]" : styles.border} ${styles.panel} p-1.5 text-white`}
+      className={`${className} overflow-hidden rounded-[26px] border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]`}
     >
       <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/85">
         Spymasters
       </div>
-      <div className="relative mt-3 flex items-center justify-center">
+      <div className="mt-3 flex flex-col items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-4 ${styles.avatar} bg-white/10 shadow-[0_6px_18px_rgba(0,0,0,0.25)]`}
+          className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 ${styles.avatar} bg-white/10 shadow-[0_6px_18px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
@@ -63,7 +63,7 @@ export function SpymasterPanel({
             <span className="text-xl">{styles.fallback}</span>
           )}
         </button>
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1 text-xs text-white shadow-md">
+        <div className="text-center text-[10px] font-bold text-white/95">
           {player?.displayName ?? "None"}
         </div>
       </div>

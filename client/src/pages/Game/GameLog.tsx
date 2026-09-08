@@ -19,13 +19,23 @@ interface GameLogProps {
   timerDuration: number | null;
   secondsRemaining: number | null;
   timerProgress: number;
-  isSpymaster: boolean;
+  className?: string;
 }
 
 interface GameLogRound {
   hint: GameLogEntry;
   guesses: GameLogEntry[];
   passes: GameLogEntry[];
+}
+
+function formatTimer(seconds: number): string {
+  const sign = seconds < 0 ? "-" : "";
+  const absoluteSeconds = Math.abs(seconds);
+  const minutes = Math.floor(absoluteSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const remainingSeconds = (absoluteSeconds % 60).toString().padStart(2, "0");
+  return `${sign}${minutes}:${remainingSeconds}`;
 }
 
 function groupRounds(entries: GameLogEntry[]): GameLogRound[] {
@@ -49,26 +59,25 @@ export function GameLog({
   timerDuration,
   secondsRemaining,
   timerProgress,
-  isSpymaster,
+  className = "",
 }: GameLogProps) {
   return (
-    <div className="col-start-2 row-span-2 row-start-1 h-53 overflow-y-auto rounded-xl border-2 border-[#777] bg-[#3e3e3e] p-1.5 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]">
+    <div
+      className={`${className} h-full min-h-[18rem] overflow-y-auto rounded-[26px] bg-[#4a4a4a] p-3 text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)]`}
+    >
       <div className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
         Game log
       </div>
       {timerDuration && secondsRemaining !== null ? (
-        <div className="mt-1 rounded-full bg-[#bfeff5] px-2 py-0.5 text-center text-sm font-black text-[#17212b]">
-          {isSpymaster ? "SPYMASTER " : "OPERATIVES "}
-          {Math.floor(secondsRemaining / 60)
-            .toString()
-            .padStart(2, "0")}
-          :
-          {Math.floor(secondsRemaining % 60)
-            .toString()
-            .padStart(2, "0")}
-          <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-[#3e8290]">
+        <div
+          className={`mt-2 rounded-full px-2 py-1 text-center font-black ${secondsRemaining < 0 ? "bg-[#f15f4a] text-white" : "bg-[#f5cf70] text-[#20160b]"}`}
+        >
+          <div className="text-[clamp(1.35rem,5vw,2rem)] leading-none tracking-tight">
+            {formatTimer(secondsRemaining)}
+          </div>
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/20">
             <div
-              className="h-full rounded-full bg-[#27b9d1] transition-[width] duration-500"
+              className="h-full rounded-full bg-white/85 transition-[width] duration-500"
               style={{ width: `${timerProgress}%` }}
             />
           </div>

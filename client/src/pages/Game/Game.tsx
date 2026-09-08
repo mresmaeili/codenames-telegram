@@ -489,15 +489,12 @@ export function GamePage({
         state.game?.turnStartedAt ??
         state.game?.createdAt ??
         new Date();
-      const elapsedSinceTurn = Math.max(
-        0,
-        Math.floor((Date.now() - new Date(turnStartedAt).getTime()) / 1000),
+      const elapsedSinceTurn = Math.floor(
+        (Date.now() - new Date(turnStartedAt).getTime()) / 1000,
       );
-      setSpymasterSecondsRemaining(Math.max(0, duration - elapsedSinceTurn));
+      setSpymasterSecondsRemaining(duration - elapsedSinceTurn);
       setOperativeSecondsRemaining(
-        state.game?.phase === "operatives"
-          ? Math.max(0, duration - elapsedSinceTurn)
-          : null,
+        state.game?.phase === "operatives" ? duration - elapsedSinceTurn : null,
       );
     };
 
@@ -725,7 +722,8 @@ export function GamePage({
   const activeSecondsRemaining = isActiveSpymaster
     ? spymasterSecondsRemaining
     : operativeSecondsRemaining;
-  const timerExpired = activeSecondsRemaining === 0;
+  const timerExpired =
+    activeSecondsRemaining !== null && activeSecondsRemaining <= 0;
   const canPassTurn = canPassTurnForViewer(
     state.game,
     viewerPlayer,
@@ -1022,6 +1020,7 @@ export function GamePage({
           operativeViewer={isViewerOperative}
           boardHidden={hideBoard}
           onLeave={onLeave}
+          onReturnToLobby={onReturnToLobby}
           onToggleBoard={() => {
             setHideBoard((current) => {
               const next = !current;
@@ -1073,57 +1072,57 @@ export function GamePage({
             onRematch={handleRematch}
           />
         ) : null}
-        <GameMetaSummary
-          roomSettings={roomSettings}
-          spymasterSecondsRemaining={spymasterSecondsRemaining}
-          operativeSecondsRemaining={operativeSecondsRemaining}
-        />
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] grid-rows-2 gap-1.5">
-          <TeamPanel
-            className="col-start-1 row-start-1"
-            team="blue"
-            remainingCards={blueCardsRemaining}
-            operatives={blueOperatives}
-            active={isBlueTurn}
-            canManagePlayers={isRoomOwner}
-            onPlayerClick={handleGamePlayerClick}
-          />
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-stretch gap-1.5">
+          <div className="col-start-1 row-span-2 flex flex-col gap-1.5">
+            <TeamPanel
+              team="blue"
+              remainingCards={blueCardsRemaining}
+              operatives={blueOperatives}
+              active={isBlueTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+            />
+            <div className="flex items-center justify-center px-3 py-2 text-[2.7rem] font-black leading-none tracking-[-0.08em] text-white">
+              {blueCardsRemaining}
+            </div>
+            <SpymasterPanel
+              team="blue"
+              player={blueSpymaster}
+              active={isBlueTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+            />
+          </div>
 
           <GameLog
+            className="col-start-2 row-span-2"
             entries={gameLog}
             players={state.room?.players ?? []}
             timerDuration={timerDuration}
             secondsRemaining={activeSecondsRemaining}
             timerProgress={timerProgress}
-            isSpymaster={isActiveSpymaster}
           />
 
-          <TeamPanel
-            className="col-start-3 row-start-1"
-            team="red"
-            remainingCards={redCardsRemaining}
-            operatives={redOperatives}
-            active={isRedTurn}
-            canManagePlayers={isRoomOwner}
-            onPlayerClick={handleGamePlayerClick}
-          />
-          <SpymasterPanel
-            className="col-start-1 row-start-2"
-            team="blue"
-            player={blueSpymaster}
-            active={isBlueTurn}
-            canManagePlayers={isRoomOwner}
-            onPlayerClick={handleGamePlayerClick}
-          />
-
-          <SpymasterPanel
-            className="col-start-3 row-start-2"
-            team="red"
-            player={redSpymaster}
-            active={isRedTurn}
-            canManagePlayers={isRoomOwner}
-            onPlayerClick={handleGamePlayerClick}
-          />
+          <div className="col-start-3 row-span-2 flex flex-col gap-1.5">
+            <TeamPanel
+              team="red"
+              remainingCards={redCardsRemaining}
+              operatives={redOperatives}
+              active={isRedTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+            />
+            <div className="flex items-center justify-center px-3 py-2 text-[2.7rem] font-black leading-none tracking-[-0.08em] text-white">
+              {redCardsRemaining}
+            </div>
+            <SpymasterPanel
+              team="red"
+              player={redSpymaster}
+              active={isRedTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+            />
+          </div>
         </div>
         <TurnBanner
           instruction={turnInstruction}
