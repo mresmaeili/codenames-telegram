@@ -77,11 +77,12 @@ export function BoardGrid({
         }
 
         const publicCard = card as PublicCard;
-        const isSelected = selectedCardId === String(index);
+        const isSelected = canSelectCard && selectedCardId === String(index);
         const hasLocalSelection =
           canSelectCard && (selectedPlayersByCard[index] ?? []).length > 0;
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
+          canSelectCard &&
           isSelected &&
           selectedByPlayerId === viewerPlayerId &&
           !publicCard.revealed;

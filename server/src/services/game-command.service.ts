@@ -295,10 +295,10 @@ export async function revealCard(
   const revealedIndex = Number.parseInt(game.selectedCardId ?? "", 10);
   const revealedCard = game.board[revealedIndex];
   const selectedCardColor = revealedCard?.color ?? null;
-  const revealedBoard = revealResult.game.board.map((card, index) => ({
+  const revealedBoard = game.board.map((card, index) => ({
     word: card.word,
     color: index === revealedIndex ? selectedCardColor : (card.color ?? null),
-    revealed: card.revealed,
+    revealed: index === revealedIndex || card.revealed,
   }));
 
   const completionResult = applyGameCompletion({
