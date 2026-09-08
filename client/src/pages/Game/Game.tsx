@@ -439,7 +439,22 @@ export function GamePage({
   >({});
 
   useGameStateSync(socket, ({ room, game }) => {
-    setState({ room, game, loading: false, error: null });
+    setState((current) => {
+      const currentUpdatedAt = current.game?.updatedAt
+        ? new Date(current.game.updatedAt).getTime()
+        : 0;
+      const incomingUpdatedAt = new Date(game.updatedAt).getTime();
+
+      return {
+        room,
+        game:
+          current.game && currentUpdatedAt > incomingUpdatedAt
+            ? current.game
+            : game,
+        loading: false,
+        error: null,
+      };
+    });
     setIsReconnecting(false);
   });
 
@@ -839,7 +854,7 @@ export function GamePage({
     : isViewerOperative
       ? hasActiveHint
         ? selectedCardActive
-          ? "Tap to confirm your choice"
+          ? "Tap the guess button to confirm"
           : "Tap to choose a word"
         : "Wait for your spymaster to give you a clue"
       : "Watch the turn";

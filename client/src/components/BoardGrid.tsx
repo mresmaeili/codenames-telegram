@@ -88,7 +88,7 @@ export function BoardGrid({
         const ariaLabel = publicCard.revealed
           ? `Revealed ${publicCard.word}`
           : isConfirmable
-            ? `Confirm ${publicCard.word}`
+            ? `Selected ${publicCard.word}. Use the guess button to confirm.`
             : isSelectable
               ? `Select ${publicCard.word}`
               : `Locked ${publicCard.word}`;
@@ -102,9 +102,7 @@ export function BoardGrid({
               type="button"
               aria-label={ariaLabel}
               onClick={() => {
-                if (isConfirmable && onConfirmCard) {
-                  onConfirmCard(index);
-                } else if (isSelectable && onSelectCard) {
+                if (isSelectable && onSelectCard) {
                   onSelectCard(index);
                 } else if (publicCard.revealed) {
                   setVisibleRevealedWords((current) => {
@@ -134,14 +132,14 @@ export function BoardGrid({
             {isConfirmable ? (
               <button
                 type="button"
-                aria-label={`Confirm ${publicCard.word}`}
+                aria-label={`Guess ${publicCard.word}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   onConfirmCard?.(index);
                 }}
                 className="absolute -right-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-xl shadow-[0_2px_7px_rgba(0,0,0,0.45)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
-                ☝
+                ✓
               </button>
             ) : null}
           </div>

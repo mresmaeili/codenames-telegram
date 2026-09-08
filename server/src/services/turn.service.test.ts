@@ -114,6 +114,42 @@ test("applyTurnOutcome switches teams for a wrong card", () => {
   assert.equal(result.game.currentHintNumber, null);
 });
 
+test("applyTurnOutcome switches teams after an innocent bystander", () => {
+  const result = applyTurnOutcome({
+    game: {
+      status: "active",
+      currentTurn: "blue",
+      remainingGuesses: 2,
+      currentHintWord: "forest",
+      currentHintNumber: 2,
+      hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+      board: [{ word: "alpha", color: "neutral", revealed: false }],
+      selectedCardId: "0",
+      selectedByPlayerId: "user-1",
+      selectedAt: new Date("2024-01-01T00:00:00.000Z"),
+    },
+    room: {
+      players: [
+        {
+          userId: "user-1",
+          telegramId: 42,
+          displayName: "Agent One",
+          team: "blue",
+          role: "operative",
+          joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+        },
+      ],
+    },
+    senderTelegramId: 42,
+    revealedCardColor: "neutral",
+  });
+
+  assert.equal(result.game.currentTurn, "red");
+  assert.equal(result.game.remainingGuesses, 0);
+  assert.equal(result.game.currentHintWord, null);
+  assert.equal(result.game.currentHintNumber, null);
+});
+
 test("applyTurnOutcome clears the pending selection after a correct reveal", () => {
   const result = applyTurnOutcome({
     game: {
