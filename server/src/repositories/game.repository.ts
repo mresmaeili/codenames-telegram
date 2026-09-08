@@ -31,6 +31,10 @@ export const gameRepository: GameRepository = {
     const filter = expectedUpdatedAt
       ? { _id: id, updatedAt: expectedUpdatedAt }
       : { _id: id };
-    return GameModel.findOneAndUpdate(filter, update, { new: true }).exec();
+    return GameModel.findOneAndUpdate(
+      filter,
+      { ...update, updatedAt: new Date() },
+      { new: true, timestamps: false },
+    ).exec();
   },
 };
