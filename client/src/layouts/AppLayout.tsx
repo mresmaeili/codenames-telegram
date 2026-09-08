@@ -36,7 +36,7 @@ export function AppLayout({ children }: PropsWithChildren) {
     <HeaderPopupProvider>
       <div className="min-h-screen bg-(--app-bg) text-(--app-text)">
         <div className="flex min-h-screen flex-col overflow-hidden">
-          <header className="fixed top-0 left-0 right-0 z-40 border-b border-(--app-border) bg-(--app-bg)/98 backdrop-blur-sm">
+          <header className="fixed top-0 left-0 right-0 z-40 bg-(--app-bg)/98 backdrop-blur-sm">
             <div className="mx-auto flex w-full max-w-full items-center justify-between px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
               <HeaderControls />
             </div>
@@ -45,7 +45,7 @@ export function AppLayout({ children }: PropsWithChildren) {
           {/* Render popup outside the header so fixed centering works correctly */}
           <PopupRenderer />
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-0">
             {children}
           </main>
           <DevToolbar />

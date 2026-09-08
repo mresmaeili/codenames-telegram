@@ -305,99 +305,113 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <div className="w-full max-w-3xl space-y-6 rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 shadow-sm">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-(--app-text) sm:text-5xl">
-            Codenames Telegram Mini App
-          </h1>
-          <p className="text-(--app-muted)">
-            Create a room or join an existing one to start playing.
-          </p>
-        </div>
-
-        {loading ? (
-          <StatusPanel
-            title="Authenticating"
-            description="We are restoring your Telegram session and preparing the lobby experience."
-            tone="info"
-          />
-        ) : error ? (
-          <StatusPanel
-            title="Authentication issue"
-            description={error}
-            tone="error"
-          />
-        ) : user ? (
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-(--app-border) bg-(--app-background) p-4 text-left">
-              <p className="text-sm text-(--app-muted)">Signed in as</p>
-              <p className="mt-1 font-semibold text-(--app-text)">
-                {user.firstName}
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={createRoom}
-                disabled={submitting}
-                className="rounded-2xl bg-(--app-accent) px-4 py-4 text-left text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <p className="font-semibold">Create room</p>
-                <p className="mt-1 text-sm text-(--app-muted)">
-                  Start a new lobby for your friends.
-                </p>
-              </button>
-
-              <form
-                onSubmit={joinRoom}
-                className="space-y-3 rounded-2xl border border-(--app-border) p-4"
-              >
-                <label
-                  className="text-sm font-medium text-(--app-text)"
-                  htmlFor="roomCode"
-                >
-                  Join room
-                </label>
-                <input
-                  id="roomCode"
-                  value={formValue}
-                  onChange={(event) =>
-                    setFormValue(event.target.value.toUpperCase())
-                  }
-                  placeholder="Enter room code"
-                  className="w-full rounded-xl border border-(--app-border) bg-(--app-background) px-3 py-2 text-(--app-text)"
-                />
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full rounded-xl border border-(--app-border) px-3 py-2 text-sm font-medium text-(--app-text) disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? "Working…" : "Join room"}
-                </button>
-              </form>
-            </div>
-
-            {feedback ? (
-              <StatusPanel
-                title={submitting ? "Working" : "Update"}
-                description={feedback}
-                tone={
-                  feedback.toLowerCase().includes("error") ||
-                  feedback.toLowerCase().includes("could not")
-                    ? "error"
-                    : "success"
-                }
-              />
-            ) : null}
+      <div className="mx-auto w-full max-w-150 px-3 py-3 sm:px-4">
+        <div className="w-full rounded-[28px] border border-white/10 bg-[#0b69ad] px-4 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)]">
+          <div className="space-y-2 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#dfeeff]">
+              Codenames
+            </p>
+            <h1 className="text-2xl font-black tracking-[-0.05em] text-white sm:text-3xl">
+              Mini App
+            </h1>
           </div>
-        ) : (
-          <StatusPanel
-            title="Authentication unavailable"
-            description="We could not restore your Telegram session. Please reopen the Mini App from Telegram."
-            tone="error"
-          />
-        )}
+
+          {loading ? (
+            <div className="mt-5">
+              <StatusPanel
+                title="Authenticating"
+                description="We are restoring your Telegram session and preparing the lobby experience."
+                tone="info"
+              />
+            </div>
+          ) : error ? (
+            <div className="mt-5">
+              <StatusPanel
+                title="Authentication issue"
+                description={error}
+                tone="error"
+              />
+            </div>
+          ) : user ? (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-white/15 bg-white/8 p-3 text-left">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
+                  Signed in as
+                </p>
+                <p className="mt-1 text-base font-bold text-white">
+                  {user.firstName}
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={createRoom}
+                  disabled={submitting}
+                  className="rounded-2xl border border-[#d4eeff] bg-[#ffffff] px-4 py-3 text-left text-[#0b69ad] shadow-[0_6px_12px_rgba(14,35,67,0.2)] transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <p className="text-base font-black uppercase tracking-[0.08em]">
+                    Create room
+                  </p>
+                  <p className="mt-1 text-sm text-[#0d5ca6]">
+                    Start a new lobby for your friends.
+                  </p>
+                </button>
+
+                <form
+                  onSubmit={joinRoom}
+                  className="space-y-3 rounded-2xl border border-white/15 bg-[#0f5ea9] p-3"
+                >
+                  <label
+                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
+                    htmlFor="roomCode"
+                  >
+                    Join room
+                  </label>
+                  <input
+                    id="roomCode"
+                    value={formValue}
+                    onChange={(event) =>
+                      setFormValue(event.target.value.toUpperCase())
+                    }
+                    placeholder="Enter room code"
+                    className="w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none ring-0"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? "Working…" : "Join room"}
+                  </button>
+                </form>
+              </div>
+
+              {feedback ? (
+                <div className="mt-2">
+                  <StatusPanel
+                    title={submitting ? "Working" : "Update"}
+                    description={feedback}
+                    tone={
+                      feedback.toLowerCase().includes("error") ||
+                      feedback.toLowerCase().includes("could not")
+                        ? "error"
+                        : "success"
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-5">
+              <StatusPanel
+                title="Authentication unavailable"
+                description="We could not restore your Telegram session. Please reopen the Mini App from Telegram."
+                tone="error"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </PageContainer>
   );

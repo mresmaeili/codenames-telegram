@@ -46,7 +46,6 @@ body {
       transparent 34rem
     ),
     linear-gradient(180deg, #0b69ad 0%, #0878b7 55%, #075d98 100%);
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;

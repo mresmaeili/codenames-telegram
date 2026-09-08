@@ -9,6 +9,7 @@ import { RoomModel } from "../models/room.model.js";
 import { GameModel } from "../models/game.model.js";
 import { UserModel } from "../models/user.model.js";
 import { WordPoolModel } from "../models/word.model.js";
+import { shouldAllowDevSocketAuth } from "../sockets/socket.server.js";
 
 interface ConnectedSocketMock {
   data: { telegramId: number };
@@ -42,6 +43,41 @@ function createConnectedSocket(
     },
   };
 }
+
+test("shouldAllowDevSocketAuth accepts dev sockets even without the server dev flag", () => {
+  assert.equal(
+    shouldAllowDevSocketAuth(
+      { dev: true, telegramId: 123456789 },
+      false,
+      "http://localhost:5174",
+    ),
+    true,
+  );
+  assert.equal(
+    shouldAllowDevSocketAuth(
+      { dev: true, telegramId: null },
+      false,
+      "http://localhost:5174",
+    ),
+    false,
+  );
+  assert.equal(
+    shouldAllowDevSocketAuth(
+      { dev: false, telegramId: 123456789 },
+      false,
+      "http://localhost:5174",
+    ),
+    false,
+  );
+  assert.equal(
+    shouldAllowDevSocketAuth(
+      { dev: true, telegramId: 123456789 },
+      false,
+      "https://app.radwebstudio.ir",
+    ),
+    false,
+  );
+});
 
 test("registerRoomSocketHandlers handles duplicate room joins without crashing", async () => {
   const originalFindByCode = roomRepository.findByCode;

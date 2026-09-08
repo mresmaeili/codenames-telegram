@@ -895,81 +895,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             >
               ×
             </button>
-            <div
-              className="flex h-10 items-center gap-1 rounded-full border border-white/70 bg-white/10 px-3 text-sm font-bold"
-              aria-label={`${room?.players.length ?? 0} players`}
-            >
-              <span aria-hidden="true" className="text-lg">
-                👥
-              </span>
-              {room?.players.length ?? 0}
-            </div>
-            {room && spectatorPlayers.length > 0 ? (
-              <div
-                className="flex h-10 items-center gap-1 rounded-full border border-white/50 bg-white/10 px-2 text-sm font-bold"
-                aria-label={`${spectatorPlayers.length} spectators`}
-                title="Spectators"
-              >
-                <span aria-hidden="true">👁</span>
-                {spectatorPlayers.length}
-              </div>
-            ) : null}
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                registerPopup(
-                  <div className="space-y-3 text-sm text-(--app-text)">
-                    <p>
-                      Invite friends, choose a team, and wait until both
-                      spymasters are ready.
-                    </p>
-                  </div>,
-                  "News",
-                );
-                openPopup();
-              }}
-              className="rounded-full border border-white/70 bg-white/10 px-4 py-2 text-sm font-semibold"
-            >
-              News
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                registerPopup(
-                  <div className="space-y-3 text-sm text-(--app-text)">
-                    <p>
-                      Classic games need two teams and one spymaster on each
-                      side.
-                    </p>
-                    <p>
-                      Operatives join a team, then the room owner starts the
-                      game.
-                    </p>
-                  </div>,
-                  "Rules",
-                );
-                openPopup();
-              }}
-              className="rounded-full border border-white/70 bg-white/10 px-4 py-2 text-sm font-semibold"
-            >
-              Rules
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("lobby-settings")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/10 text-xl"
-              aria-label="Lobby settings"
-              title="Lobby settings"
-            >
-              ⚙
-            </button>
-          </div>
+          <div className="flex items-center gap-1.5" />
         </div>
 
         {starting ? (
@@ -1026,15 +953,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">
                     Spectators
                   </div>
-                  {room.settings.allowSpectators && currentPlayer?.team ? (
-                    <button
-                      type="button"
-                      onClick={handleJoinSpectators}
-                      className="rounded-full border-2 border-white/80 px-3 py-1 text-[11px] font-black uppercase text-white hover:bg-white/15"
-                    >
-                      Join spectators
-                    </button>
-                  ) : null}
                 </div>
                 <div className="flex min-h-12 items-center justify-center gap-3 overflow-x-auto py-2">
                   {displaySpectatorPlayers.length > 0 ? (

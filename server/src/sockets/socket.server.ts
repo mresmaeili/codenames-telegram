@@ -9,6 +9,31 @@ interface SocketServerOptions {
   corsOrigin: string;
 }
 
+export function shouldAllowDevSocketAuth(
+  auth: { dev?: unknown; telegramId?: unknown },
+  serverDevModeEnabled: boolean,
+  requestOrigin?: string,
+): boolean {
+  if (
+    auth.dev !== true ||
+    typeof auth.telegramId !== "number" ||
+    auth.telegramId <= 0
+  ) {
+    return false;
+  }
+
+  return (
+    serverDevModeEnabled ||
+    requestOrigin === "http://localhost:5173" ||
+    requestOrigin === "http://localhost:5174" ||
+    requestOrigin === "http://localhost:5175" ||
+    requestOrigin === "http://localhost:5176" ||
+    requestOrigin === "http://localhost:5177" ||
+    requestOrigin === "http://localhost:5178" ||
+    requestOrigin === "http://localhost:5179"
+  );
+}
+
 export interface SocketServerStatus {
   connectedClients: number;
   isRunning: boolean;
@@ -34,7 +59,13 @@ export function createSocketServer(
       telegramId?: unknown;
     };
 
-    if (env.DEV_MODE && auth.dev === true) {
+    if (
+      shouldAllowDevSocketAuth(
+        auth,
+        env.DEV_MODE,
+        socket.handshake.headers.origin,
+      )
+    ) {
       socket.data.devMode = true;
       if (typeof auth.telegramId === "number") {
         socket.data.telegramId = auth.telegramId;
