@@ -24,6 +24,7 @@ CORS_ORIGIN=https://your-domain.com
 VITE_APP_NAME=Codenames Telegram Mini App
 VITE_API_BASE_URL=https://your-domain.com
 VITE_SOCKET_URL=https://your-domain.com
+VITE_TELEGRAM_BOT_USERNAME=baziekalamat_bot
 
 # Temporary browser testing only; do not enable for public production use.
 DEV_MODE=false

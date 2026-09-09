@@ -82,6 +82,7 @@ info "Running frontend build with environment variables..."
 VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://codenames.example.com}" \
 VITE_SOCKET_URL="${VITE_SOCKET_URL:-https://codenames.example.com}" \
+VITE_TELEGRAM_BOT_USERNAME="${VITE_TELEGRAM_BOT_USERNAME:-baziekalamat_bot}" \
 npm run build
 
 # 5. Verify client/dist/index.html exists
@@ -231,6 +232,7 @@ echo -e "${YELLOW}Summary:${NO_COLOR}"
 echo "- Frontend deployed: ${TARGET_DIR}"
 echo "  - VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://codenames.example.com}"
 echo "  - VITE_SOCKET_URL: ${VITE_SOCKET_URL:-https://codenames.example.com}"
+echo "  - VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME:-baziekalamat_bot}"
 echo "- Backend restarted: pm2 (codenames-server)"
 echo "- Health check: http://localhost:3001/health (OK)"
 echo "- Nginx reloaded"
