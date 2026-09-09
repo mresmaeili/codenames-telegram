@@ -13,12 +13,14 @@ interface CreateRoomRequestBody {
   ownerId?: unknown;
   ownerTelegramId?: unknown;
   ownerDisplayName?: unknown;
+  ownerAvatarId?: unknown;
 }
 
 interface JoinRoomRequestBody {
   roomCode?: unknown;
   telegramId?: unknown;
   displayName?: unknown;
+  avatarId?: unknown;
 }
 
 interface UpdateTeamRequestBody {
@@ -55,6 +57,8 @@ roomRouter.post("/", async (request, response, next) => {
       ownerId: body.ownerId,
       ownerTelegramId: body.ownerTelegramId,
       ownerDisplayName: body.ownerDisplayName,
+      ownerAvatarId:
+        typeof body.ownerAvatarId === "string" ? body.ownerAvatarId : undefined,
     });
 
     response.status(201).json(room);
@@ -82,6 +86,7 @@ roomRouter.post("/join", async (request, response, next) => {
       roomCode: body.roomCode,
       telegramId: body.telegramId,
       displayName: body.displayName,
+      avatarId: typeof body.avatarId === "string" ? body.avatarId : undefined,
     });
 
     response.status(200).json(room);

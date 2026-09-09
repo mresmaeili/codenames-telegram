@@ -23,6 +23,7 @@ export interface CreateRoomInput {
   ownerId: string;
   ownerTelegramId: number;
   ownerDisplayName: string;
+  ownerAvatarId?: string;
 }
 
 export interface CreateRoomResult {
@@ -41,6 +42,7 @@ export interface JoinRoomInput {
   roomCode: string;
   telegramId: number;
   displayName: string;
+  avatarId?: string;
 }
 
 export interface UpdateRoomPlayerAssignmentInput {
@@ -134,6 +136,7 @@ function buildInitialPlayer(input: CreateRoomInput): RoomPlayer {
     userId: input.ownerId,
     telegramId: input.ownerTelegramId,
     displayName: input.ownerDisplayName,
+    avatarId: input.ownerAvatarId ?? null,
     team: null,
     role: "operative",
     joinedAt: new Date(),
@@ -145,6 +148,7 @@ function buildJoinPlayer(userId: string, input: JoinRoomInput): RoomPlayer {
     userId,
     telegramId: input.telegramId,
     displayName: input.displayName,
+    avatarId: input.avatarId ?? null,
     team: null,
     role: "operative",
     joinedAt: new Date(),

@@ -29,6 +29,7 @@ interface AuthenticatedUser {
   lastLoginAt: string;
   createdAt: string;
   updatedAt: string;
+  avatarId?: string | null;
 }
 
 interface AuthState {
@@ -132,6 +133,7 @@ async function authenticateWidgetWithServer(
 async function authenticateGuestWithServer(
   displayName: string,
   guestId: string,
+  avatarId?: string,
 ): Promise<GuestSession> {
   const isSameOrigin =
     typeof window !== "undefined" &&
@@ -142,7 +144,7 @@ async function authenticateGuestWithServer(
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ displayName, guestId }),
+    body: JSON.stringify({ displayName, guestId, avatarId }),
   });
 
   const payload = (await response.json()) as {
@@ -179,12 +181,13 @@ export function useAuth() {
     error: null,
   });
 
-  async function loginWithGuest(displayName: string) {
+  async function loginWithGuest(displayName: string, avatarId?: string) {
     setAuthState({ user: null, loading: true, error: null });
     try {
       const session = await authenticateGuestWithServer(
         displayName,
         getGuestId(),
+        avatarId,
       );
       window.localStorage.setItem(
         "codenames.guestSession",

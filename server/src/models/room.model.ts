@@ -31,6 +31,10 @@ const roomPlayerSchema = new Schema<RoomPlayer>(
       type: String,
       required: true,
     },
+    avatarId: {
+      type: String,
+      default: null,
+    },
     team: {
       type: String,
       enum: ROOM_TEAMS,

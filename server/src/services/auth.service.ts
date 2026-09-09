@@ -34,6 +34,7 @@ export interface AuthenticatedUser {
   lastLoginAt: string;
   createdAt: string;
   updatedAt: string;
+  avatarId?: string | null;
 }
 
 export interface TelegramWidgetAuthData {
@@ -58,6 +59,7 @@ interface GuestTokenPayload {
   guestId: string;
   telegramId: number;
   displayName: string;
+  avatarId?: string;
   expiresAt: number;
 }
 
@@ -133,6 +135,7 @@ function guestUserFromPayload(
     lastLoginAt: timestamp,
     createdAt: timestamp,
     updatedAt: timestamp,
+    avatarId: payload.avatarId ?? null,
     guestToken: token,
   };
 }
@@ -424,6 +427,7 @@ export async function authenticateTelegramWidgetUser(
 export function createGuestUser(
   displayName: string,
   requestedGuestId?: string,
+  avatarId?: string,
 ): GuestAuthenticatedUser {
   const normalizedName = displayName.trim().replace(/\s+/g, " ");
   if (normalizedName.length < 2 || normalizedName.length > 24) {
@@ -439,6 +443,7 @@ export function createGuestUser(
     guestId,
     telegramId: guestTelegramId(guestId),
     displayName: normalizedName,
+    avatarId: avatarId?.trim() || undefined,
     expiresAt: Math.floor(Date.now() / 1000) + GUEST_AUTH_TTL_SECONDS,
   };
   const secret =

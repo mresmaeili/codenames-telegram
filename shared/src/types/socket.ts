@@ -11,6 +11,7 @@ export interface RoomJoinPayload {
   roomCode: string;
   telegramId: number;
   displayName: string;
+  avatarId?: string;
 }
 
 export interface GameKeycardPayload {
@@ -76,6 +77,7 @@ export interface RoomCreatePayload {
   ownerId?: unknown;
   ownerTelegramId?: unknown;
   ownerDisplayName?: unknown;
+  ownerAvatarId?: unknown;
 }
 
 export interface RoomUpdateTeamPayload {

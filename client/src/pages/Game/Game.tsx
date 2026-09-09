@@ -616,6 +616,7 @@ export function GamePage({
         roomCode: roomCode.toUpperCase(),
         telegramId: user.telegramId,
         displayName: user.firstName,
+        avatarId: user.avatarId ?? undefined,
       });
       setHasJoinedRoom(true);
     }
@@ -687,6 +688,7 @@ export function GamePage({
               roomCode: roomCode.toUpperCase(),
               telegramId: user.telegramId,
               displayName: user.firstName,
+              avatarId: user.avatarId ?? undefined,
             });
             setHasJoinedRoom(true);
           }

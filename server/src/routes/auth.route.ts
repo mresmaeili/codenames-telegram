@@ -17,6 +17,7 @@ interface TelegramWidgetAuthRequestBody extends TelegramWidgetAuthData {}
 interface GuestAuthRequestBody {
   displayName?: unknown;
   guestId?: unknown;
+  avatarId?: unknown;
 }
 
 export const authRouter = Router();
@@ -124,6 +125,7 @@ authRouter.post("/guest", async (request, response) => {
     const user = createGuestUser(
       body.displayName,
       typeof body.guestId === "string" ? body.guestId : undefined,
+      typeof body.avatarId === "string" ? body.avatarId : undefined,
     );
     response.status(200).json({ user });
   } catch (error) {

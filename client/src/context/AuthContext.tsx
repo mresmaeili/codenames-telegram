@@ -12,13 +12,14 @@ interface AuthenticatedUser {
   lastLoginAt: string;
   createdAt: string;
   updatedAt: string;
+  avatarId?: string | null;
 }
 
 interface AuthContextValue {
   user: AuthenticatedUser | null;
   loading: boolean;
   error: string | null;
-  loginWithGuest: (displayName: string) => Promise<void>;
+  loginWithGuest: (displayName: string, avatarId?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

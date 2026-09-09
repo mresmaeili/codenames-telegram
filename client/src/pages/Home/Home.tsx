@@ -8,6 +8,7 @@ import { apiUrl } from "@/config/env";
 import { GamePage } from "@/pages/Game";
 import { LobbyPage } from "@/pages/Lobby";
 import { getSocketClient } from "@/socket/client";
+import { FUNNY_AVATARS } from "@/lib/avatar";
 
 interface RoomResponse {
   id?: string;
@@ -43,6 +44,7 @@ export function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
+  const [guestAvatarId, setGuestAvatarId] = useState<string | undefined>();
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
     "home",
   );
@@ -146,6 +148,7 @@ export function HomePage() {
           roomCode,
           telegramId: user.telegramId,
           displayName: user.firstName,
+          avatarId: user.avatarId ?? undefined,
         });
       }
     }
@@ -172,6 +175,7 @@ export function HomePage() {
         roomCode,
         telegramId: user.telegramId,
         displayName: user.firstName,
+        avatarId: user.avatarId ?? undefined,
       });
     }
 
@@ -211,6 +215,7 @@ export function HomePage() {
           ownerId: user.telegramId.toString(),
           ownerTelegramId: user.telegramId,
           ownerDisplayName: user.firstName,
+          ownerAvatarId: user.avatarId ?? undefined,
         }),
       });
 
@@ -252,6 +257,7 @@ export function HomePage() {
           roomCode: roomCodeToJoin,
           telegramId: user.telegramId,
           displayName: user.firstName,
+          avatarId: user.avatarId ?? undefined,
         }),
       });
 
@@ -271,6 +277,7 @@ export function HomePage() {
           roomCode: payload.roomCode,
           telegramId: user.telegramId,
           displayName: user.firstName,
+          avatarId: user.avatarId ?? undefined,
         });
       }
 
@@ -297,7 +304,7 @@ export function HomePage() {
   async function submitGuestLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading || guestName.trim().length < 2) return;
-    await loginWithGuest(guestName);
+    await loginWithGuest(guestName, guestAvatarId);
   }
 
   if (roomCode && activeView === "game") {
@@ -450,6 +457,32 @@ export function HomePage() {
                   <p className="mt-1 text-sm leading-6 text-[#dfeeff]">
                     Choose a name to create a room or join one.
                   </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
+                    Avatar{" "}
+                    <span className="font-normal normal-case tracking-normal">
+                      (optional)
+                    </span>
+                  </p>
+                  <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
+                    {FUNNY_AVATARS.map((avatar) => (
+                      <button
+                        key={avatar.id}
+                        type="button"
+                        onClick={() =>
+                          setGuestAvatarId((current) =>
+                            current === avatar.id ? undefined : avatar.id,
+                          )
+                        }
+                        aria-label={`Choose ${avatar.label} avatar`}
+                        aria-pressed={guestAvatarId === avatar.id}
+                        className={`flex aspect-square items-center justify-center rounded-2xl border-2 text-2xl transition-transform hover:-translate-y-0.5 ${guestAvatarId === avatar.id ? "border-[#b8ff8e] bg-[#51df20]/30" : "border-white/15 bg-[#1d7bd7]"}`}
+                      >
+                        {avatar.emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label

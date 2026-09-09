@@ -379,6 +379,10 @@ export function registerRoomSocketHandlers(
         ownerId: payload.ownerId,
         ownerTelegramId: getActorTelegramId(socket, payload.ownerTelegramId),
         ownerDisplayName: payload.ownerDisplayName,
+        ownerAvatarId:
+          typeof payload.ownerAvatarId === "string"
+            ? payload.ownerAvatarId
+            : undefined,
       });
 
       await socket.join(room.roomCode);
@@ -418,6 +422,8 @@ export function registerRoomSocketHandlers(
         roomCode: payload.roomCode,
         telegramId: payload.telegramId,
         displayName: payload.displayName,
+        avatarId:
+          typeof payload.avatarId === "string" ? payload.avatarId : undefined,
       });
 
       await socket.join(room.roomCode);

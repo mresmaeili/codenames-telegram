@@ -103,6 +103,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         roomCode,
         telegramId: user.telegramId,
         displayName: user.firstName,
+        avatarId: user.avatarId ?? undefined,
       });
     };
 
