@@ -47,7 +47,7 @@ export function LoadingSkeleton({ variant }: LoadingSkeletonProps) {
 
   if (variant === "lobby") {
     return (
-      <div className="mt-3 min-h-105 w-full px-2 text-white">
+      <div className="min-h-[100dvh] w-full px-2 py-3 text-white">
         <div className="h-20 rounded-2xl bg-white/10 p-3">
           <div className={`${shimmer} mx-auto h-3 w-20`} />
           <div className={`${shimmer} mx-auto mt-2 h-7 w-28`} />
@@ -68,7 +68,7 @@ export function LoadingSkeleton({ variant }: LoadingSkeletonProps) {
   }
 
   return (
-    <div className="mt-5 min-h-105">
+    <div className="min-h-[100dvh] pt-5">
       <div className="space-y-3 rounded-3xl border border-white/15 bg-white/8 p-4">
         <div className={`${shimmer} h-5 w-36`} />
         <div className={`${shimmer} h-4 w-64 max-w-full`} />
