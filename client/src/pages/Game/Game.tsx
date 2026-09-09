@@ -13,6 +13,7 @@ import { TurnActionBar } from "./TurnActionBar";
 import { GameHeaderBar } from "./GameHeaderBar";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useAuthContext } from "@/context/AuthContext";
 import { apiUrl } from "@/config/env";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
@@ -48,15 +49,7 @@ interface GamePageState {
 }
 
 function GameLoadingState() {
-  return (
-    <PageContainer>
-      <StatusPanel
-        title="Loading game"
-        description="We are restoring the latest room and board state now."
-        tone="info"
-      />
-    </PageContainer>
-  );
+  return <LoadingSkeleton variant="game" />;
 }
 
 function GameErrorState({

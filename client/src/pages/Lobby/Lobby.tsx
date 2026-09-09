@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
@@ -923,13 +924,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         ) : null}
 
         {loading ? (
-          <div className="mb-4">
-            <StatusPanel
-              title="Loading lobby"
-              description="We are restoring the latest room details and player list."
-              tone="info"
-            />
-          </div>
+          <LoadingSkeleton variant="lobby" />
         ) : error ? (
           <div className="mb-4">
             <StatusPanel

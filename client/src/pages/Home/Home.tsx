@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useAuthContext } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { apiUrl } from "@/config/env";
@@ -380,13 +381,7 @@ export function HomePage() {
           ) : null}
 
           {loading ? (
-            <div className="mt-5">
-              <StatusPanel
-                title="Authenticating"
-                description="Preparing your game space..."
-                tone="info"
-              />
-            </div>
+            <LoadingSkeleton variant="home" />
           ) : error ? (
             <div className="mt-5">
               <StatusPanel
