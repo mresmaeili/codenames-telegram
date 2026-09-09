@@ -1070,7 +1070,7 @@ export function GamePage({
   return (
     <PageContainer>
       <div
-        className={`mx-auto flex min-h-[100dvh] w-full max-w-150 flex-col px-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
+        className={`mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
       >
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
@@ -1091,8 +1091,8 @@ export function GamePage({
             />
           </div>
         ) : null}
-        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)] items-start gap-1">
-          <div className="col-start-1 row-span-2 flex min-h-0 flex-col gap-1">
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(4.5rem,0.72fr)_minmax(0,2.4fr)_minmax(4.5rem,0.72fr)] items-stretch gap-1 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
+          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
             <TeamPanel
               team="blue"
               remainingCards={blueCardsRemaining}
@@ -1111,18 +1111,95 @@ export function GamePage({
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
             />
+            <div className="hidden min-h-0 flex-1 sm:block">
+              <GameLog
+                entries={gameLog}
+                players={state.room?.players ?? []}
+                timerDuration={timerDuration}
+                secondsRemaining={activeSecondsRemaining}
+                timerProgress={timerProgress}
+                className="!h-full !max-h-none"
+              />
+            </div>
           </div>
 
-          <GameLog
-            className="col-start-2 row-span-2"
-            entries={gameLog}
-            players={state.room?.players ?? []}
-            timerDuration={timerDuration}
-            secondsRemaining={activeSecondsRemaining}
-            timerProgress={timerProgress}
-          />
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <TurnBanner
+              instruction={turnInstruction}
+              player={turnPlayer}
+              onHelp={() => {
+                registerPopup(
+                  <div className="space-y-3 text-sm text-(--app-text)">
+                    <p>Spymasters give one clue word and a number.</p>
+                    <p>
+                      Operatives tap a card to select it, then use the green
+                      button to confirm.
+                    </p>
+                    <p>Tap a revealed card to show or hide its word.</p>
+                  </div>,
+                  "How to play",
+                );
+                openPopup();
+              }}
+            />
+            <GameBoardSurface
+              game={state.game}
+              viewerPlayerId={viewerPlayer?.userId}
+              canSelectCard={canSelectCard}
+              onSelectCard={handleSelectCard}
+              onConfirmCard={handleConfirmCard}
+              selectedHintCardIds={selectedHintCardIds}
+              onToggleHintCard={
+                state.game.role === "spymaster"
+                  ? handleToggleHintCard
+                  : undefined
+              }
+              hideWords={false}
+              selectedPlayersByCard={visibleSelectedPlayersByCard}
+            />
+            {gameFinished && isRoomOwner ? (
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  onClick={handleQuickRematch}
+                  className="w-full rounded-full border border-[#b8ff8e] bg-[#51df20] px-2 py-2 text-[10px] font-black uppercase text-[#123d08]"
+                >
+                  Quick rematch
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetGame}
+                  className="w-full rounded-full border border-white/70 bg-white px-2 py-2 text-[10px] font-black uppercase text-[#0a63d4]"
+                >
+                  Return to lobby
+                </button>
+              </div>
+            ) : null}
+            {canSubmitHint ? (
+              <HintComposer
+                word={hintDraft.word}
+                number={hintDraft.number}
+                submitting={hintSubmitting}
+                onWordChange={(word) =>
+                  setHintDraft((current) => ({ ...current, word }))
+                }
+                onNumberChange={handleHintNumberChange}
+                onSubmit={() => submitHint(hintDraft.word, hintDraft.number)}
+              />
+            ) : null}
+            <TurnActionBar
+              hintWord={state.game.currentHintWord}
+              hintNumber={state.game.currentHintNumber}
+              remainingGuesses={state.game.remainingGuesses}
+              canPass={canPassTurn}
+              canTake={canTakeTurn}
+              activeOperative={isActiveOperative}
+              onPass={passTurn}
+              onTake={takeTurn}
+            />
+          </div>
 
-          <div className="col-start-3 row-span-2 flex min-h-0 flex-col gap-1">
+          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
             <TeamPanel
               team="red"
               remainingCards={redCardsRemaining}
@@ -1143,79 +1220,8 @@ export function GamePage({
             />
           </div>
         </div>
-        <TurnBanner
-          instruction={turnInstruction}
-          player={turnPlayer}
-          onHelp={() => {
-            registerPopup(
-              <div className="space-y-3 text-sm text-(--app-text)">
-                <p>Spymasters give one clue word and a number.</p>
-                <p>
-                  Operatives tap a card to select it, then use the green button
-                  to confirm.
-                </p>
-                <p>Tap a revealed card to show or hide its word.</p>
-              </div>,
-              "How to play",
-            );
-            openPopup();
-          }}
-        />
-        <GameBoardSurface
-          game={state.game}
-          viewerPlayerId={viewerPlayer?.userId}
-          canSelectCard={canSelectCard}
-          onSelectCard={handleSelectCard}
-          onConfirmCard={handleConfirmCard}
-          selectedHintCardIds={selectedHintCardIds}
-          onToggleHintCard={
-            state.game.role === "spymaster" ? handleToggleHintCard : undefined
-          }
-          hideWords={false}
-          selectedPlayersByCard={visibleSelectedPlayersByCard}
-        />
-        {gameFinished && isRoomOwner ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={handleQuickRematch}
-              className="w-full rounded-full border-2 border-[#b8ff8e] bg-[#51df20] px-3 py-3 text-xs font-black uppercase tracking-[0.06em] text-[#123d08] shadow-[0_4px_10px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Quick rematch
-            </button>
-            <button
-              type="button"
-              onClick={handleResetGame}
-              className="w-full rounded-full border-2 border-white/70 bg-white px-3 py-3 text-xs font-black uppercase tracking-[0.06em] text-[#0a63d4] shadow-[0_4px_10px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              Return to lobby
-            </button>
-          </div>
-        ) : null}
-        {canSubmitHint ? (
-          <HintComposer
-            word={hintDraft.word}
-            number={hintDraft.number}
-            submitting={hintSubmitting}
-            onWordChange={(word) =>
-              setHintDraft((current) => ({ ...current, word }))
-            }
-            onNumberChange={handleHintNumberChange}
-            onSubmit={() => submitHint(hintDraft.word, hintDraft.number)}
-          />
-        ) : null}
-        <TurnActionBar
-          hintWord={state.game.currentHintWord}
-          hintNumber={state.game.currentHintNumber}
-          remainingGuesses={state.game.remainingGuesses}
-          canPass={canPassTurn}
-          canTake={canTakeTurn}
-          activeOperative={isActiveOperative}
-          onPass={passTurn}
-          onTake={takeTurn}
-        />
         {hintMessage ? (
-          <div className="mt-3">
+          <div className="absolute bottom-1 left-1/2 z-30 w-[min(92%,32rem)] -translate-x-1/2">
             <StatusPanel
               title="Board update"
               description={hintMessage}

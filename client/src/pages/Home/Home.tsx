@@ -328,8 +328,8 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-150 px-3 py-3 sm:px-4">
-        <div className="w-full rounded-[28px] border border-white/10 bg-[#0b69ad] px-4 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)]">
+      <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-6 sm:py-6">
+        <div className="w-full rounded-[28px] border border-white/10 bg-[#0b69ad] px-4 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)] sm:px-8 sm:py-7">
           <div className="space-y-2 text-center">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#dfeeff]">
               Codenames
@@ -355,7 +355,7 @@ export function HomePage() {
             <div className="mt-5">
               <StatusPanel
                 title="Authenticating"
-                description="We are restoring your Telegram session and preparing the lobby experience."
+                description="Preparing your game space..."
                 tone="info"
               />
             </div>
@@ -363,44 +363,9 @@ export function HomePage() {
             <div className="mt-5">
               <StatusPanel
                 title="Authentication issue"
-                description="Choose a name to join from your browser. Telegram is not required."
+                description={error}
                 tone="error"
               />
-              <div className="mt-4 rounded-2xl border border-white/15 bg-white/8 p-4 text-center">
-                <form
-                  onSubmit={submitGuestLogin}
-                  className="space-y-3 text-left"
-                >
-                  <label
-                    htmlFor="guestName"
-                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
-                  >
-                    Your name
-                  </label>
-                  <input
-                    id="guestName"
-                    value={guestName}
-                    onChange={(event) => setGuestName(event.target.value)}
-                    placeholder="Enter a name"
-                    maxLength={24}
-                    autoComplete="nickname"
-                    className="w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading || guestName.trim().length < 2}
-                    className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Continue as guest
-                  </button>
-                </form>
-              </div>
-              {error !==
-              "Telegram is unavailable here. Please open the Mini App inside Telegram." ? (
-                <p className="mt-2 text-center text-sm text-[#ffd5d5]">
-                  {error}
-                </p>
-              ) : null}
             </div>
           ) : user ? (
             <div className="mt-5 space-y-4">
@@ -474,11 +439,43 @@ export function HomePage() {
             </div>
           ) : (
             <div className="mt-5">
-              <StatusPanel
-                title="Authentication unavailable"
-                description="We could not restore your Telegram session. Please reopen the Mini App from Telegram."
-                tone="error"
-              />
+              <form
+                onSubmit={submitGuestLogin}
+                className="space-y-4 rounded-3xl border border-white/15 bg-white/8 p-4"
+              >
+                <div>
+                  <p className="text-lg font-bold text-white">
+                    Play with friends
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[#dfeeff]">
+                    Choose a name to create a room or join one.
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="guestName"
+                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
+                  >
+                    Your name
+                  </label>
+                  <input
+                    id="guestName"
+                    value={guestName}
+                    onChange={(event) => setGuestName(event.target.value)}
+                    placeholder="Enter a name"
+                    maxLength={24}
+                    autoComplete="nickname"
+                    className="mt-2 w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || guestName.trim().length < 2}
+                  className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Start playing
+                </button>
+              </form>
             </div>
           )}
         </div>

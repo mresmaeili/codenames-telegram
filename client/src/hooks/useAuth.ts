@@ -264,8 +264,7 @@ export function useAuth() {
         setAuthState({
           user: null,
           loading: false,
-          error:
-            "Telegram is unavailable here. Please open the Mini App inside Telegram.",
+          error: null,
         });
         return;
       }
