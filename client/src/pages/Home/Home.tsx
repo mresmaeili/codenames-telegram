@@ -32,7 +32,8 @@ interface RoomResponse {
 }
 
 export function HomePage() {
-  const { user, loading, error, loginWithGuest } = useAuthContext();
+  const { user, loading, error, loginWithGuest, logoutGuest } =
+    useAuthContext();
   const [roomCode, setRoomCode] = useState<string | null>(() => {
     try {
       return window.localStorage.getItem("codenames.lastRoomCode");
@@ -45,12 +46,23 @@ export function HomePage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestAvatarId, setGuestAvatarId] = useState<string | undefined>();
+  const [isGuestSession, setIsGuestSession] = useState(false);
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
     "home",
   );
   const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
   const socket = useMemo(() => getSocketClient(), []);
   const toast = useToast();
+
+  useEffect(() => {
+    try {
+      setIsGuestSession(
+        Boolean(window.localStorage.getItem("codenames.guestSession")),
+      );
+    } catch {
+      setIsGuestSession(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     const hasPrivateRoom = Boolean(
@@ -337,7 +349,16 @@ export function HomePage() {
     <PageContainer>
       <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-6 sm:py-6">
         <div className="w-full rounded-[28px] border border-white/10 bg-[#0b69ad] px-4 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)] sm:px-8 sm:py-7">
-          <div className="space-y-2 text-center">
+          <div className="relative space-y-2 text-center">
+            {user && isGuestSession ? (
+              <button
+                type="button"
+                onClick={logoutGuest}
+                className="absolute right-0 top-0 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85 transition hover:bg-white/20"
+              >
+                Log out
+              </button>
+            ) : null}
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#dfeeff]">
               Codenames
             </p>

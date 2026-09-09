@@ -63,9 +63,9 @@ export function GameHeaderBar({
           disabled={refreshingGame}
           className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/80 bg-white/5 text-xl transition hover:bg-white/15 active:scale-95 disabled:cursor-wait disabled:opacity-60"
           aria-label="Refresh game"
-          title="Refresh game"
+          title="Sync game"
         >
-          ↻
+          ↻ <span className="sr-only">Sync</span>
         </button>
       </div>
       <button

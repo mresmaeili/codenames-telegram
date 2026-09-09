@@ -9,7 +9,7 @@ import {
   isTelegramMiniAppAvailable,
   waitForTelegramMiniApp,
 } from "@/lib/telegram";
-import { setSocketAuth } from "@/socket/client";
+import { disconnectSocketClient, setSocketAuth } from "@/socket/client";
 
 function getFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -207,6 +207,17 @@ export function useAuth() {
     }
   }
 
+  function logoutGuest() {
+    try {
+      window.localStorage.removeItem("codenames.guestSession");
+      window.localStorage.removeItem("codenames.guestId");
+    } catch {
+      // ignored in restricted browser contexts
+    }
+    disconnectSocketClient();
+    window.location.reload();
+  }
+
   async function loginWithTelegramWidget(data: TelegramWidgetAuthData) {
     setAuthState({ user: null, loading: true, error: null });
     try {
@@ -361,5 +372,10 @@ export function useAuth() {
     void runAuthentication();
   }, []);
 
-  return { ...authState, loginWithGuest, loginWithTelegramWidget };
+  return {
+    ...authState,
+    loginWithGuest,
+    loginWithTelegramWidget,
+    logoutGuest,
+  };
 }

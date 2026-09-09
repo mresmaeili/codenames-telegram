@@ -20,6 +20,7 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   loginWithGuest: (displayName: string, avatarId?: string) => Promise<void>;
+  logoutGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

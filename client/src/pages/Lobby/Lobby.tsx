@@ -897,6 +897,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </button>
           </div>
           <div className="flex items-center gap-1.5" />
+          <button
+            type="button"
+            onClick={() => void refreshLobby()}
+            disabled={loading}
+            className="flex h-10 items-center gap-1 rounded-full border border-white/20 bg-white/5 px-3 text-xs font-bold text-white transition hover:bg-white/15 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+            aria-label="Sync lobby"
+            title="Sync lobby"
+          >
+            <span aria-hidden="true" className="text-base">
+              ↻
+            </span>
+            Sync
+          </button>
         </div>
 
         {starting ? (
