@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GameLog, type GameLogEntry } from "./GameLog";
 import { TeamPanel } from "./TeamPanel";
@@ -14,11 +14,13 @@ import { GameHeaderBar } from "./GameHeaderBar";
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useAuthContext } from "@/context/AuthContext";
 import { apiUrl } from "@/config/env";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
+import { playActionSound } from "@/lib/sound";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -431,6 +433,7 @@ export function GamePage({
 
   const [refreshingGame, setRefreshingGame] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const lastGameStatusRef = useRef<string | null>(null);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [spymasterSecondsRemaining, setSpymasterSecondsRemaining] = useState<
@@ -648,7 +651,7 @@ export function GamePage({
             }));
           }
           setIsReconnecting(true);
-          toast.success("Game starting. Loading board...");
+          toast.success("Game starting.");
           void loadGameData();
         }
       };
@@ -674,8 +677,8 @@ export function GamePage({
       const handleReconnect = () => {
         if (isMounted) {
           setIsReconnecting(true);
-          setHintMessage("Reconnected. Syncing the latest board state...");
-          toast.info("Reconnected. Restoring your game session...");
+          setHintMessage("Reconnected.");
+          toast.info("Reconnected.");
           if (user?.telegramId) {
             socket.emit("room:join", {
               roomCode: roomCode.toUpperCase(),
@@ -735,6 +738,15 @@ export function GamePage({
   const viewerPlayer = state.room?.players.find(
     (player) => player.telegramId === user?.telegramId,
   );
+
+  useEffect(() => {
+    const status = state.game?.status ?? null;
+    if (status === "finished" && lastGameStatusRef.current !== "finished") {
+      const hasWon = viewerPlayer?.team === state.game?.winningTeam;
+      playActionSound(hasWon ? "win" : "lose");
+    }
+    lastGameStatusRef.current = status;
+  }, [state.game?.status, state.game?.winningTeam, viewerPlayer?.team]);
   const isActiveSpymaster = isActiveRole(state.game, viewerPlayer, "spymaster");
   const isActiveOperative = isActiveRole(state.game, viewerPlayer, "operative");
   const hasActiveHint = hasActiveHintForGame(state.game);
@@ -897,6 +909,15 @@ export function GamePage({
 
   function handleReturnToLobby() {
     onReturnToLobby();
+  }
+
+  async function handleCopyRoomCode() {
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      toast.success(`Room code ${roomCode} copied to clipboard.`);
+    } catch {
+      toast.error("Unable to copy the room code.");
+    }
   }
 
   function handleToggleHintCard(cardIndex: number) {
@@ -1075,15 +1096,12 @@ export function GamePage({
           onLeave={onLeave}
           onReturnToLobby={onReturnToLobby}
           onRefresh={refreshGameState}
+          onCopyRoomCode={() => void handleCopyRoomCode()}
           onSettings={openPopup}
         />
         {isReconnecting ? (
           <div className="mb-3">
-            <StatusPanel
-              title="Reconnecting"
-              description="Syncing the latest room and board state."
-              tone="info"
-            />
+            <LoadingIndicator />
           </div>
         ) : null}
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(4.5rem,0.72fr)_minmax(0,2.4fr)_minmax(4.5rem,0.72fr)] items-stretch gap-1 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
@@ -1122,6 +1140,7 @@ export function GamePage({
             <TurnBanner
               instruction={turnInstruction}
               player={turnPlayer}
+              isYourTurn={isActiveSpymaster || isActiveOperative}
               onHelp={() => {
                 registerPopup(
                   <div className="space-y-3 text-sm text-(--app-text)">
@@ -1179,7 +1198,10 @@ export function GamePage({
                   setHintDraft((current) => ({ ...current, word }))
                 }
                 onNumberChange={handleHintNumberChange}
-                onSubmit={() => submitHint(hintDraft.word, hintDraft.number)}
+                onSubmit={() => {
+                  playActionSound("hint");
+                  submitHint(hintDraft.word, hintDraft.number);
+                }}
               />
             ) : null}
             <TurnActionBar
@@ -1189,8 +1211,14 @@ export function GamePage({
               canPass={canPassTurn}
               canTake={canTakeTurn}
               activeOperative={isActiveOperative}
-              onPass={passTurn}
-              onTake={takeTurn}
+              onPass={() => {
+                playActionSound("pass");
+                passTurn();
+              }}
+              onTake={() => {
+                playActionSound("take");
+                takeTurn();
+              }}
             />
           </div>
 

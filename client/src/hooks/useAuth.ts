@@ -10,6 +10,7 @@ import {
   waitForTelegramMiniApp,
 } from "@/lib/telegram";
 import { disconnectSocketClient, setSocketAuth } from "@/socket/client";
+import { debugLog } from "@/lib/debug";
 
 function getFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -69,7 +70,7 @@ async function authenticateWithServer(
   const url = isSameOrigin
     ? "/api/auth/telegram"
     : `${env.API_BASE_URL.replace(/\/$/, "")}/auth/telegram`;
-  console.debug("[Auth] authenticating with server", {
+  debugLog("[Auth] authenticating with server", {
     url,
     initDataLength: initData.length,
   });
@@ -78,7 +79,7 @@ async function authenticateWithServer(
     "Content-Type": "application/json",
   };
 
-  console.debug("[Auth] request details", {
+  debugLog("[Auth] request details", {
     url,
     method: "POST",
     headers,
@@ -93,9 +94,9 @@ async function authenticateWithServer(
       headers,
       body: JSON.stringify({ initData }),
     });
-    console.debug("[Auth] request sent", { url, status: response.status });
+    debugLog("[Auth] request sent", { url, status: response.status });
   } catch (e) {
-    console.debug("[Auth] request failed to send", e);
+    debugLog("[Auth] request failed to send", e);
     throw new Error("Authentication request failed to send.");
   }
 
@@ -249,7 +250,7 @@ export function useAuth() {
 
       const telegramAvailable = await waitForTelegramMiniApp(2000);
 
-      console.debug("[Auth] Telegram availability check", {
+      debugLog("[Auth] Telegram availability check", {
         telegramAvailable,
         telegram:
           typeof window !== "undefined" ? (window as any).Telegram : undefined,
@@ -286,7 +287,7 @@ export function useAuth() {
       initializeTelegramMiniApp();
 
       const launchParams = await getTelegramLaunchParams();
-      console.debug("[Auth] launch parameters", { launchParams });
+      debugLog("[Auth] launch parameters", { launchParams });
 
       const initData = (await getTelegramInitData()) ?? "";
 
@@ -303,14 +304,14 @@ export function useAuth() {
           const hashArray = Array.from(new Uint8Array(hashBuffer));
           return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
         } catch (e) {
-          console.debug("[Auth Debug] computeClientSha256 failed", e);
+          debugLog("[Auth Debug] computeClientSha256 failed", e);
           return null;
         }
       }
 
       if (env.DEBUG_AUTH_HASH && initData) {
         const clientHash = await computeClientSha256(initData);
-        console.debug(
+        debugLog(
           "[Auth Debug] Client initData SHA256:",
           clientHash,
           "len:",

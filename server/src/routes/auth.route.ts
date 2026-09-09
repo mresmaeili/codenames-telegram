@@ -122,7 +122,7 @@ authRouter.post("/guest", async (request, response) => {
       return;
     }
 
-    const user = createGuestUser(
+    const user = await createGuestUser(
       body.displayName,
       typeof body.guestId === "string" ? body.guestId : undefined,
       typeof body.avatarId === "string" ? body.avatarId : undefined,

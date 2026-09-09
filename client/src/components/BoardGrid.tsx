@@ -1,5 +1,7 @@
 import { BoardCard } from "@/components/BoardCard";
 import { SpymasterCard } from "@/components/SpymasterCard";
+import { Icon } from "@/components/Icon";
+import { playActionSound } from "@/lib/sound";
 import { useState } from "react";
 import type {
   PublicCard,
@@ -112,6 +114,7 @@ export function BoardGrid({
               aria-label={ariaLabel}
               onClick={() => {
                 if (isSelectable && onSelectCard) {
+                  playActionSound("select");
                   onSelectCard(index);
                 } else if (publicCard.revealed) {
                   setVisibleRevealedWords((current) => {
@@ -144,11 +147,12 @@ export function BoardGrid({
                 aria-label={`Guess ${publicCard.word}`}
                 onClick={(event) => {
                   event.stopPropagation();
+                  playActionSound("confirm");
                   onConfirmCard?.(index);
                 }}
                 className="absolute -right-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-xl shadow-[0_2px_7px_rgba(0,0,0,0.45)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
-                ✓
+                <Icon name="check" size={18} />
               </button>
             ) : null}
           </div>

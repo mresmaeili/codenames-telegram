@@ -1,3 +1,5 @@
+import { Icon } from "@/components/Icon";
+
 interface SettingsPopupProps {
   open: boolean;
   title?: string;
@@ -35,7 +37,7 @@ export function SettingsPopup({
             onClick={onClose}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white/60 bg-white/5 text-2xl leading-none text-white transition hover:bg-white/15 active:scale-95"
           >
-            ×
+            <Icon name="close" />
           </button>
         </div>
 

@@ -142,12 +142,24 @@ test("authenticateTelegramWidgetUser creates a user for valid browser login data
   }
 });
 
-test("guest sessions authenticate without Telegram and reject tampering", () => {
+test("guest sessions persist, authenticate without Telegram, and reject tampering", async () => {
   const originalSecret = process.env.GUEST_AUTH_SECRET;
+  const originalCreate = UserModel.create;
+  const originalFindOne = UserModel.findOne;
   process.env.GUEST_AUTH_SECRET = "guest-test-secret";
 
+  (UserModel as unknown as { findOne: () => Promise<null> }).findOne =
+    async () => null;
+  (
+    UserModel as unknown as { create: (input: unknown) => Promise<unknown> }
+  ).create = async (input) => ({
+    ...(input as Record<string, unknown>),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
   try {
-    const guest = createGuestUser("Browser Player", "guest-player-1");
+    const guest = await createGuestUser("Browser Player", "guest-player-1");
     const authenticated = authenticateGuestToken(guest.guestToken);
 
     assert.equal(authenticated.telegramId, guest.telegramId);
@@ -157,6 +169,8 @@ test("guest sessions authenticate without Telegram and reject tampering", () => 
       /invalid guest session/i,
     );
   } finally {
+    UserModel.create = originalCreate;
+    UserModel.findOne = originalFindOne;
     if (originalSecret === undefined) delete process.env.GUEST_AUTH_SECRET;
     else process.env.GUEST_AUTH_SECRET = originalSecret;
   }

@@ -155,7 +155,7 @@ export function HomePage() {
     }
 
     function handleConnect() {
-      toast.info("Reconnected. Restoring your room membership...");
+      toast.info("Reconnected.");
       if (roomCode && user) {
         socket.emit("room:join", {
           roomCode,
@@ -361,11 +361,14 @@ export function HomePage() {
               </button>
             ) : null}
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#dfeeff]">
-              Codenames
+              A social word game
             </p>
-            <h1 className="text-2xl font-black tracking-[-0.05em] text-white sm:text-3xl">
-              Mini App
+            <h1 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-5xl">
+              Codenames
             </h1>
+            <p className="mx-auto max-w-md text-sm leading-6 text-[#dfeeff] sm:text-base">
+              Give clever clues, find your team&apos;s words, and play together.
+            </p>
           </div>
 
           {!roomCode ? (
@@ -392,13 +395,18 @@ export function HomePage() {
             </div>
           ) : user ? (
             <div className="mt-5 space-y-4">
-              <div className="rounded-2xl border border-white/15 bg-white/8 p-3 text-left">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
-                  Signed in as
-                </p>
-                <p className="mt-1 text-base font-bold text-white">
-                  {user.firstName}
-                </p>
+              <div className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/8 p-3 text-left">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
+                    Ready to play
+                  </p>
+                  <p className="mt-1 text-base font-bold text-white">
+                    {user.firstName}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#51df20]/20 px-3 py-1 text-xs font-bold text-[#d9ffbf]">
+                  Online
+                </span>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
@@ -406,7 +414,7 @@ export function HomePage() {
                   type="button"
                   onClick={createRoom}
                   disabled={submitting}
-                  className="rounded-2xl border border-[#d4eeff] bg-[#ffffff] px-4 py-3 text-left text-[#0b69ad] shadow-[0_6px_12px_rgba(14,35,67,0.2)] transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-2xl border border-[#d4eeff] bg-[#ffffff] px-4 py-5 text-left text-[#0b69ad] shadow-[0_6px_12px_rgba(14,35,67,0.2)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <p className="text-base font-black uppercase tracking-[0.08em]">
                     Create room
@@ -476,7 +484,7 @@ export function HomePage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
-                    Avatar{" "}
+                    Choose an avatar{" "}
                     <span className="font-normal normal-case tracking-normal">
                       (optional)
                     </span>
@@ -499,6 +507,9 @@ export function HomePage() {
                       </button>
                     ))}
                   </div>
+                  <p className="mt-2 text-xs text-[#dfeeff]/75">
+                    Optional. Skip it to get a random funny avatar.
+                  </p>
                 </div>
                 <div>
                   <label

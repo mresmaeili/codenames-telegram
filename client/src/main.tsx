@@ -10,19 +10,18 @@ import {
   waitForTelegramMiniApp,
 } from "@/lib/telegram";
 import { createSocketClient } from "@/socket/client";
+import { debugLog } from "@/lib/debug";
 import "@/styles/index.css";
 
 async function bootstrap() {
   const devMode = isDevModeEnabled();
 
   if (devMode) {
-    console.debug(
-      "[Main] Dev mode enabled, skipping Telegram SDK initialization.",
-    );
+    debugLog("[Main] Dev mode enabled, skipping Telegram SDK initialization.");
   } else {
     const telegramAvailable = await waitForTelegramMiniApp(2000);
 
-    console.debug("[Main] Telegram environment check", {
+    debugLog("[Main] Telegram environment check", {
       telegramAvailable,
       telegram:
         typeof window !== "undefined" ? (window as any).Telegram : undefined,

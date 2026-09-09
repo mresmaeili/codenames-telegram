@@ -1,6 +1,7 @@
 import type { CardColor, Turn } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { Icon } from "@/components/Icon";
 
 export interface GameLogEntry {
   id: string;
@@ -158,7 +159,11 @@ export function GameLog({
                               guess.correct ? "Correct guess" : "Wrong guess"
                             }
                           >
-                            {guess.correct ? "✓" : "×"}
+                            {guess.correct ? (
+                              <Icon name="check" size={12} />
+                            ) : (
+                              <Icon name="close" size={12} />
+                            )}
                           </span>
                         </div>
                       );

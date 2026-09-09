@@ -7,6 +7,7 @@ import {
   retrieveRawInitData,
   themeParams,
 } from "@tma.js/sdk";
+import { debugLog, debugWarn } from "@/lib/debug";
 
 let miniAppInstance: typeof miniApp | null = null;
 
@@ -18,7 +19,7 @@ function isTelegramEnvironment() {
   try {
     return isTMA();
   } catch (error) {
-    console.debug("[Telegram] isTMA() check failed.", error);
+    debugLog("[Telegram] isTMA() check failed.", error);
     return false;
   }
 }
@@ -55,7 +56,7 @@ export function initializeTelegramMiniApp() {
   }
 
   if (!isTelegramEnvironment()) {
-    console.debug("[Telegram] TMA environment not available yet.");
+    debugLog("[Telegram] TMA environment not available yet.");
     miniAppInstance = null;
     return miniAppInstance;
   }
@@ -69,9 +70,9 @@ export function initializeTelegramMiniApp() {
     miniApp.ready();
     postEvent("web_app_expand");
     miniAppInstance = miniApp;
-    console.debug("[Telegram] Mini App initialized successfully.");
+    debugLog("[Telegram] Mini App initialized successfully.");
   } catch (error) {
-    console.warn("Telegram Mini App initialization failed.", error);
+    debugWarn("Telegram Mini App initialization failed.", error);
     miniAppInstance = null;
   }
 
@@ -93,10 +94,10 @@ export async function getTelegramInitData() {
 
   try {
     const initData = await retrieveRawInitData();
-    console.debug("[Telegram] retrieveRawInitData result", { initData });
+    debugLog("[Telegram] retrieveRawInitData result", { initData });
     return initData ?? null;
   } catch (error) {
-    console.debug("[Telegram] retrieveRawInitData failed.", error);
+    debugLog("[Telegram] retrieveRawInitData failed.", error);
     return null;
   }
 }
@@ -108,10 +109,10 @@ export async function getTelegramLaunchParams() {
 
   try {
     const launchParams = await retrieveLaunchParams();
-    console.debug("[Telegram] retrieveLaunchParams result", { launchParams });
+    debugLog("[Telegram] retrieveLaunchParams result", { launchParams });
     return launchParams;
   } catch (error) {
-    console.debug("[Telegram] retrieveLaunchParams failed.", error);
+    debugLog("[Telegram] retrieveLaunchParams failed.", error);
     return null;
   }
 }

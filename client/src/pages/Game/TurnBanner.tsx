@@ -4,12 +4,25 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 interface TurnBannerProps {
   instruction: string;
   player?: Room["players"][number];
+  isYourTurn?: boolean;
   onHelp: () => void;
 }
 
-export function TurnBanner({ instruction, player, onHelp }: TurnBannerProps) {
+export function TurnBanner({
+  instruction,
+  player,
+  isYourTurn = false,
+  onHelp,
+}: TurnBannerProps) {
   return (
-    <div className="mt-2 flex min-h-10 items-center justify-center gap-1.5 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white">
+    <div
+      className={`mt-2 flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white ${isYourTurn ? "border-2 border-[#b8ff8e] bg-[#51df20]/20 shadow-[0_0_18px_rgba(81,223,32,0.22)]" : ""}`}
+    >
+      {isYourTurn ? (
+        <span className="rounded-full bg-[#51df20] px-2 py-1 text-[0.58rem] font-black tracking-[0.12em] text-[#123d08]">
+          Your turn
+        </span>
+      ) : null}
       <span>{instruction}</span>
       {player ? (
         <img

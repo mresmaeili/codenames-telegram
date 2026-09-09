@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { Icon } from "@/components/Icon";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { StatusPanel } from "@/components/StatusPanel";
 import { useAuthContext } from "@/context/AuthContext";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
@@ -891,10 +893,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             <button
               type="button"
               onClick={onLeave}
-              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/75 bg-white/5 text-xl text-white transition hover:bg-white/15 active:scale-95"
+              className="ui-control flex h-10 w-10 items-center justify-center border-2 border-white/75 bg-white/5 text-xl text-white hover:bg-white/15"
               aria-label="Leave lobby"
             >
-              ×
+              <Icon name="close" />
             </button>
           </div>
           <div className="flex items-center gap-1.5" />
@@ -902,12 +904,13 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             type="button"
             onClick={() => void refreshLobby()}
             disabled={loading}
-            className="flex h-10 items-center gap-1 rounded-full border border-white/20 bg-white/5 px-3 text-xs font-bold text-white transition hover:bg-white/15 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+            className="ui-control flex h-10 items-center gap-1 border border-white/20 bg-white/5 px-3 text-xs font-bold text-white hover:bg-white/15"
+            data-syncing={loading}
             aria-label="Sync lobby"
             title="Sync lobby"
           >
             <span aria-hidden="true" className="text-base">
-              ↻
+              <Icon name="refresh" />
             </span>
             Sync
           </button>
@@ -915,11 +918,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
         {starting ? (
           <div className="mb-4">
-            <StatusPanel
-              title="Starting"
-              description="Initializing game..."
-              tone="info"
-            />
+            <LoadingIndicator />
           </div>
         ) : null}
 
@@ -936,24 +935,23 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         ) : room ? (
           <>
             <div className="mt-2 w-full px-2">
-              <div className="w-full bg-[#0b0f13] rounded-lg px-3 py-2 flex items-center justify-center gap-4">
-                <div className="text-center">
-                  <p className="text-[9px] uppercase tracking-[0.18em] text-white/60 mb-0">
+              <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#0b0f13] px-4 py-4 text-center sm:flex-row sm:justify-between sm:px-6">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">
                     Room code
                   </p>
-                  <div className="text-xl font-black tracking-tight">
+                  <div className="mt-1 text-4xl font-black tracking-[0.16em] text-white sm:text-5xl">
                     {room.roomCode}
                   </div>
                 </div>
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleCopyRoomCode}
-                    className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-sm font-semibold text-white"
-                  >
-                    Copy code
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyRoomCode}
+                  className="ui-control flex min-h-11 w-full items-center justify-center gap-2 border border-white/20 bg-white px-5 py-2.5 text-sm font-black text-[#0b69ad] sm:w-auto"
+                >
+                  <Icon name="copy" size={16} />
+                  Copy room code
+                </button>
               </div>
 
               <div className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2">

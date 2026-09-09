@@ -424,11 +424,11 @@ export async function authenticateTelegramWidgetUser(
   return normalizeUser(createdUser);
 }
 
-export function createGuestUser(
+export async function createGuestUser(
   displayName: string,
   requestedGuestId?: string,
   avatarId?: string,
-): GuestAuthenticatedUser {
+): Promise<GuestAuthenticatedUser> {
   const normalizedName = displayName.trim().replace(/\s+/g, " ");
   if (normalizedName.length < 2 || normalizedName.length > 24) {
     throw new Error("Username must be between 2 and 24 characters.");
@@ -446,6 +446,27 @@ export function createGuestUser(
     avatarId: avatarId?.trim() || undefined,
     expiresAt: Math.floor(Date.now() / 1000) + GUEST_AUTH_TTL_SECONDS,
   };
+  const now = new Date();
+  const existingUser = await UserModel.findOne({
+    telegramId: payload.telegramId,
+  });
+
+  if (existingUser) {
+    existingUser.firstName = payload.displayName;
+    existingUser.lastLoginAt = now;
+    await existingUser.save();
+  } else {
+    await UserModel.create({
+      telegramId: payload.telegramId,
+      username: `guest_${payload.guestId.slice(0, 12)}`,
+      firstName: payload.displayName,
+      lastName: null,
+      photoUrl: null,
+      languageCode: "en",
+      lastLoginAt: now,
+    });
+  }
+
   const secret =
     process.env.GUEST_AUTH_SECRET ||
     process.env.TELEGRAM_BOT_TOKEN ||
