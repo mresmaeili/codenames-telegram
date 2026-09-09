@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
-import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { useAuthContext } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { apiUrl } from "@/config/env";
@@ -32,7 +31,7 @@ interface RoomResponse {
 }
 
 export function HomePage() {
-  const { user, loading, error } = useAuthContext();
+  const { user, loading, error, loginWithGuest } = useAuthContext();
   const [roomCode, setRoomCode] = useState<string | null>(() => {
     try {
       return window.localStorage.getItem("codenames.lastRoomCode");
@@ -43,6 +42,7 @@ export function HomePage() {
   const [formValue, setFormValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState("");
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
     "home",
   );
@@ -294,6 +294,12 @@ export function HomePage() {
     await joinRoomByCode(formValue.trim().toUpperCase());
   }
 
+  async function submitGuestLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (loading || guestName.trim().length < 2) return;
+    await loginWithGuest(guestName);
+  }
+
   if (roomCode && activeView === "game") {
     return (
       <GamePage
@@ -357,15 +363,44 @@ export function HomePage() {
             <div className="mt-5">
               <StatusPanel
                 title="Authentication issue"
-                description={error}
+                description="Choose a name to join from your browser. Telegram is not required."
                 tone="error"
               />
               <div className="mt-4 rounded-2xl border border-white/15 bg-white/8 p-4 text-center">
-                <p className="mb-3 text-sm text-[#dfeeff]">
-                  Or continue in your browser with Telegram.
-                </p>
-                <TelegramLoginButton />
+                <form
+                  onSubmit={submitGuestLogin}
+                  className="space-y-3 text-left"
+                >
+                  <label
+                    htmlFor="guestName"
+                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
+                  >
+                    Your name
+                  </label>
+                  <input
+                    id="guestName"
+                    value={guestName}
+                    onChange={(event) => setGuestName(event.target.value)}
+                    placeholder="Enter a name"
+                    maxLength={24}
+                    autoComplete="nickname"
+                    className="w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || guestName.trim().length < 2}
+                    className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Continue as guest
+                  </button>
+                </form>
               </div>
+              {error !==
+              "Telegram is unavailable here. Please open the Mini App inside Telegram." ? (
+                <p className="mt-2 text-center text-sm text-[#ffd5d5]">
+                  {error}
+                </p>
+              ) : null}
             </div>
           ) : user ? (
             <div className="mt-5 space-y-4">

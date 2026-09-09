@@ -37,6 +37,11 @@ interface AuthState {
   error: string | null;
 }
 
+interface GuestSession {
+  guestToken: string;
+  user: AuthenticatedUser;
+}
+
 export interface TelegramWidgetAuthData {
   id: number;
   first_name: string;
@@ -124,12 +129,80 @@ async function authenticateWidgetWithServer(
   return payload.user;
 }
 
+async function authenticateGuestWithServer(
+  displayName: string,
+  guestId: string,
+): Promise<GuestSession> {
+  const isSameOrigin =
+    typeof window !== "undefined" &&
+    env.API_BASE_URL === window.location.origin;
+  const url = isSameOrigin
+    ? "/api/auth/guest"
+    : `${env.API_BASE_URL.replace(/\/$/, "")}/auth/guest`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ displayName, guestId }),
+  });
+
+  const payload = (await response.json()) as {
+    user?: AuthenticatedUser & { guestToken?: string };
+    message?: string;
+  };
+  if (!response.ok || !payload.user?.guestToken) {
+    throw new Error(payload.message ?? "Guest login failed.");
+  }
+
+  return {
+    user: payload.user,
+    guestToken: payload.user.guestToken,
+  };
+}
+
+function getGuestId(): string {
+  const storageKey = "codenames.guestId";
+  try {
+    const existingGuestId = window.localStorage.getItem(storageKey);
+    if (existingGuestId) return existingGuestId;
+    const guestId = crypto.randomUUID();
+    window.localStorage.setItem(storageKey, guestId);
+    return guestId;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
     error: null,
   });
+
+  async function loginWithGuest(displayName: string) {
+    setAuthState({ user: null, loading: true, error: null });
+    try {
+      const session = await authenticateGuestWithServer(
+        displayName,
+        getGuestId(),
+      );
+      window.localStorage.setItem(
+        "codenames.guestSession",
+        JSON.stringify(session),
+      );
+      setSocketAuth({
+        guestToken: session.guestToken,
+        telegramId: session.user.telegramId,
+      });
+      setAuthState({ user: session.user, loading: false, error: null });
+    } catch (error) {
+      setAuthState({
+        user: null,
+        loading: false,
+        error: getFriendlyErrorMessage(error),
+      });
+    }
+  }
 
   async function loginWithTelegramWidget(data: TelegramWidgetAuthData) {
     setAuthState({ user: null, loading: true, error: null });
@@ -169,6 +242,25 @@ export function useAuth() {
       });
 
       if (!telegramAvailable || !isTelegramMiniAppAvailable()) {
+        try {
+          const savedSession = window.localStorage.getItem(
+            "codenames.guestSession",
+          );
+          if (savedSession) {
+            const session = JSON.parse(savedSession) as GuestSession;
+            if (session.guestToken && session.user?.telegramId) {
+              setSocketAuth({
+                guestToken: session.guestToken,
+                telegramId: session.user.telegramId,
+              });
+              setAuthState({ user: session.user, loading: false, error: null });
+              return;
+            }
+          }
+        } catch {
+          window.localStorage.removeItem("codenames.guestSession");
+        }
+
         setAuthState({
           user: null,
           loading: false,
@@ -267,5 +359,5 @@ export function useAuth() {
     void runAuthentication();
   }, []);
 
-  return { ...authState, loginWithTelegramWidget };
+  return { ...authState, loginWithGuest, loginWithTelegramWidget };
 }

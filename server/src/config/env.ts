@@ -22,6 +22,10 @@ export const env = {
   PORT: parsePort(process.env.PORT),
   MONGODB_URI: process.env.MONGODB_URI ?? "",
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",
+  GUEST_AUTH_SECRET:
+    process.env.GUEST_AUTH_SECRET ||
+    process.env.TELEGRAM_BOT_TOKEN ||
+    "guest-auth-secret",
   ADMIN_KEY: process.env.ADMIN_KEY ?? "",
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   // Avatar generation provider configuration (optional)

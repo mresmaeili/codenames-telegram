@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import {
   authenticateTelegramUser,
   authenticateTelegramWidgetUser,
+  createGuestUser,
   type TelegramWidgetAuthData,
 } from "../services/auth.service.js";
 
@@ -12,6 +13,11 @@ interface TelegramAuthRequestBody {
 }
 
 interface TelegramWidgetAuthRequestBody extends TelegramWidgetAuthData {}
+
+interface GuestAuthRequestBody {
+  displayName?: unknown;
+  guestId?: unknown;
+}
 
 export const authRouter = Router();
 
@@ -104,5 +110,25 @@ authRouter.post("/telegram/widget", async (request, response, next) => {
       return;
     }
     next(error);
+  }
+});
+
+authRouter.post("/guest", async (request, response) => {
+  try {
+    const body = request.body as GuestAuthRequestBody;
+    if (typeof body.displayName !== "string") {
+      response.status(400).json({ message: "A username is required." });
+      return;
+    }
+
+    const user = createGuestUser(
+      body.displayName,
+      typeof body.guestId === "string" ? body.guestId : undefined,
+    );
+    response.status(200).json({ user });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Guest login failed.";
+    response.status(400).json({ message });
   }
 });

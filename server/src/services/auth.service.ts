@@ -48,6 +48,94 @@ export interface TelegramWidgetAuthData {
 }
 
 const TELEGRAM_AUTH_TTL_SECONDS = 86400;
+const GUEST_AUTH_TTL_SECONDS = 30 * 86400;
+
+export interface GuestAuthenticatedUser extends AuthenticatedUser {
+  guestToken: string;
+}
+
+interface GuestTokenPayload {
+  guestId: string;
+  telegramId: number;
+  displayName: string;
+  expiresAt: number;
+}
+
+function encodeGuestToken(payload: GuestTokenPayload, secret: string): string {
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+    "base64url",
+  );
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+  return `${encodedPayload}.${signature}`;
+}
+
+function decodeGuestToken(token: string, secret: string): GuestTokenPayload {
+  const [encodedPayload, providedSignature] = token.split(".");
+  if (!encodedPayload || !providedSignature) {
+    throw new Error("Invalid guest session.");
+  }
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+  const provided = Buffer.from(providedSignature);
+  const expected = Buffer.from(expectedSignature);
+  if (
+    provided.length !== expected.length ||
+    !crypto.timingSafeEqual(provided, expected)
+  ) {
+    throw new Error("Invalid guest session.");
+  }
+
+  let payload: GuestTokenPayload;
+  try {
+    payload = JSON.parse(
+      Buffer.from(encodedPayload, "base64url").toString("utf8"),
+    ) as GuestTokenPayload;
+  } catch {
+    throw new Error("Invalid guest session.");
+  }
+
+  if (
+    !payload.guestId ||
+    !payload.displayName ||
+    !Number.isInteger(payload.telegramId) ||
+    payload.telegramId <= 0 ||
+    payload.expiresAt < Math.floor(Date.now() / 1000)
+  ) {
+    throw new Error("Guest session has expired.");
+  }
+
+  return payload;
+}
+
+function guestTelegramId(guestId: string): number {
+  const digest = crypto.createHash("sha256").update(guestId).digest();
+  return Math.max(1, digest.readUInt32BE(0) & 0x7fffffff);
+}
+
+function guestUserFromPayload(
+  payload: GuestTokenPayload,
+  token: string,
+): GuestAuthenticatedUser {
+  const timestamp = new Date().toISOString();
+  return {
+    telegramId: payload.telegramId,
+    username: null,
+    firstName: payload.displayName,
+    lastName: null,
+    photoUrl: null,
+    languageCode: null,
+    lastLoginAt: timestamp,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    guestToken: token,
+  };
+}
 
 function parseInitData(initData: string): URLSearchParams {
   return new URLSearchParams(initData);
@@ -331,4 +419,41 @@ export async function authenticateTelegramWidgetUser(
   });
 
   return normalizeUser(createdUser);
+}
+
+export function createGuestUser(
+  displayName: string,
+  requestedGuestId?: string,
+): GuestAuthenticatedUser {
+  const normalizedName = displayName.trim().replace(/\s+/g, " ");
+  if (normalizedName.length < 2 || normalizedName.length > 24) {
+    throw new Error("Username must be between 2 and 24 characters.");
+  }
+
+  const guestId = requestedGuestId?.trim() || crypto.randomUUID();
+  if (!/^[a-zA-Z0-9-]{8,80}$/.test(guestId)) {
+    throw new Error("Invalid guest session identifier.");
+  }
+
+  const payload: GuestTokenPayload = {
+    guestId,
+    telegramId: guestTelegramId(guestId),
+    displayName: normalizedName,
+    expiresAt: Math.floor(Date.now() / 1000) + GUEST_AUTH_TTL_SECONDS,
+  };
+  const secret =
+    process.env.GUEST_AUTH_SECRET ||
+    process.env.TELEGRAM_BOT_TOKEN ||
+    "guest-auth-secret";
+  const token = encodeGuestToken(payload, secret);
+  return guestUserFromPayload(payload, token);
+}
+
+export function authenticateGuestToken(token: string): GuestAuthenticatedUser {
+  const secret =
+    process.env.GUEST_AUTH_SECRET ||
+    process.env.TELEGRAM_BOT_TOKEN ||
+    "guest-auth-secret";
+  const payload = decodeGuestToken(token, secret);
+  return guestUserFromPayload(payload, token);
 }

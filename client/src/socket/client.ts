@@ -5,6 +5,7 @@ interface SocketClientOptions {
   auth?: {
     initData?: string;
     widgetData?: object;
+    guestToken?: string;
     dev?: boolean;
     telegramId?: number;
   };
@@ -75,6 +76,7 @@ export function reconnectSocketClient(): Socket | null {
 export function setSocketAuth(auth: {
   initData?: string;
   widgetData?: object;
+  guestToken?: string;
   dev?: boolean;
   telegramId?: number;
 }): Socket | null {

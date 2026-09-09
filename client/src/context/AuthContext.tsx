@@ -18,6 +18,7 @@ interface AuthContextValue {
   user: AuthenticatedUser | null;
   loading: boolean;
   error: string | null;
+  loginWithGuest: (displayName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

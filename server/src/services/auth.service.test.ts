@@ -5,6 +5,8 @@ import test from "node:test";
 import {
   authenticateTelegramUser,
   authenticateTelegramWidgetUser,
+  authenticateGuestToken,
+  createGuestUser,
 } from "./auth.service.js";
 import { UserModel } from "../models/user.model.js";
 
@@ -137,5 +139,25 @@ test("authenticateTelegramWidgetUser creates a user for valid browser login data
     UserModel.findOne = originalFindOne;
     if (originalToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
     else process.env.TELEGRAM_BOT_TOKEN = originalToken;
+  }
+});
+
+test("guest sessions authenticate without Telegram and reject tampering", () => {
+  const originalSecret = process.env.GUEST_AUTH_SECRET;
+  process.env.GUEST_AUTH_SECRET = "guest-test-secret";
+
+  try {
+    const guest = createGuestUser("Browser Player", "guest-player-1");
+    const authenticated = authenticateGuestToken(guest.guestToken);
+
+    assert.equal(authenticated.telegramId, guest.telegramId);
+    assert.equal(authenticated.firstName, "Browser Player");
+    assert.throws(
+      () => authenticateGuestToken(`${guest.guestToken}tampered`),
+      /invalid guest session/i,
+    );
+  } finally {
+    if (originalSecret === undefined) delete process.env.GUEST_AUTH_SECRET;
+    else process.env.GUEST_AUTH_SECRET = originalSecret;
   }
 });

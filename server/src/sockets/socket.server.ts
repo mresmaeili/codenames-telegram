@@ -5,6 +5,7 @@ import { registerRoomSocketHandlers } from "./room.socket.js";
 import {
   authenticateTelegramUser,
   authenticateTelegramWidgetUser,
+  authenticateGuestToken,
   type TelegramWidgetAuthData,
 } from "../services/auth.service.js";
 import { env } from "../config/env.js";
@@ -60,6 +61,7 @@ export function createSocketServer(
     const auth = socket.handshake.auth as {
       initData?: unknown;
       widgetData?: unknown;
+      guestToken?: unknown;
       dev?: unknown;
       telegramId?: unknown;
     };
@@ -88,6 +90,14 @@ export function createSocketServer(
         const user = await authenticateTelegramWidgetUser(
           auth.widgetData as TelegramWidgetAuthData,
         );
+        socket.data.telegramId = user.telegramId;
+      } catch {
+        next(new Error("Socket authentication failed."));
+        return;
+      }
+    } else if (typeof auth.guestToken === "string" && auth.guestToken.trim()) {
+      try {
+        const user = authenticateGuestToken(auth.guestToken);
         socket.data.telegramId = user.telegramId;
       } catch {
         next(new Error("Socket authentication failed."));
