@@ -1,11 +1,17 @@
 import { Router } from "express";
 import crypto from "node:crypto";
 
-import { authenticateTelegramUser } from "../services/auth.service.js";
+import {
+  authenticateTelegramUser,
+  authenticateTelegramWidgetUser,
+  type TelegramWidgetAuthData,
+} from "../services/auth.service.js";
 
 interface TelegramAuthRequestBody {
   initData?: unknown;
 }
+
+interface TelegramWidgetAuthRequestBody extends TelegramWidgetAuthData {}
 
 export const authRouter = Router();
 
@@ -67,6 +73,36 @@ authRouter.post("/telegram", async (request, response, next) => {
       return;
     }
 
+    next(error);
+  }
+});
+
+authRouter.post("/telegram/widget", async (request, response, next) => {
+  try {
+    const body = request.body as Partial<TelegramWidgetAuthRequestBody>;
+    if (
+      typeof body.id !== "number" ||
+      typeof body.first_name !== "string" ||
+      typeof body.auth_date !== "number" ||
+      typeof body.hash !== "string"
+    ) {
+      response
+        .status(400)
+        .json({ message: "Telegram login data is required." });
+      return;
+    }
+
+    const user = await authenticateTelegramWidgetUser(
+      body as TelegramWidgetAuthData,
+    );
+    response.status(200).json({ user });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Authentication failed.";
+    if (message.includes("expired") || message.includes("signature")) {
+      response.status(401).json({ message });
+      return;
+    }
     next(error);
   }
 });

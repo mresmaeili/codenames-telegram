@@ -2,7 +2,11 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 
 import { registerRoomSocketHandlers } from "./room.socket.js";
-import { authenticateTelegramUser } from "../services/auth.service.js";
+import {
+  authenticateTelegramUser,
+  authenticateTelegramWidgetUser,
+  type TelegramWidgetAuthData,
+} from "../services/auth.service.js";
 import { env } from "../config/env.js";
 
 interface SocketServerOptions {
@@ -55,6 +59,7 @@ export function createSocketServer(
   io.use(async (socket, next) => {
     const auth = socket.handshake.auth as {
       initData?: unknown;
+      widgetData?: unknown;
       dev?: unknown;
       telegramId?: unknown;
     };
@@ -73,6 +78,16 @@ export function createSocketServer(
     } else if (typeof auth.initData === "string" && auth.initData.trim()) {
       try {
         const user = await authenticateTelegramUser(auth.initData);
+        socket.data.telegramId = user.telegramId;
+      } catch {
+        next(new Error("Socket authentication failed."));
+        return;
+      }
+    } else if (auth.widgetData && typeof auth.widgetData === "object") {
+      try {
+        const user = await authenticateTelegramWidgetUser(
+          auth.widgetData as TelegramWidgetAuthData,
+        );
         socket.data.telegramId = user.telegramId;
       } catch {
         next(new Error("Socket authentication failed."));

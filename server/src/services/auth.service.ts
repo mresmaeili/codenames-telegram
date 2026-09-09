@@ -36,6 +36,17 @@ export interface AuthenticatedUser {
   updatedAt: string;
 }
 
+export interface TelegramWidgetAuthData {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+  language_code?: string;
+}
+
 const TELEGRAM_AUTH_TTL_SECONDS = 86400;
 
 function parseInitData(initData: string): URLSearchParams {
@@ -250,6 +261,74 @@ export async function authenticateTelegramUser(
       }
     })();
   }
+
+  return normalizeUser(createdUser);
+}
+
+function verifyTelegramWidgetData(
+  data: TelegramWidgetAuthData,
+  botToken: string,
+): TelegramWidgetAuthData {
+  const { hash, ...fields } = data;
+  const checkString = Object.entries(fields)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
+  const secretKey = crypto.createHash("sha256").update(botToken).digest();
+  const expectedHash = crypto
+    .createHmac("sha256", secretKey)
+    .update(checkString)
+    .digest("hex");
+  const provided = Buffer.from(hash, "hex");
+  const expected = Buffer.from(expectedHash, "hex");
+
+  if (
+    provided.length !== expected.length ||
+    !crypto.timingSafeEqual(provided, expected)
+  ) {
+    throw new Error("Telegram login signature is invalid.");
+  }
+
+  const age = Math.floor(Date.now() / 1000) - data.auth_date;
+  if (age < 0 || age > TELEGRAM_AUTH_TTL_SECONDS) {
+    throw new Error("Telegram login data has expired.");
+  }
+
+  return data;
+}
+
+export async function authenticateTelegramWidgetUser(
+  data: TelegramWidgetAuthData,
+): Promise<AuthenticatedUser> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
+  if (!botToken) {
+    throw new Error("Telegram bot token is not configured.");
+  }
+
+  const verifiedData = verifyTelegramWidgetData(data, botToken);
+  const now = new Date();
+  const existingUser = await UserModel.findOne({ telegramId: verifiedData.id });
+
+  if (existingUser) {
+    existingUser.username = verifiedData.username ?? null;
+    existingUser.firstName = verifiedData.first_name;
+    existingUser.lastName = verifiedData.last_name ?? null;
+    existingUser.photoUrl = verifiedData.photo_url ?? null;
+    existingUser.languageCode = verifiedData.language_code ?? null;
+    existingUser.lastLoginAt = now;
+    await existingUser.save();
+    return normalizeUser(existingUser);
+  }
+
+  const createdUser = await UserModel.create({
+    telegramId: verifiedData.id,
+    username: verifiedData.username ?? null,
+    firstName: verifiedData.first_name,
+    lastName: verifiedData.last_name ?? null,
+    photoUrl: verifiedData.photo_url ?? null,
+    languageCode: verifiedData.language_code ?? null,
+    lastLoginAt: now,
+  });
 
   return normalizeUser(createdUser);
 }

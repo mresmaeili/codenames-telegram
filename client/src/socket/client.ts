@@ -4,6 +4,7 @@ interface SocketClientOptions {
   endpoint: string;
   auth?: {
     initData?: string;
+    widgetData?: object;
     dev?: boolean;
     telegramId?: number;
   };
@@ -68,6 +69,21 @@ export function reconnectSocketClient(): Socket | null {
 
   socketInstance.disconnect();
   socketInstance.connect();
+  return socketInstance;
+}
+
+export function setSocketAuth(auth: {
+  initData?: string;
+  widgetData?: object;
+  dev?: boolean;
+  telegramId?: number;
+}): Socket | null {
+  if (!socketInstance) {
+    return null;
+  }
+
+  socketInstance.auth = auth;
+  socketInstance.disconnect().connect();
   return socketInstance;
 }
 

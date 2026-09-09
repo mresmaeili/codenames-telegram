@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { StatusPanel } from "@/components/StatusPanel";
+import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { useAuthContext } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { apiUrl } from "@/config/env";
@@ -48,6 +49,22 @@ export function HomePage() {
   const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
   const socket = useMemo(() => getSocketClient(), []);
   const toast = useToast();
+
+  useEffect(() => {
+    const hasPrivateRoom = Boolean(
+      new URLSearchParams(window.location.search).get("room") || roomCode,
+    );
+    const robots = document.querySelector('meta[name="robots"]');
+    if (robots) {
+      robots.setAttribute(
+        "content",
+        hasPrivateRoom ? "noindex, nofollow" : "index, follow",
+      );
+    }
+    document.title = hasPrivateRoom
+      ? "Private Room | Codenames Telegram Mini App"
+      : "کدنیمز فارسی | بازی کلمات گروهی با دوستان";
+  }, [roomCode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -316,6 +333,18 @@ export function HomePage() {
             </h1>
           </div>
 
+          {!roomCode ? (
+            <section className="sr-only" lang="fa" aria-label="معرفی بازی">
+              <h2>کدنیمز فارسی | بازی کلمات گروهی با دوستان</h2>
+              <p>
+                کدنیمز فارسی یک بازی کلمات گروهی آنلاین برای بازی با دوستان است.
+                بازیکنان در دو تیم رقابت می‌کنند، سرنخ‌های خلاقانه می‌دهند و با
+                همکاری یکدیگر کلمات درست را حدس می‌زنند. یک اتاق بسازید و دوستان
+                خود را برای یک بازی دوستانه دعوت کنید.
+              </p>
+            </section>
+          ) : null}
+
           {loading ? (
             <div className="mt-5">
               <StatusPanel
@@ -331,6 +360,12 @@ export function HomePage() {
                 description={error}
                 tone="error"
               />
+              <div className="mt-4 rounded-2xl border border-white/15 bg-white/8 p-4 text-center">
+                <p className="mb-3 text-sm text-[#dfeeff]">
+                  Or continue in your browser with Telegram.
+                </p>
+                <TelegramLoginButton />
+              </div>
             </div>
           ) : user ? (
             <div className="mt-5 space-y-4">

@@ -4,6 +4,7 @@ type ImportMetaEnvShape = ImportMetaEnv & {
   readonly VITE_SOCKET_URL?: string;
   readonly VITE_DEBUG_AUTH_HASH?: string;
   readonly VITE_DEV_MODE?: string;
+  readonly VITE_TELEGRAM_BOT_USERNAME?: string;
 };
 
 const importMetaEnv = import.meta.env as ImportMetaEnvShape;
@@ -21,6 +22,7 @@ export const env = {
   // on the client for safe comparison with server-side hashes.
   DEBUG_AUTH_HASH: (importMetaEnv as any).VITE_DEBUG_AUTH_HASH === "true",
   DEV_MODE: (importMetaEnv as any).VITE_DEV_MODE === "true",
+  TELEGRAM_BOT_USERNAME: importMetaEnv.VITE_TELEGRAM_BOT_USERNAME ?? "",
 };
 
 export function apiUrl(path: string): string {

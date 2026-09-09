@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { env } from "@/config/env";
-import {
-  getDevModeUser,
-  isDevModeEnabled,
-} from "@/lib/dev";
+import { getDevModeUser, isDevModeEnabled } from "@/lib/dev";
 import {
   getTelegramInitData,
   getTelegramLaunchParams,
@@ -12,6 +9,7 @@ import {
   isTelegramMiniAppAvailable,
   waitForTelegramMiniApp,
 } from "@/lib/telegram";
+import { setSocketAuth } from "@/socket/client";
 
 function getFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -37,6 +35,17 @@ interface AuthState {
   user: AuthenticatedUser | null;
   loading: boolean;
   error: string | null;
+}
+
+export interface TelegramWidgetAuthData {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+  language_code?: string;
 }
 
 let authRequestPromise: Promise<AuthenticatedUser | null> | null = null;
@@ -92,12 +101,50 @@ async function authenticateWithServer(
   return payload.user;
 }
 
+async function authenticateWidgetWithServer(
+  data: TelegramWidgetAuthData,
+): Promise<AuthenticatedUser> {
+  const isSameOrigin =
+    typeof window !== "undefined" &&
+    env.API_BASE_URL === window.location.origin;
+  const url = isSameOrigin
+    ? "/api/auth/telegram/widget"
+    : `${env.API_BASE_URL.replace(/\/$/, "")}/auth/telegram/widget`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Telegram web login failed.");
+  }
+
+  const payload = (await response.json()) as { user: AuthenticatedUser };
+  return payload.user;
+}
+
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
     error: null,
   });
+
+  async function loginWithTelegramWidget(data: TelegramWidgetAuthData) {
+    setAuthState({ user: null, loading: true, error: null });
+    try {
+      const user = await authenticateWidgetWithServer(data);
+      setSocketAuth({ widgetData: data, telegramId: user.telegramId });
+      setAuthState({ user, loading: false, error: null });
+    } catch (error) {
+      setAuthState({
+        user: null,
+        loading: false,
+        error: getFriendlyErrorMessage(error),
+      });
+    }
+  }
 
   useEffect(() => {
     async function runAuthentication() {
@@ -220,5 +267,5 @@ export function useAuth() {
     void runAuthentication();
   }, []);
 
-  return authState;
+  return { ...authState, loginWithTelegramWidget };
 }

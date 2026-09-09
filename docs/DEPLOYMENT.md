@@ -92,6 +92,11 @@ Set the bot domain and WebApp URL in the Telegram Bot settings to the deployed H
 
 ### Browser testing without Telegram
 
+For public browser login, set `VITE_TELEGRAM_BOT_USERNAME` to the bot username
+without the `@` character when building the client. The bot domain must be
+configured for the deployed HTTPS domain in BotFather. Users can then choose
+the Telegram Login Widget on the authentication screen.
+
 For temporary browser testing, set `DEV_MODE=true` in the server environment and redeploy. Then open:
 
 ```text
