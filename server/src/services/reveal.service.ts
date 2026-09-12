@@ -11,6 +11,7 @@ interface RevealServiceContext {
     selectedCardId: string | null;
     selectedByPlayerId: string | null;
     selectedAt: Date | null;
+    pendingSelections?: Game["pendingSelections"];
   };
   room: Pick<Room, "players">;
   senderTelegramId: number;

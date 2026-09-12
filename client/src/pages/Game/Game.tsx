@@ -461,6 +461,24 @@ export function GamePage({
     socket,
     ({ room, game }) => {
       setState({ room, game, loading: false, error: null });
+      setSelectedPlayersByCard(
+        Object.fromEntries(
+          (game.pendingSelections ?? []).reduce<
+            Array<[string, Room["players"]]>
+          >((entries, selection) => {
+            const player = room.players.find(
+              (roomPlayer) => roomPlayer.userId === selection.playerId,
+            );
+            if (!player) return entries;
+            const existing = entries.find(
+              ([cardId]) => cardId === selection.cardId,
+            );
+            if (existing) existing[1].push(player);
+            else entries.push([selection.cardId, [player]]);
+            return entries;
+          }, []),
+        ),
+      );
       setIsReconnecting(false);
     },
     ({ cardId, playerId, selected }) => {
@@ -1119,7 +1137,7 @@ export function GamePage({
       return;
     }
 
-    confirmSelection();
+    confirmSelection(String(cardIndex));
   }
 
   function handleAssignPlayerFromGame(

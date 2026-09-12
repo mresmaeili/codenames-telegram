@@ -117,6 +117,7 @@ export function buildGameView(input: {
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
+  pendingSelections?: Game["pendingSelections"];
   winningTeam: Turn | null;
   completionReason: GameCompletionReason | null;
   completedAt: Date | null;
@@ -144,6 +145,7 @@ export function buildGameView(input: {
     selectedCardId: input.selectedCardId,
     selectedByPlayerId: input.selectedByPlayerId,
     selectedAt: input.selectedAt,
+    pendingSelections: input.pendingSelections ?? [],
     winningTeam: input.winningTeam,
     completionReason: input.completionReason,
     completedAt: input.completedAt,
@@ -223,6 +225,7 @@ export async function getGameByRoomCode(
     selectedCardId: game.selectedCardId ?? null,
     selectedByPlayerId: game.selectedByPlayerId ?? null,
     selectedAt: game.selectedAt ?? null,
+    pendingSelections: game.pendingSelections ?? [],
     winningTeam: game.winningTeam ?? null,
     completionReason: game.completionReason ?? null,
     completedAt: game.completedAt ?? null,

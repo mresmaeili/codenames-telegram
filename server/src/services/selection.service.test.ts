@@ -107,3 +107,83 @@ test("validateCardSelection allows replacing a pending selection", () => {
 
   assert.equal(validation.ok, true);
 });
+
+test("applyCardSelection keeps selections independent between operatives", () => {
+  const game = {
+    status: "active" as const,
+    currentTurn: "blue" as const,
+    remainingGuesses: 2,
+    currentHintWord: "forest",
+    currentHintNumber: 2,
+    hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+    board: [
+      { word: "alpha", color: "red" as const, revealed: false },
+      { word: "beta", color: "blue" as const, revealed: false },
+    ],
+    selectedCardId: null,
+    selectedByPlayerId: null,
+    selectedAt: null,
+    pendingSelections: [],
+  };
+  const room = {
+    players: [
+      {
+        userId: "user-1",
+        telegramId: 42,
+        displayName: "Agent One",
+        team: "blue" as const,
+        role: "operative" as const,
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "user-2",
+        telegramId: 43,
+        displayName: "Agent Two",
+        team: "blue" as const,
+        role: "operative" as const,
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  };
+
+  const firstSelection = applyCardSelection({
+    game,
+    room,
+    senderTelegramId: 42,
+    cardId: "0",
+  }).game;
+  const secondSelection = applyCardSelection({
+    game: firstSelection,
+    room,
+    senderTelegramId: 43,
+    cardId: "1",
+  }).game;
+
+  assert.deepEqual(secondSelection.pendingSelections, [
+    {
+      cardId: "0",
+      playerId: "user-1",
+      selectedAt: secondSelection.pendingSelections?.[0]?.selectedAt,
+    },
+    {
+      cardId: "1",
+      playerId: "user-2",
+      selectedAt: secondSelection.pendingSelections?.[1]?.selectedAt,
+    },
+  ]);
+
+  const deselected = applyCardSelection({
+    game: secondSelection,
+    room,
+    senderTelegramId: 42,
+    cardId: "0",
+  }).game;
+
+  assert.deepEqual(
+    deselected.pendingSelections?.map(({ cardId, playerId }) => ({
+      cardId,
+      playerId,
+    })),
+    [{ cardId: "1", playerId: "user-2" }],
+  );
+});

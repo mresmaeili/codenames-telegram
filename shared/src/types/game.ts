@@ -34,6 +34,12 @@ export interface GamePass {
   passedAt: Date;
 }
 
+export interface PendingSelection {
+  cardId: string;
+  playerId: string;
+  selectedAt: Date;
+}
+
 export interface GameRound {
   id: string;
   team: Turn;
@@ -73,6 +79,7 @@ export interface Game {
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
+  pendingSelections?: PendingSelection[];
   winningTeam?: Turn | null;
   completionReason?: GameCompletionReason | null;
   completedAt?: Date | null;
@@ -101,6 +108,7 @@ export interface GameViewBase {
   selectedCardId: string | null;
   selectedByPlayerId: string | null;
   selectedAt: Date | null;
+  pendingSelections?: PendingSelection[];
   winningTeam?: Turn | null;
   completionReason?: GameCompletionReason | null;
   completedAt?: Date | null;

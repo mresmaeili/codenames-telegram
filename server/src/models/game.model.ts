@@ -160,6 +160,16 @@ const gameSchema = new Schema<GameDocument>(
       type: Date,
       default: null,
     },
+    pendingSelections: {
+      type: [
+        {
+          cardId: { type: String, required: true },
+          playerId: { type: String, required: true },
+          selectedAt: { type: Date, required: true },
+        },
+      ],
+      default: [],
+    },
     winningTeam: {
       type: String,
       enum: ["red", "blue"],

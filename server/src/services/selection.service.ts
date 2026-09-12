@@ -1,4 +1,4 @@
-import type { Game } from "../../../shared/src/types/game.js";
+import type { Game, PendingSelection } from "../../../shared/src/types/game.js";
 import type { Room } from "../../../shared/src/types/room.js";
 
 interface SelectionServiceContext {
@@ -10,6 +10,7 @@ interface SelectionServiceContext {
     selectedCardId: string | null;
     selectedByPlayerId: string | null;
     selectedAt: Date | null;
+    pendingSelections?: PendingSelection[];
   };
   room: Pick<Room, "players">;
   senderTelegramId: number;
@@ -91,16 +92,35 @@ export function applyCardSelection(
     throw new Error("Sender is not part of the room.");
   }
 
-  if (
-    context.game.selectedCardId === context.cardId &&
-    context.game.selectedByPlayerId === sender.userId
-  ) {
+  const pendingSelections = context.game.pendingSelections ?? [];
+  const existingSelection = pendingSelections.find(
+    (selection) => selection.playerId === sender.userId,
+  );
+  const nextSelections =
+    existingSelection?.cardId === context.cardId
+      ? pendingSelections.filter(
+          (selection) => selection.playerId !== sender.userId,
+        )
+      : [
+          ...pendingSelections.filter(
+            (selection) => selection.playerId !== sender.userId,
+          ),
+          {
+            cardId: context.cardId,
+            playerId: sender.userId,
+            selectedAt: new Date(),
+          },
+        ];
+  const latestSelection = nextSelections[nextSelections.length - 1];
+
+  if (!latestSelection) {
     return {
       game: {
         ...context.game,
         selectedCardId: null,
         selectedByPlayerId: null,
         selectedAt: null,
+        pendingSelections: nextSelections,
       },
     };
   }
@@ -108,9 +128,10 @@ export function applyCardSelection(
   return {
     game: {
       ...context.game,
-      selectedCardId: context.cardId,
-      selectedByPlayerId: sender.userId,
-      selectedAt: new Date(),
+      selectedCardId: latestSelection.cardId,
+      selectedByPlayerId: latestSelection.playerId,
+      selectedAt: latestSelection.selectedAt,
+      pendingSelections: nextSelections,
     },
   };
 }

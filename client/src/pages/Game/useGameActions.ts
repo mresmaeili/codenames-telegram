@@ -93,8 +93,9 @@ export function useGameActions({
     socket.emit("game:select", payload);
   }
 
-  function confirmSelection(): void {
-    if (!game || telegramId === undefined || game.selectedCardId === null) {
+  function confirmSelection(cardId?: string): void {
+    const selectedCardId = cardId ?? game?.selectedCardId;
+    if (!game || telegramId === undefined || selectedCardId === null) {
       return;
     }
     if (!socket) {
@@ -106,7 +107,7 @@ export function useGameActions({
       gameId: game.id ?? game.roomId,
       roomCode: roomCode.toUpperCase(),
       telegramId,
-      cardId: game.selectedCardId,
+      cardId: selectedCardId,
       confirm: true,
     };
     socket.emit("game:select", payload, (error?: { message?: string }) => {

@@ -1078,6 +1078,7 @@ export function registerRoomSocketHandlers(
             gameId: payload.gameId,
             roomCode: payload.roomCode,
             telegramId: actorTelegramId,
+            cardId: payload.cardId,
           });
 
           await emitGameState(

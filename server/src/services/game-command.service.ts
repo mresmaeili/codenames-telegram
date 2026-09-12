@@ -34,6 +34,7 @@ export interface RevealCardCommand {
   gameId: string;
   roomCode?: string;
   telegramId: number;
+  cardId?: string;
 }
 
 export interface GameCommandResult {
@@ -161,6 +162,7 @@ export async function selectCard(
       selectedCardId: game.selectedCardId ?? null,
       selectedByPlayerId: game.selectedByPlayerId ?? null,
       selectedAt: game.selectedAt ?? null,
+      pendingSelections: game.pendingSelections ?? [],
     },
     room: { players: room.players },
     senderTelegramId: command.telegramId,
@@ -173,6 +175,7 @@ export async function selectCard(
       selectedCardId: result.game.selectedCardId,
       selectedByPlayerId: result.game.selectedByPlayerId,
       selectedAt: result.game.selectedAt,
+      pendingSelections: result.game.pendingSelections ?? [],
     },
     game.updatedAt,
   );
@@ -275,6 +278,19 @@ export async function revealCard(
     throw new GameCommandError("Game does not belong to this room.");
   }
 
+  const sender = room.players.find(
+    (player) => player.telegramId === command.telegramId,
+  );
+  const pendingSelection = game.pendingSelections?.find(
+    (selection) =>
+      selection.playerId === sender?.userId &&
+      (!command.cardId || selection.cardId === command.cardId),
+  );
+  const selectedCardId =
+    pendingSelection?.cardId ?? game.selectedCardId ?? null;
+  const selectedByPlayerId =
+    pendingSelection?.playerId ?? game.selectedByPlayerId ?? null;
+
   const revealResult = applyCardReveal({
     game: {
       status: game.status,
@@ -287,12 +303,13 @@ export async function revealCard(
       selectedCardId: game.selectedCardId ?? null,
       selectedByPlayerId: game.selectedByPlayerId ?? null,
       selectedAt: game.selectedAt ?? null,
+      pendingSelections: game.pendingSelections ?? [],
     },
     room: { players: room.players },
     senderTelegramId: command.telegramId,
   });
 
-  const revealedIndex = Number.parseInt(game.selectedCardId ?? "", 10);
+  const revealedIndex = Number.parseInt(selectedCardId ?? "", 10);
   const revealedCard = game.board[revealedIndex];
   const selectedCardColor = revealedCard?.color ?? null;
   const revealedBoard = game.board.map((card, index) => ({
@@ -381,7 +398,7 @@ export async function revealCard(
         {
           word: revealedCard.word,
           cardIndex: revealedIndex,
-          playerId: game.selectedByPlayerId ?? null,
+          playerId: selectedByPlayerId,
           correct: revealedCard.color === game.currentTurn,
           revealedAt: new Date(),
         },
@@ -403,6 +420,12 @@ export async function revealCard(
       selectedCardId: resolvedGame.selectedCardId,
       selectedByPlayerId: resolvedGame.selectedByPlayerId,
       selectedAt: resolvedGame.selectedAt,
+      pendingSelections:
+        resolvedGame.currentTurn !== game.currentTurn
+          ? []
+          : (game.pendingSelections ?? []).filter(
+              (selection) => selection.playerId !== selectedByPlayerId,
+            ),
       winningTeam: completionResult.completed
         ? completionResult.game.winningTeam
         : (game.winningTeam ?? null),
