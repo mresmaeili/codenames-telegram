@@ -13,12 +13,8 @@ import type { Room } from "@/../shared/src/types/room";
 interface BoardGridProps {
   cards: PublicCard[] | SpymasterCardModel[];
   role?: "operative" | "spymaster";
-  selectedCardId?: string | null;
-  selectedByPlayerId?: string | null;
-  viewerPlayerId?: string | null;
   canSelectCard?: boolean;
   onSelectCard?: (cardIndex: number) => void;
-  onConfirmCard?: (cardIndex: number) => void;
   selectedHintCardIds?: Set<number>;
   onToggleHintCard?: (cardIndex: number) => void;
   hintTeam?: Turn;
@@ -29,12 +25,8 @@ interface BoardGridProps {
 export function BoardGrid({
   cards,
   role = "operative",
-  selectedCardId,
-  selectedByPlayerId,
-  viewerPlayerId,
   canSelectCard = false,
   onSelectCard,
-  onConfirmCard,
   selectedHintCardIds = new Set(),
   onToggleHintCard,
   hintTeam,
@@ -83,27 +75,18 @@ export function BoardGrid({
         }
 
         const publicCard = card as PublicCard;
-        const isSelected = canSelectCard && selectedCardId === String(index);
         const hasLocalSelection =
           canSelectCard && (selectedPlayersByCard[index] ?? []).length > 0;
         const isSelectable = canSelectCard && !publicCard.revealed;
-        const isConfirmable =
-          role === "operative" &&
-          canSelectCard &&
-          isSelected &&
-          selectedByPlayerId === viewerPlayerId &&
-          !publicCard.revealed;
-        const isInteractive = isSelectable || isConfirmable;
+        const isInteractive = isSelectable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
         const ariaLabel = publicCard.revealed
           ? isRevealedWordVisible
             ? `Hide revealed word ${publicCard.word}`
             : `Show revealed word ${publicCard.word}`
-          : isConfirmable
-            ? `Selected ${publicCard.word}. Use the guess button to confirm.`
-            : isSelectable
-              ? `Select ${publicCard.word}`
-              : `Locked ${publicCard.word}`;
+          : isSelectable
+            ? `Select ${publicCard.word}`
+            : `Locked ${publicCard.word}`;
 
         return (
           <div
@@ -136,28 +119,12 @@ export function BoardGrid({
                 revealPlaceholder={false}
                 revealedColor={publicCard.color}
                 showRevealedWord={isFinishedBoard || isRevealedWordVisible}
-                selectedPlaceholder={isSelected || hasLocalSelection}
+                selectedPlaceholder={hasLocalSelection}
                 selectedPlayers={
                   canSelectCard ? (selectedPlayersByCard[index] ?? []) : []
                 }
               />
             </button>
-            {isConfirmable ? (
-              <button
-                type="button"
-                aria-label={`Guess ${publicCard.word}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  playActionSound("confirm");
-                  onConfirmCard?.(index);
-                }}
-                className="absolute -right-2 -top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-2xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
-              >
-                <span aria-hidden="true" className="inline-block rotate-45">
-                  ☝
-                </span>
-              </button>
-            ) : null}
           </div>
         );
       })}

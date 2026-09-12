@@ -468,6 +468,18 @@ export function GamePage({
     setSelectedPlayersByCard({});
   }, [state.game?.id, state.game?.roomId]);
 
+  const previousTurnRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentTurn = state.game?.currentTurn ?? null;
+    if (
+      previousTurnRef.current !== null &&
+      currentTurn !== previousTurnRef.current
+    ) {
+      setSelectedPlayersByCard({});
+    }
+    previousTurnRef.current = currentTurn;
+  }, [state.game?.currentTurn]);
+
   useEffect(() => {
     setSelectedPlayersByCard((current) => {
       const next = Object.fromEntries(
@@ -813,24 +825,23 @@ export function GamePage({
     viewerPlayer,
     timerExpired,
   );
-  const { submitHint, selectCard, confirmSelection, passTurn, takeTurn } =
-    useGameActions({
-      socket,
-      roomCode,
-      telegramId: user?.telegramId,
-      game: state.game,
-      canSubmitHint,
-      canSelectCard,
-      canPassTurn,
-      canTakeTurn,
-      secondsRemaining: activeSecondsRemaining,
-      hintSubmitting,
-      setHintSubmitting,
-      setHintMessage,
-      setHintDraft,
-      setSelectedHintCardIds,
-      onGameUpdated: refreshGameState,
-    });
+  const { submitHint, selectCard, passTurn, takeTurn } = useGameActions({
+    socket,
+    roomCode,
+    telegramId: user?.telegramId,
+    game: state.game,
+    canSubmitHint,
+    canSelectCard,
+    canPassTurn,
+    canTakeTurn,
+    secondsRemaining: activeSecondsRemaining,
+    hintSubmitting,
+    setHintSubmitting,
+    setHintMessage,
+    setHintDraft,
+    setSelectedHintCardIds,
+    onGameUpdated: refreshGameState,
+  });
   const currentSelectedCardIndex = state.game?.selectedCardId
     ? Number.parseInt(state.game.selectedCardId, 10)
     : null;
@@ -1025,18 +1036,6 @@ export function GamePage({
     setRefreshingGame(true);
     await loadGameData();
     setRefreshingGame(false);
-  }
-
-  function handleConfirmCard(cardIndex: number) {
-    if (
-      !state.game ||
-      !user?.telegramId ||
-      state.game.selectedCardId !== String(cardIndex)
-    ) {
-      return;
-    }
-
-    confirmSelection();
   }
 
   function handleSelectCard(cardIndex: number) {
@@ -1268,10 +1267,7 @@ export function GamePage({
                 registerPopup(
                   <div className="space-y-3 text-sm text-(--app-text)">
                     <p>Spymasters give one clue word and a number.</p>
-                    <p>
-                      Operatives tap a card to select it, then use the green
-                      button to confirm.
-                    </p>
+                    <p>Operatives tap a card to reveal it.</p>
                     <p>Tap a revealed card to show or hide its word.</p>
                   </div>,
                   "How to play",
@@ -1281,10 +1277,8 @@ export function GamePage({
             />
             <GameBoardSurface
               game={state.game}
-              viewerPlayerId={viewerPlayer?.userId}
               canSelectCard={canSelectCard}
               onSelectCard={handleSelectCard}
-              onConfirmCard={handleConfirmCard}
               selectedHintCardIds={selectedHintCardIds}
               onToggleHintCard={
                 state.game.role === "spymaster"

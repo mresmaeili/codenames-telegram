@@ -451,20 +451,6 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
     roomCode: "abc123",
     telegramId: 10,
     cardId: "0",
-    confirm: false,
-  });
-
-  assert.equal(game.selectedCardId, "0");
-  assert.equal(
-    emitted.some((event) => event.event === "game:selected"),
-    false,
-  );
-
-  await selectHandler({
-    gameId: "game-id",
-    roomCode: "abc123",
-    telegramId: 10,
-    cardId: "0",
     confirm: true,
   });
 
@@ -475,7 +461,7 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   assert.equal(game.selectedCardId, null);
 
   const stateEvents = emitted.filter((event) => event.event === "game:state");
-  assert.equal(stateEvents.length, 2);
+  assert.equal(stateEvents.length, 1);
   const latestState = stateEvents[stateEvents.length - 1]?.payload as {
     game: {
       blueCardsRemaining: number;
