@@ -21,7 +21,7 @@ export function HintComposer({
         event.preventDefault();
         onSubmit();
       }}
-      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.35rem)] z-30 mt-3 flex items-center gap-1 rounded-[16px] border-2 border-[#555] bg-[#292929]/95 p-1 shadow-[0_4px_14px_rgba(0,0,0,0.4)] backdrop-blur-sm animate-event-in sm:sticky sm:inset-x-auto sm:bottom-2 sm:z-20 sm:gap-2 sm:rounded-[18px] sm:p-1.5"
+      className="relative z-20 mt-3 flex shrink-0 items-center gap-1 rounded-[16px] border-2 border-[#555] bg-[#292929]/95 p-1 shadow-[0_4px_14px_rgba(0,0,0,0.4)] backdrop-blur-sm animate-event-in sm:gap-2 sm:rounded-[18px] sm:p-1.5"
     >
       <div className="min-w-0 flex-1">
         <label htmlFor="hintWord" className="sr-only">

@@ -1259,7 +1259,7 @@ export function GamePage({
             />
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
             <TurnBanner
               instruction={turnInstruction}
               player={turnPlayer}
@@ -1330,7 +1330,6 @@ export function GamePage({
             <TurnActionBar
               hintWord={state.game.currentHintWord}
               hintNumber={state.game.currentHintNumber}
-              remainingGuesses={state.game.remainingGuesses}
               canPass={canPassTurn}
               canTake={canTakeTurn}
               onPass={() => {
