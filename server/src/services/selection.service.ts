@@ -94,23 +94,26 @@ export function applyCardSelection(
 
   const pendingSelections = context.game.pendingSelections ?? [];
   const existingSelection = pendingSelections.find(
-    (selection) => selection.playerId === sender.userId,
+    (selection) =>
+      selection.playerId === sender.userId &&
+      selection.cardId === context.cardId,
   );
-  const nextSelections =
-    existingSelection?.cardId === context.cardId
-      ? pendingSelections.filter(
-          (selection) => selection.playerId !== sender.userId,
-        )
-      : [
-          ...pendingSelections.filter(
-            (selection) => selection.playerId !== sender.userId,
+  const nextSelections = existingSelection
+    ? pendingSelections.filter(
+        (selection) =>
+          !(
+            selection.playerId === sender.userId &&
+            selection.cardId === context.cardId
           ),
-          {
-            cardId: context.cardId,
-            playerId: sender.userId,
-            selectedAt: new Date(),
-          },
-        ];
+      )
+    : [
+        ...pendingSelections,
+        {
+          cardId: context.cardId,
+          playerId: sender.userId,
+          selectedAt: new Date(),
+        },
+      ];
   const latestSelection = nextSelections[nextSelections.length - 1];
 
   if (!latestSelection) {

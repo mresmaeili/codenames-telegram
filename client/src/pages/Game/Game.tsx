@@ -1132,7 +1132,12 @@ export function GamePage({
     if (
       !state.game ||
       !user?.telegramId ||
-      state.game.selectedCardId !== String(cardIndex)
+      !viewerPlayer ||
+      (!(selectedPlayersByCard[cardIndex] ?? []).some(
+        (player) => player.userId === viewerPlayer.userId,
+      ) &&
+        (state.game.selectedCardId !== String(cardIndex) ||
+          state.game.selectedByPlayerId !== viewerPlayer.userId))
     ) {
       return;
     }

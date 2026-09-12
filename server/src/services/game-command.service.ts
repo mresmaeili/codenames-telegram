@@ -132,6 +132,7 @@ export async function submitHint(
 
 export async function selectCard(
   command: SelectCardCommand,
+  retryCount = 0,
 ): Promise<GameCommandResult> {
   const game = await gameRepository.findById(command.gameId);
   if (!game) {
@@ -181,6 +182,9 @@ export async function selectCard(
   );
 
   if (!updatedGame) {
+    if (retryCount < 1) {
+      return selectCard(command, retryCount + 1);
+    }
     throw new GameCommandError("Unable to update selection.", 500);
   }
 
@@ -300,9 +304,9 @@ export async function revealCard(
       currentHintNumber: game.currentHintNumber ?? null,
       hintSubmittedAt: game.hintSubmittedAt ?? null,
       board: game.board,
-      selectedCardId: game.selectedCardId ?? null,
-      selectedByPlayerId: game.selectedByPlayerId ?? null,
-      selectedAt: game.selectedAt ?? null,
+      selectedCardId,
+      selectedByPlayerId,
+      selectedAt: pendingSelection?.selectedAt ?? game.selectedAt ?? null,
       pendingSelections: game.pendingSelections ?? [],
     },
     room: { players: room.players },
@@ -420,12 +424,7 @@ export async function revealCard(
       selectedCardId: resolvedGame.selectedCardId,
       selectedByPlayerId: resolvedGame.selectedByPlayerId,
       selectedAt: resolvedGame.selectedAt,
-      pendingSelections:
-        resolvedGame.currentTurn !== game.currentTurn
-          ? []
-          : (game.pendingSelections ?? []).filter(
-              (selection) => selection.playerId !== selectedByPlayerId,
-            ),
+      pendingSelections: [],
       winningTeam: completionResult.completed
         ? completionResult.game.winningTeam
         : (game.winningTeam ?? null),
