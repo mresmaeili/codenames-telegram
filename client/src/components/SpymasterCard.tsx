@@ -38,14 +38,6 @@ export function SpymasterCard({
           </span>
         )}
       </div>
-      {selected ? (
-        <span
-          className="absolute -right-1 -top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#4cdf25] text-lg leading-none text-white shadow-[0_2px_5px_rgba(0,0,0,0.45)]"
-          aria-hidden="true"
-        >
-          ☝
-        </span>
-      ) : null}
     </div>
   );
 

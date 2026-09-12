@@ -1,7 +1,6 @@
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
-import { Icon } from "@/components/Icon";
 
 interface BoardCardProps {
   word: string;
@@ -94,14 +93,6 @@ export function BoardCard({
                 </span>
               )}
             </div>
-          ) : null}
-          {selectedPlaceholder ? (
-            <span
-              aria-label="Selected card"
-              className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#51df20] text-xs font-black text-[#123d08] shadow-[0_1px_4px_rgba(0,0,0,0.35)]"
-            >
-              <Icon name="check" size={13} />
-            </span>
           ) : null}
           <span
             className={`font-persian absolute bottom-1 block w-full uppercase tracking-[0.01em] text-[clamp(0.64rem,2.5vw,1rem)] leading-none text-[#111820] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
