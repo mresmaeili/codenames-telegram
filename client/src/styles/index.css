@@ -145,6 +145,26 @@ textarea:focus-visible {
   }
 }
 
+@keyframes wrong-card {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) rotate(-8deg);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1.04) rotate(2deg);
+  }
+  24%,
+  82% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) rotate(3deg);
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -153,6 +173,10 @@ textarea:focus-visible {
 
 .animate-event-in {
   animation: event-in 220ms ease-out both;
+}
+
+.animate-wrong-card {
+  animation: wrong-card 2s ease-in-out both;
 }
 
 .animate-flip-card {
@@ -165,6 +189,10 @@ textarea:focus-visible {
   }
 
   .animate-event-in {
+    animation: none;
+  }
+
+  .animate-wrong-card {
     animation: none;
   }
 }

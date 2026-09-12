@@ -23,6 +23,8 @@ import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
 import ostadBagheriImage from "@/assets/ostad-bagheri.png";
 import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
+import wrongCardImage from "@/assets/26.webp";
+import assassinCardImage from "@/assets/assassin.webp";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -443,6 +445,11 @@ export function GamePage({
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const lastGameStatusRef = useRef<string | null>(null);
   const lastHintIdRef = useRef<string | null>(null);
+  const lastWrongGuessIdRef = useRef<string | null>(null);
+  const wrongGuessTimeoutRef = useRef<number | null>(null);
+  const [cardFeedback, setCardFeedback] = useState<"wrong" | "assassin" | null>(
+    null,
+  );
   const hintOverlayTimeoutRef = useRef<number | null>(null);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
@@ -456,6 +463,9 @@ export function GamePage({
   const [selectedPlayersByCard, setSelectedPlayersByCard] = useState<
     Record<number, Room["players"]>
   >({});
+  const viewerPlayer = state.room?.players.find(
+    (player) => player.telegramId === user?.telegramId,
+  );
 
   useGameStateSync(
     socket,
@@ -518,7 +528,50 @@ export function GamePage({
 
   useEffect(() => {
     setSelectedPlayersByCard({});
+    lastWrongGuessIdRef.current = null;
+    setCardFeedback(null);
   }, [state.game?.id, state.game?.roomId]);
+
+  useEffect(() => {
+    if (!state.game) return;
+    const guesses = (state.game?.rounds ?? []).flatMap(
+      (round) => round.guesses,
+    );
+    const latestGuess = guesses[guesses.length - 1];
+    if (lastWrongGuessIdRef.current === null) {
+      lastWrongGuessIdRef.current = latestGuess
+        ? `${latestGuess.revealedAt}-${latestGuess.cardIndex}-${latestGuess.playerId}`
+        : "";
+      return;
+    }
+    if (!latestGuess || latestGuess.playerId !== viewerPlayer?.userId) return;
+
+    const guessId = `${latestGuess.revealedAt}-${latestGuess.cardIndex}-${latestGuess.playerId}`;
+    if (guessId === lastWrongGuessIdRef.current) return;
+    lastWrongGuessIdRef.current = guessId;
+
+    if (latestGuess.correct) return;
+
+    const isAssassinCard =
+      state.game.board[latestGuess.cardIndex]?.color === "assassin";
+    setCardFeedback(isAssassinCard ? "assassin" : "wrong");
+    if (!isAssassinCard) playActionSound("lose");
+    if (wrongGuessTimeoutRef.current !== null) {
+      window.clearTimeout(wrongGuessTimeoutRef.current);
+    }
+    wrongGuessTimeoutRef.current = window.setTimeout(() => {
+      setCardFeedback(null);
+      wrongGuessTimeoutRef.current = null;
+    }, 2000);
+  }, [state.game?.rounds, viewerPlayer?.userId]);
+
+  useEffect(() => {
+    return () => {
+      if (wrongGuessTimeoutRef.current !== null) {
+        window.clearTimeout(wrongGuessTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const previousTurnRef = useRef<string | null>(null);
   useEffect(() => {
@@ -798,10 +851,6 @@ export function GamePage({
       isMounted = false;
     };
   }, [onReturnToLobby, roomCode, socket, user?.telegramId]);
-
-  const viewerPlayer = state.room?.players.find(
-    (player) => player.telegramId === user?.telegramId,
-  );
 
   useEffect(() => {
     const status = state.game?.status ?? null;
@@ -1389,6 +1438,27 @@ export function GamePage({
               hideWords={false}
               selectedPlayersByCard={visibleSelectedPlayersByCard}
             />
+            {cardFeedback ? (
+              <div
+                className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20"
+                role="status"
+                aria-label={
+                  cardFeedback === "assassin" ? "Assassin card" : "Wrong card"
+                }
+              >
+                <img
+                  src={
+                    cardFeedback === "assassin"
+                      ? assassinCardImage
+                      : wrongCardImage
+                  }
+                  alt={
+                    cardFeedback === "assassin" ? "Assassin card" : "Wrong card"
+                  }
+                  className="animate-wrong-card h-auto w-[min(72vw,22rem)] drop-shadow-[0_1rem_1.5rem_rgba(0,0,0,0.5)]"
+                />
+              </div>
+            ) : null}
             {gameFinished && isRoomOwner ? (
               <div className="mt-1 grid grid-cols-2 gap-1">
                 <button

@@ -108,7 +108,7 @@ test("validateCardSelection allows replacing a pending selection", () => {
   assert.equal(validation.ok, true);
 });
 
-test("applyCardSelection keeps selections independent between operatives", () => {
+test("applyCardSelection keeps selections independent between operatives and cards", () => {
   const game = {
     status: "active" as const,
     currentTurn: "blue" as const,
@@ -152,8 +152,26 @@ test("applyCardSelection keeps selections independent between operatives", () =>
     senderTelegramId: 42,
     cardId: "0",
   }).game;
-  const secondSelection = applyCardSelection({
+  const secondCardSelection = applyCardSelection({
     game: firstSelection,
+    room,
+    senderTelegramId: 42,
+    cardId: "1",
+  }).game;
+
+  assert.deepEqual(
+    secondCardSelection.pendingSelections?.map(({ cardId, playerId }) => ({
+      cardId,
+      playerId,
+    })),
+    [
+      { cardId: "0", playerId: "user-1" },
+      { cardId: "1", playerId: "user-1" },
+    ],
+  );
+
+  const secondSelection = applyCardSelection({
+    game: secondCardSelection,
     room,
     senderTelegramId: 43,
     cardId: "1",
@@ -167,8 +185,13 @@ test("applyCardSelection keeps selections independent between operatives", () =>
     },
     {
       cardId: "1",
-      playerId: "user-2",
+      playerId: "user-1",
       selectedAt: secondSelection.pendingSelections?.[1]?.selectedAt,
+    },
+    {
+      cardId: "1",
+      playerId: "user-2",
+      selectedAt: secondSelection.pendingSelections?.[2]?.selectedAt,
     },
   ]);
 
@@ -184,6 +207,9 @@ test("applyCardSelection keeps selections independent between operatives", () =>
       cardId,
       playerId,
     })),
-    [{ cardId: "1", playerId: "user-2" }],
+    [
+      { cardId: "1", playerId: "user-1" },
+      { cardId: "1", playerId: "user-2" },
+    ],
   );
 });
