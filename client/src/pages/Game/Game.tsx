@@ -1063,7 +1063,14 @@ export function GamePage({
           state.game.selectedByPlayerId === viewerPlayer.userId);
       if (isOwnSelection) {
         const next = { ...current };
-        delete next[cardIndex];
+        const remainingPlayers = (next[cardIndex] ?? []).filter(
+          (player) => player.userId !== viewerPlayer.userId,
+        );
+        if (remainingPlayers.length > 0) {
+          next[cardIndex] = remainingPlayers;
+        } else {
+          delete next[cardIndex];
+        }
         return next;
       }
       return {
