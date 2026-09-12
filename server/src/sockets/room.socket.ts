@@ -1112,7 +1112,11 @@ export function registerRoomSocketHandlers(
             io.to(payload.roomCode.toUpperCase()).emit("game:selection", {
               cardId: payload.cardId,
               playerId: selectedPlayerId,
-              selected: selectedResult.game.selectedCardId === payload.cardId,
+              selected: (selectedResult.game.pendingSelections ?? []).some(
+                (selection) =>
+                  selection.cardId === payload.cardId &&
+                  selection.playerId === selectedPlayerId,
+              ),
             });
           }
           return;
