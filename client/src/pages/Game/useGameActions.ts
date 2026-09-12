@@ -132,7 +132,7 @@ export function useGameActions({
       gameId: game.id ?? game.roomId,
       roomCode: roomCode.toUpperCase(),
       telegramId,
-      timeout: secondsRemaining === 0,
+      timeout: secondsRemaining !== null && secondsRemaining <= 0,
     };
     socket.emit("game:pass", payload);
   }

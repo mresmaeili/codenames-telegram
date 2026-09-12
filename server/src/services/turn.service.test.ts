@@ -255,7 +255,7 @@ test("validateTurnPass rejects a pass for a non-active operative", () => {
   assert.equal(validation.error, "Sender must belong to the active team.");
 });
 
-test("validateTurnPass allows any room player to pass an expired turn", () => {
+test("validateTurnPass allows an opposing team to take an expired turn", () => {
   const validation = validateTurnPass({
     game: {
       status: "active",

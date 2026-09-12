@@ -49,10 +49,9 @@ export function canPassTurn(
 ): boolean {
   if (!game || game.status !== "active") return false;
   if (timerExpired) {
-    const opposingTeam: Turn = game.currentTurn === "red" ? "blue" : "red";
     return (
-      viewerPlayer?.team === game.currentTurn ||
-      viewerPlayer?.team === opposingTeam
+      viewerPlayer?.team === game.currentTurn &&
+      viewerPlayer.role === "operative"
     );
   }
   return isActiveRole(game, viewerPlayer, "operative") && hasActiveHint(game);

@@ -47,10 +47,15 @@ export function validateTurnPass(
   }
 
   if (context.allowTimeout) {
-    if (sender.team === null) {
+    const opposingTeam = getOpposingTeam(context.game.currentTurn);
+    const isActiveOperative =
+      sender.team === context.game.currentTurn && sender.role === "operative";
+    const isOpponent = sender.team === opposingTeam;
+    if (!isActiveOperative && !isOpponent) {
       return {
         ok: false,
-        error: "Only a room team can act on a timed-out turn.",
+        error:
+          "Only an active operative can pass or an opposing team can take the turn.",
       };
     }
 

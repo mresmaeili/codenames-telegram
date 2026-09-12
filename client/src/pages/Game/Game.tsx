@@ -1375,15 +1375,6 @@ export function GamePage({
             className="!h-52 !max-h-52 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
           />
         </div>
-        {hintMessage ? (
-          <div className="absolute bottom-1 left-1/2 z-30 w-[min(92%,32rem)] -translate-x-1/2">
-            <StatusPanel
-              title="Board update"
-              description={hintMessage}
-              tone="info"
-            />
-          </div>
-        ) : null}
       </div>
     </PageContainer>
   );

@@ -283,81 +283,8 @@ async function emitGameState(
 }
 
 export function startGameTimer(io: SocketIOServer): () => void {
-  let running = false;
-
-  const expireGames = async (): Promise<void> => {
-    if (running) return;
-    running = true;
-
-    try {
-      const games = await GameModel.find({ status: "active" }).exec();
-
-      for (const game of games) {
-        const room = await RoomModel.findById(game.roomId).exec();
-        if (!room || !hasTurnTimerExpired(game, room)) continue;
-
-        const actor = room.players.find(
-          (player) => player.team === game.currentTurn,
-        );
-        if (!actor) continue;
-
-        const result = applyTurnPass({
-          game: {
-            status: game.status,
-            currentTurn: game.currentTurn,
-            remainingGuesses: game.remainingGuesses,
-            currentHintWord: game.currentHintWord ?? null,
-            currentHintNumber: game.currentHintNumber ?? null,
-            hintSubmittedAt: game.hintSubmittedAt ?? null,
-            board: game.board,
-            selectedCardId: game.selectedCardId ?? null,
-            selectedByPlayerId: game.selectedByPlayerId ?? null,
-            selectedAt: game.selectedAt ?? null,
-          },
-          room: { players: room.players },
-          senderTelegramId: actor.telegramId,
-          allowTimeout: true,
-        });
-
-        const updatedGame = await gameRepository.update(
-          game._id.toString(),
-          {
-            currentTurn: result.game.currentTurn,
-            remainingGuesses: result.game.remainingGuesses,
-            currentHintWord: result.game.currentHintWord,
-            currentHintNumber: result.game.currentHintNumber,
-            hintSubmittedAt: result.game.hintSubmittedAt,
-            selectedCardId: result.game.selectedCardId,
-            selectedByPlayerId: result.game.selectedByPlayerId,
-            selectedAt: result.game.selectedAt,
-            phase: "spymaster",
-            phaseStartedAt: new Date(),
-            turnStartedAt: new Date(),
-          },
-          game.updatedAt,
-        );
-
-        if (updatedGame) {
-          await emitGameState(
-            io,
-            room.roomCode,
-            room as unknown as Room,
-            updatedGame,
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Failed to resolve timed-out games.", error);
-    } finally {
-      running = false;
-    }
-  };
-
-  const interval = setInterval(() => {
-    void expireGames();
-  }, 1000);
-
-  return () => clearInterval(interval);
+  void io;
+  return () => undefined;
 }
 
 export function registerRoomSocketHandlers(
