@@ -88,6 +88,7 @@ export function BoardGrid({
           canSelectCard && (selectedPlayersByCard[index] ?? []).length > 0;
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
+          role === "operative" &&
           canSelectCard &&
           isSelected &&
           selectedByPlayerId === viewerPlayerId &&
@@ -152,7 +153,9 @@ export function BoardGrid({
                 }}
                 className="absolute -right-2 -top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-2xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
-                <span aria-hidden="true">☝</span>
+                <span aria-hidden="true" className="inline-block rotate-45">
+                  ☝
+                </span>
               </button>
             ) : null}
           </div>

@@ -775,7 +775,7 @@ export function GamePage({
     hintOverlayTimeoutRef.current = window.setTimeout(() => {
       setHintOverlay(null);
       hintOverlayTimeoutRef.current = null;
-    }, 1000);
+    }, 2500);
 
     return () => {
       if (hintOverlayTimeoutRef.current !== null) {
@@ -1236,7 +1236,7 @@ export function GamePage({
             />
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-1 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-1 overflow-y-auto sm:overflow-hidden sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="blue"
@@ -1259,7 +1259,7 @@ export function GamePage({
             />
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
+          <div className="flex min-h-0 min-w-0 flex-col overflow-visible sm:overflow-hidden">
             <TurnBanner
               instruction={turnInstruction}
               player={turnPlayer}
