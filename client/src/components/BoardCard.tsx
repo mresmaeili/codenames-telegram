@@ -71,12 +71,6 @@ export function BoardCard({
                   <span className="max-w-14 truncate">
                     {selectedPlayers[0]?.displayName ?? "Player"}
                   </span>
-                  <span
-                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#4cdf25] text-xs leading-none text-white shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
-                    aria-hidden="true"
-                  >
-                    ☝
-                  </span>
                 </div>
               ) : (
                 <span
@@ -84,12 +78,6 @@ export function BoardCard({
                   aria-label={`${selectedPlayers.length} operatives selected this card`}
                 >
                   {selectedPlayers.length}
-                  <span
-                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#4cdf25] text-xs leading-none text-white shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
-                    aria-hidden="true"
-                  >
-                    ☝
-                  </span>
                 </span>
               )}
             </div>
