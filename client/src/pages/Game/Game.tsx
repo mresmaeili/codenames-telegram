@@ -1245,7 +1245,7 @@ export function GamePage({
               active={isBlueTurn}
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
-              className="flex-1"
+              className="h-24 shrink-0"
             />
             <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {blueCardsRemaining}
@@ -1351,7 +1351,7 @@ export function GamePage({
               active={isRedTurn}
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
-              className="flex-1"
+              className="h-24 shrink-0"
             />
             <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {redCardsRemaining}
