@@ -173,6 +173,22 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     return () => window.clearTimeout(timer);
   }, [starting, toast]);
 
+  useEffect(() => {
+    const handleRoomError = (payload: { message?: unknown }) => {
+      setStarting(false);
+      toast.error(
+        typeof payload.message === "string"
+          ? payload.message
+          : "The room action could not be completed.",
+      );
+    };
+
+    socket.on("room:error", handleRoomError);
+    return () => {
+      socket.off("room:error", handleRoomError);
+    };
+  }, [socket, toast]);
+
   const currentPlayer = room?.players.find(
     (player) => player.telegramId === user?.telegramId,
   );
