@@ -50,7 +50,7 @@ export function BoardCard({
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 ${selectedPlaceholder ? "border-[#f8e2c8]" : "border-[#0a6e9f]"} ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[5px] border-2 lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : "border-[#0a6e9f]"} ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       {(!revealedColor || showRevealedWord) && (

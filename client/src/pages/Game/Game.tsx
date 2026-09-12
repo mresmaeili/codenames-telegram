@@ -1209,7 +1209,7 @@ export function GamePage({
             timerDuration={timerDuration}
             secondsRemaining={activeSecondsRemaining}
             timerProgress={timerProgress}
-            className="h-[9rem] max-h-[9rem] min-h-0 border-2 border-white/20 bg-[#292929] sm:h-full sm:max-h-none"
+            className="h-28 max-h-28 min-h-0 border-2 border-white/20 bg-[#292929]"
           />
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#7c281f]/70 p-1">
             <TeamPanel
@@ -1363,17 +1363,15 @@ export function GamePage({
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
             />
+            <GameLog
+              entries={gameLog}
+              players={state.room?.players ?? []}
+              timerDuration={timerDuration}
+              secondsRemaining={activeSecondsRemaining}
+              timerProgress={timerProgress}
+              className="h-28 max-h-28 shrink-0 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
+            />
           </div>
-        </div>
-        <div className="pointer-events-auto fixed bottom-3 right-3 z-30 hidden w-64 lg:block">
-          <GameLog
-            entries={gameLog}
-            players={state.room?.players ?? []}
-            timerDuration={timerDuration}
-            secondsRemaining={activeSecondsRemaining}
-            timerProgress={timerProgress}
-            className="!h-52 !max-h-52 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
-          />
         </div>
       </div>
     </PageContainer>

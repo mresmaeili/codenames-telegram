@@ -106,7 +106,7 @@ export function GameLog({
           </div>
         </div>
       ) : null}
-      <div className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-auto overscroll-contain text-left text-[8px] text-white/80">
+      <div className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-scroll overscroll-contain text-left text-[8px] text-white/80">
         {previewEntries.length > 0 ? (
           groupRounds(previewEntries).map((round) => {
             const hintPlayer = players.find(
