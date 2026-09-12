@@ -151,7 +151,7 @@ export function BoardGrid({
                   playActionSound("confirm");
                   onConfirmCard?.(index);
                 }}
-                className="absolute -right-2 -top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-2xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
+                className="absolute -right-2 -top-3 z-10 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-4xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
                 <span aria-hidden="true" className="inline-block rotate-45">
                   ☝
