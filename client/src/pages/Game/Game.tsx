@@ -457,10 +457,34 @@ export function GamePage({
     Record<number, Room["players"]>
   >({});
 
-  useGameStateSync(socket, ({ room, game }) => {
-    setState({ room, game, loading: false, error: null });
-    setIsReconnecting(false);
-  });
+  useGameStateSync(
+    socket,
+    ({ room, game }) => {
+      setState({ room, game, loading: false, error: null });
+      setIsReconnecting(false);
+    },
+    ({ cardId, playerId, selected }) => {
+      const cardIndex = Number.parseInt(cardId, 10);
+      if (!Number.isInteger(cardIndex)) return;
+      setSelectedPlayersByCard((current) => {
+        const next = { ...current };
+        const players = (next[cardIndex] ?? []).filter(
+          (player) => player.userId !== playerId,
+        );
+        const player = state.room?.players.find(
+          (roomPlayer) => roomPlayer.userId === playerId,
+        );
+        if (selected && player) {
+          next[cardIndex] = [...players, player];
+        } else if (players.length > 0) {
+          next[cardIndex] = players;
+        } else {
+          delete next[cardIndex];
+        }
+        return next;
+      });
+    },
+  );
 
   useRoomSocketSync({
     socket,

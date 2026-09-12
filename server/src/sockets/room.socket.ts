@@ -1104,6 +1104,16 @@ export function registerRoomSocketHandlers(
             selectedResult.room as unknown as Room,
             selectedResult.game,
           );
+          const selectedPlayerId = room.players.find(
+            (player) => player.telegramId === actorTelegramId,
+          )?.userId;
+          if (selectedPlayerId) {
+            io.to(payload.roomCode.toUpperCase()).emit("game:selection", {
+              cardId: payload.cardId,
+              playerId: selectedPlayerId,
+              selected: selectedResult.game.selectedCardId === payload.cardId,
+            });
+          }
           return;
         }
 
