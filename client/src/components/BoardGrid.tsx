@@ -84,14 +84,20 @@ export function BoardGrid({
 
         const publicCard = card as PublicCard;
         const isSelected = canSelectCard && selectedCardId === String(index);
+        const localSelectedPlayers = selectedPlayersByCard[index] ?? [];
         const hasLocalSelection =
-          canSelectCard && (selectedPlayersByCard[index] ?? []).length > 0;
+          canSelectCard && localSelectedPlayers.length > 0;
+        const hasOwnLocalSelection =
+          canSelectCard &&
+          localSelectedPlayers.some(
+            (player) => player.userId === viewerPlayerId,
+          );
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
           role === "operative" &&
           canSelectCard &&
-          isSelected &&
-          selectedByPlayerId === viewerPlayerId &&
+          (hasOwnLocalSelection ||
+            (isSelected && selectedByPlayerId === viewerPlayerId)) &&
           !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
