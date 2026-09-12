@@ -23,8 +23,8 @@ import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
 import ostadBagheriImage from "@/assets/ostad-bagheri.png";
 import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
-import wrongCardImage from "@/assets/26.webp";
-import assassinCardImage from "@/assets/assassin.webp";
+import opponentCardImage from "@/assets/opponnet-card.webp";
+import grayCardImage from "@/assets/gray-card.webp";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -447,7 +447,7 @@ export function GamePage({
   const lastHintIdRef = useRef<string | null>(null);
   const lastWrongGuessIdRef = useRef<string | null>(null);
   const wrongGuessTimeoutRef = useRef<number | null>(null);
-  const [cardFeedback, setCardFeedback] = useState<"wrong" | "assassin" | null>(
+  const [cardFeedback, setCardFeedback] = useState<"opponent" | "gray" | null>(
     null,
   );
   const hintOverlayTimeoutRef = useRef<number | null>(null);
@@ -537,7 +537,8 @@ export function GamePage({
     const guesses = (state.game?.rounds ?? []).flatMap(
       (round) => round.guesses,
     );
-    const latestGuess = guesses[guesses.length - 1];
+    const latestRound = state.game.rounds?.[state.game.rounds.length - 1];
+    const latestGuess = latestRound?.guesses[latestRound.guesses.length - 1];
     if (lastWrongGuessIdRef.current === null) {
       lastWrongGuessIdRef.current = latestGuess
         ? `${latestGuess.revealedAt}-${latestGuess.cardIndex}-${latestGuess.playerId}`
@@ -552,10 +553,13 @@ export function GamePage({
 
     if (latestGuess.correct) return;
 
-    const isAssassinCard =
-      state.game.board[latestGuess.cardIndex]?.color === "assassin";
-    setCardFeedback(isAssassinCard ? "assassin" : "wrong");
-    if (!isAssassinCard) playActionSound("lose");
+    const cardColor = state.game.board[latestGuess.cardIndex]?.color;
+    const isOpponentCard =
+      (cardColor === "red" || cardColor === "blue") &&
+      cardColor !== latestRound?.team;
+    if (cardColor === "assassin") return;
+    setCardFeedback(isOpponentCard ? "opponent" : "gray");
+    playActionSound("lose");
     if (wrongGuessTimeoutRef.current !== null) {
       window.clearTimeout(wrongGuessTimeoutRef.current);
     }
@@ -1443,17 +1447,17 @@ export function GamePage({
                 className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20"
                 role="status"
                 aria-label={
-                  cardFeedback === "assassin" ? "Assassin card" : "Wrong card"
+                  cardFeedback === "opponent" ? "Opponent card" : "Gray card"
                 }
               >
                 <img
                   src={
-                    cardFeedback === "assassin"
-                      ? assassinCardImage
-                      : wrongCardImage
+                    cardFeedback === "opponent"
+                      ? opponentCardImage
+                      : grayCardImage
                   }
                   alt={
-                    cardFeedback === "assassin" ? "Assassin card" : "Wrong card"
+                    cardFeedback === "opponent" ? "Opponent card" : "Gray card"
                   }
                   className="animate-wrong-card h-auto w-[min(72vw,22rem)] drop-shadow-[0_1rem_1.5rem_rgba(0,0,0,0.5)]"
                 />
