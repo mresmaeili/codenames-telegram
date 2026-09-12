@@ -247,6 +247,7 @@ function buildGameSnapshotView(
     selectedCardId: game.selectedCardId ?? null,
     selectedByPlayerId: game.selectedByPlayerId ?? null,
     selectedAt: game.selectedAt ?? null,
+    pendingSelections: game.pendingSelections ?? [],
     winningTeam: game.winningTeam ?? null,
     completionReason: game.completionReason ?? null,
     completedAt: game.completedAt ?? null,
