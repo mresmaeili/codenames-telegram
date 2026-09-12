@@ -4,8 +4,10 @@ import { BoardGrid } from "@/components/BoardGrid";
 
 interface GameBoardSurfaceProps {
   game: GameView;
+  viewerPlayerId?: string | null;
   canSelectCard: boolean;
   onSelectCard: (cardIndex: number) => void;
+  onConfirmCard: (cardIndex: number) => void;
   selectedHintCardIds: Set<number>;
   onToggleHintCard?: (cardIndex: number) => void;
   hideWords: boolean;
@@ -14,8 +16,10 @@ interface GameBoardSurfaceProps {
 
 export function GameBoardSurface({
   game,
+  viewerPlayerId,
   canSelectCard,
   onSelectCard,
+  onConfirmCard,
   selectedHintCardIds,
   onToggleHintCard,
   hideWords,
@@ -26,8 +30,12 @@ export function GameBoardSurface({
       <BoardGrid
         cards={game.board}
         role={game.role}
+        selectedCardId={game.selectedCardId}
+        selectedByPlayerId={game.selectedByPlayerId}
+        viewerPlayerId={viewerPlayerId}
         canSelectCard={canSelectCard}
         onSelectCard={onSelectCard}
+        onConfirmCard={onConfirmCard}
         selectedHintCardIds={selectedHintCardIds}
         hintTeam={game.currentTurn}
         onToggleHintCard={onToggleHintCard}

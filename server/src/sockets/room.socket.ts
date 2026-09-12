@@ -1074,15 +1074,6 @@ export function registerRoomSocketHandlers(
         const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
 
         if (payload.confirm === true) {
-          if (game.selectedCardId !== payload.cardId) {
-            await selectCard({
-              gameId: payload.gameId,
-              roomCode: payload.roomCode,
-              telegramId: actorTelegramId,
-              cardId: payload.cardId,
-            });
-          }
-
           const result = await revealCard({
             gameId: payload.gameId,
             roomCode: payload.roomCode,

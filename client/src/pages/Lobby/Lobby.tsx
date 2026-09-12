@@ -277,6 +277,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       targetTelegramId,
       isAdmin,
     });
+    closePopup();
     toast.info(isAdmin ? "Admin access granted." : "Admin access removed.");
   }
 

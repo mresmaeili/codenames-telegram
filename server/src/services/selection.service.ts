@@ -91,6 +91,20 @@ export function applyCardSelection(
     throw new Error("Sender is not part of the room.");
   }
 
+  if (
+    context.game.selectedCardId === context.cardId &&
+    context.game.selectedByPlayerId === sender.userId
+  ) {
+    return {
+      game: {
+        ...context.game,
+        selectedCardId: null,
+        selectedByPlayerId: null,
+        selectedAt: null,
+      },
+    };
+  }
+
   return {
     game: {
       ...context.game,

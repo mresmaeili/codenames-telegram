@@ -162,11 +162,21 @@ function RoomSettingsPopupContent({
               key={roomPlayer.userId}
               className="flex w-16 flex-col items-center gap-1"
             >
-              <img
-                src={avatarUrlForPlayer(roomPlayer)}
-                alt={roomPlayer.displayName}
-                className="h-11 w-11 rounded-full border-2 border-white object-cover"
-              />
+              <span className="relative">
+                <img
+                  src={avatarUrlForPlayer(roomPlayer)}
+                  alt={roomPlayer.displayName}
+                  className="h-11 w-11 rounded-full border-2 border-white object-cover"
+                />
+                {room.ownerIds.includes(roomPlayer.telegramId) ? (
+                  <span
+                    aria-label="Room admin"
+                    className="absolute -right-1 -top-2 text-sm leading-none"
+                  >
+                    👑
+                  </span>
+                ) : null}
+              </span>
               <span className="max-w-16 truncate rounded-sm bg-white/15 px-1 text-[10px] font-bold text-white">
                 {roomPlayer.displayName}
               </span>
@@ -825,23 +835,24 @@ export function GamePage({
     viewerPlayer,
     timerExpired,
   );
-  const { submitHint, selectCard, passTurn, takeTurn } = useGameActions({
-    socket,
-    roomCode,
-    telegramId: user?.telegramId,
-    game: state.game,
-    canSubmitHint,
-    canSelectCard,
-    canPassTurn,
-    canTakeTurn,
-    secondsRemaining: activeSecondsRemaining,
-    hintSubmitting,
-    setHintSubmitting,
-    setHintMessage,
-    setHintDraft,
-    setSelectedHintCardIds,
-    onGameUpdated: refreshGameState,
-  });
+  const { submitHint, selectCard, confirmSelection, passTurn, takeTurn } =
+    useGameActions({
+      socket,
+      roomCode,
+      telegramId: user?.telegramId,
+      game: state.game,
+      canSubmitHint,
+      canSelectCard,
+      canPassTurn,
+      canTakeTurn,
+      secondsRemaining: activeSecondsRemaining,
+      hintSubmitting,
+      setHintSubmitting,
+      setHintMessage,
+      setHintDraft,
+      setSelectedHintCardIds,
+      onGameUpdated: refreshGameState,
+    });
   const currentSelectedCardIndex = state.game?.selectedCardId
     ? Number.parseInt(state.game.selectedCardId, 10)
     : null;
@@ -934,7 +945,7 @@ export function GamePage({
       : isViewerOperative
         ? hasActiveHint
           ? selectedCardActive
-            ? "Tap the guess button to confirm"
+            ? "Tap the hand button to confirm, or tap the word again to remove it"
             : "Tap to choose a word"
           : "Wait for your spymaster to give you a clue"
         : "Watch the turn";
@@ -1043,16 +1054,41 @@ export function GamePage({
       return;
     }
 
-    setSelectedPlayersByCard((current) => ({
-      ...current,
-      [cardIndex]: [
-        ...(current[cardIndex] ?? []).filter(
-          (player) => player.userId !== viewerPlayer.userId,
-        ),
-        viewerPlayer,
-      ],
-    }));
+    setSelectedPlayersByCard((current) => {
+      const isOwnSelection =
+        (current[cardIndex] ?? []).some(
+          (player) => player.userId === viewerPlayer.userId,
+        ) ||
+        (state.game?.selectedCardId === String(cardIndex) &&
+          state.game.selectedByPlayerId === viewerPlayer.userId);
+      if (isOwnSelection) {
+        const next = { ...current };
+        delete next[cardIndex];
+        return next;
+      }
+      return {
+        ...current,
+        [cardIndex]: [
+          ...(current[cardIndex] ?? []).filter(
+            (player) => player.userId !== viewerPlayer.userId,
+          ),
+          viewerPlayer,
+        ],
+      };
+    });
     selectCard(cardIndex);
+  }
+
+  function handleConfirmCard(cardIndex: number) {
+    if (
+      !state.game ||
+      !user?.telegramId ||
+      state.game.selectedCardId !== String(cardIndex)
+    ) {
+      return;
+    }
+
+    confirmSelection();
   }
 
   function handleAssignPlayerFromGame(
@@ -1092,13 +1128,13 @@ export function GamePage({
           handleAssignPlayerFromGame(player.telegramId, team, role)
         }
         onToggleAdmin={() => {
+          closePopup();
           socket?.emit("room:setAdmin", {
             roomCode: state.room?.roomCode,
             creatorTelegramId: user.telegramId,
             targetTelegramId: player.telegramId,
             isAdmin: !isAdmin,
           });
-          closePopup();
         }}
       />,
       "Assign role",
@@ -1181,6 +1217,7 @@ export function GamePage({
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#07558f]/70 p-1">
             <TeamPanel
               team="blue"
+              ownerIds={state.room?.ownerIds ?? []}
               remainingCards={blueCardsRemaining}
               operatives={blueOperatives}
               active={isBlueTurn}
@@ -1194,6 +1231,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="blue"
+              ownerIds={state.room?.ownerIds ?? []}
               player={blueSpymaster}
               active={isBlueTurn}
               canManagePlayers={isRoomOwner}
@@ -1213,6 +1251,7 @@ export function GamePage({
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#7c281f]/70 p-1">
             <TeamPanel
               team="red"
+              ownerIds={state.room?.ownerIds ?? []}
               remainingCards={redCardsRemaining}
               operatives={redOperatives}
               active={isRedTurn}
@@ -1226,6 +1265,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="red"
+              ownerIds={state.room?.ownerIds ?? []}
               player={redSpymaster}
               active={isRedTurn}
               canManagePlayers={isRoomOwner}
@@ -1239,6 +1279,7 @@ export function GamePage({
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="blue"
+              ownerIds={state.room?.ownerIds ?? []}
               remainingCards={blueCardsRemaining}
               operatives={blueOperatives}
               active={isBlueTurn}
@@ -1251,6 +1292,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="blue"
+              ownerIds={state.room?.ownerIds ?? []}
               player={blueSpymaster}
               active={isBlueTurn}
               canManagePlayers={isRoomOwner}
@@ -1267,7 +1309,10 @@ export function GamePage({
                 registerPopup(
                   <div className="space-y-3 text-sm text-(--app-text)">
                     <p>Spymasters give one clue word and a number.</p>
-                    <p>Operatives tap a card to reveal it.</p>
+                    <p>
+                      Operatives tap a card to mark it, then use the hand button
+                      to confirm.
+                    </p>
                     <p>Tap a revealed card to show or hide its word.</p>
                   </div>,
                   "How to play",
@@ -1277,8 +1322,10 @@ export function GamePage({
             />
             <GameBoardSurface
               game={state.game}
+              viewerPlayerId={viewerPlayer?.userId}
               canSelectCard={canSelectCard}
               onSelectCard={handleSelectCard}
+              onConfirmCard={handleConfirmCard}
               selectedHintCardIds={selectedHintCardIds}
               onToggleHintCard={
                 state.game.role === "spymaster"
@@ -1340,6 +1387,7 @@ export function GamePage({
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="red"
+              ownerIds={state.room?.ownerIds ?? []}
               remainingCards={redCardsRemaining}
               operatives={redOperatives}
               active={isRedTurn}
@@ -1352,6 +1400,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="red"
+              ownerIds={state.room?.ownerIds ?? []}
               player={redSpymaster}
               active={isRedTurn}
               canManagePlayers={isRoomOwner}

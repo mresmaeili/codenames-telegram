@@ -4,6 +4,7 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 interface SpymasterPanelProps {
   team: Team;
   player?: Room["players"][number];
+  ownerIds?: number[];
   active: boolean;
   canManagePlayers: boolean;
   onPlayerClick: (player: Room["players"][number]) => void;
@@ -29,6 +30,7 @@ const panelStyles = {
 export function SpymasterPanel({
   team,
   player,
+  ownerIds = [],
   active,
   canManagePlayers,
   onPlayerClick,
@@ -59,12 +61,22 @@ export function SpymasterPanel({
           }
         >
           {player ? (
-            <img
-              src={avatarUrlForPlayer(player)}
-              alt={player.displayName}
-              title={player.displayName}
-              className="h-full w-full object-cover"
-            />
+            <>
+              <img
+                src={avatarUrlForPlayer(player)}
+                alt={player.displayName}
+                title={player.displayName}
+                className="h-full w-full object-cover"
+              />
+              {ownerIds.includes(player.telegramId) ? (
+                <span
+                  aria-label="Room admin"
+                  className="absolute -right-1 -top-2 text-[10px] leading-none"
+                >
+                  👑
+                </span>
+              ) : null}
+            </>
           ) : (
             <span className="text-base">{styles.fallback}</span>
           )}

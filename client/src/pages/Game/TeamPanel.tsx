@@ -5,6 +5,7 @@ interface TeamPanelProps {
   team: Team;
   remainingCards: number;
   operatives: Room["players"];
+  ownerIds?: number[];
   active: boolean;
   canManagePlayers: boolean;
   onPlayerClick: (player: Room["players"][number]) => void;
@@ -37,6 +38,7 @@ export function TeamPanel({
   team,
   remainingCards,
   operatives,
+  ownerIds = [],
   active,
   canManagePlayers,
   onPlayerClick,
@@ -65,12 +67,22 @@ export function TeamPanel({
               className="flex flex-col items-center rounded-full disabled:cursor-default"
               aria-label={`Manage ${player.displayName}`}
             >
-              <img
-                src={avatarUrlForPlayer(player)}
-                alt={player.displayName}
-                title={player.displayName}
-                className={`${compact ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]`}
-              />
+              <span className="relative">
+                <img
+                  src={avatarUrlForPlayer(player)}
+                  alt={player.displayName}
+                  title={player.displayName}
+                  className={`${compact ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]`}
+                />
+                {ownerIds.includes(player.telegramId) ? (
+                  <span
+                    aria-label="Room admin"
+                    className="absolute -right-1 -top-2 text-[10px] leading-none"
+                  >
+                    👑
+                  </span>
+                ) : null}
+              </span>
               <span
                 className={`${compact ? "text-[7px]" : "text-[8px]"} mt-0.5 max-w-14 truncate font-bold leading-none text-white/90`}
               >

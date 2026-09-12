@@ -88,13 +88,9 @@ export function useGameActions({
       roomCode: roomCode.toUpperCase(),
       telegramId,
       cardId: String(cardIndex),
-      confirm: true,
+      confirm: false,
     };
-    socket.emit("game:select", payload, (error?: { message?: string }) => {
-      if (error?.message) {
-        setHintMessage(error.message);
-      }
-    });
+    socket.emit("game:select", payload);
   }
 
   function confirmSelection(): void {
