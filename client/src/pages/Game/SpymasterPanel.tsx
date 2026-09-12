@@ -8,6 +8,7 @@ interface SpymasterPanelProps {
   canManagePlayers: boolean;
   onPlayerClick: (player: Room["players"][number]) => void;
   className?: string;
+  compact?: boolean;
 }
 
 const panelStyles = {
@@ -32,22 +33,27 @@ export function SpymasterPanel({
   canManagePlayers,
   onPlayerClick,
   className = "",
+  compact = false,
 }: SpymasterPanelProps) {
   const styles = panelStyles[team];
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-1.5 text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
+      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} ${compact ? "p-1" : "p-1.5"} text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
-      <div className="text-center text-[8px] font-black uppercase tracking-[0.14em] text-white/85">
+      <div
+        className={`${compact ? "text-[7px]" : "text-[8px]"} text-center font-black uppercase tracking-[0.14em] text-white/85`}
+      >
         Spymasters
       </div>
-      <div className="mt-1 flex flex-col items-center justify-center gap-0.5">
+      <div
+        className={`${compact ? "mt-0" : "mt-1"} flex flex-col items-center justify-center gap-0.5`}
+      >
         <button
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
+          className={`flex ${compact ? "h-7 w-7" : "h-9 w-9"} items-center justify-center overflow-hidden rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
@@ -63,7 +69,9 @@ export function SpymasterPanel({
             <span className="text-base">{styles.fallback}</span>
           )}
         </button>
-        <div className="text-center text-[8px] font-bold text-white/95">
+        <div
+          className={`${compact ? "text-[7px]" : "text-[8px]"} text-center font-bold text-white/95`}
+        >
           {player?.displayName ?? "None"}
         </div>
       </div>

@@ -21,7 +21,7 @@ export function HintComposer({
         event.preventDefault();
         onSubmit();
       }}
-      className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-[18px] border-2 border-[#555] bg-[#292929] p-1.5 shadow-[0_4px_14px_rgba(0,0,0,0.4)] animate-event-in"
+      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.35rem)] z-30 mt-3 flex items-center gap-1 rounded-[16px] border-2 border-[#555] bg-[#292929]/95 p-1 shadow-[0_4px_14px_rgba(0,0,0,0.4)] backdrop-blur-sm animate-event-in sm:sticky sm:inset-x-auto sm:bottom-2 sm:z-20 sm:gap-2 sm:rounded-[18px] sm:p-1.5"
     >
       <div className="min-w-0 flex-1">
         <label htmlFor="hintWord" className="sr-only">
@@ -32,9 +32,9 @@ export function HintComposer({
           type="text"
           value={word}
           onChange={(event) => onWordChange(event.target.value)}
-          placeholder="Enter one word (no spaces)"
+          placeholder="Your clue"
           disabled={submitting}
-          className="w-full rounded-full border-2 border-[#c8c8c8] bg-white px-4 py-2 text-center text-xl font-black uppercase text-black placeholder:text-[#444] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60"
+          className="w-full rounded-full border-2 border-[#c8c8c8] bg-white px-3 py-1 text-center text-lg font-black uppercase text-black placeholder:text-[#444] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xl"
           autoFocus
         />
       </div>
@@ -43,7 +43,7 @@ export function HintComposer({
         <label htmlFor="hintNumber" className="sr-only">
           Number of Cards (1-25)
         </label>
-        <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-[#159dce] text-xl font-black text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#159dce] text-lg font-black text-white sm:h-11 sm:w-11 sm:text-xl">
           {number || "0"}
         </div>
         <select
@@ -52,7 +52,7 @@ export function HintComposer({
           onChange={(event) => onNumberChange(event.target.value)}
           disabled={submitting}
           aria-label="Hint card count"
-          className="absolute inset-0 h-11 w-11 cursor-pointer opacity-0"
+          className="absolute inset-0 h-9 w-9 cursor-pointer opacity-0 sm:h-11 sm:w-11"
         >
           <option value="">0</option>
           {Array.from({ length: 25 }, (_, index) => (
@@ -67,7 +67,7 @@ export function HintComposer({
         type="submit"
         disabled={submitting || !word.trim() || !number}
         aria-label="Send hint"
-        className="flex h-11 w-14 shrink-0 items-center justify-center rounded-full bg-[#51df20] px-3 text-2xl font-black text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)] transition-transform hover:brightness-110 active:scale-90 disabled:opacity-60"
+        className="flex h-9 w-12 shrink-0 items-center justify-center rounded-full bg-[#51df20] px-2 text-xl font-black text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)] transition-transform hover:brightness-110 active:scale-90 disabled:opacity-60 sm:h-11 sm:w-14 sm:px-3 sm:text-2xl"
       >
         {submitting ? "..." : "↑"}
       </button>

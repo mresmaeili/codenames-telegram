@@ -50,7 +50,7 @@ export function BoardGrid({
     cards.every((card) => (card as PublicCard).color !== null);
 
   return (
-    <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
+    <div className="grid grid-cols-5 gap-1.5 sm:gap-2 lg:gap-2.5">
       {cards.map((card, index) => {
         if (role === "spymaster") {
           const spymasterCard = card as SpymasterCardModel;
@@ -150,9 +150,9 @@ export function BoardGrid({
                   playActionSound("confirm");
                   onConfirmCard?.(index);
                 }}
-                className="absolute -right-1 -top-1 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-xl shadow-[0_2px_7px_rgba(0,0,0,0.45)] transition-transform duration-150 hover:scale-110 active:scale-95"
+                className="absolute -right-2 -top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-2xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
               >
-                <Icon name="check" size={18} />
+                <span aria-hidden="true">☝</span>
               </button>
             ) : null}
           </div>

@@ -16,10 +16,10 @@ export function TurnBanner({
 }: TurnBannerProps) {
   return (
     <div
-      className={`mt-2 flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-center text-[clamp(1rem,4vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white ${isYourTurn ? "border-2 border-[#b8ff8e] bg-[#51df20]/20 shadow-[0_0_18px_rgba(81,223,32,0.22)]" : ""}`}
+      className={`mt-0 flex min-h-8 items-center justify-center gap-1 rounded-xl px-1 text-center text-[clamp(0.86rem,3.6vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white sm:mt-2 sm:min-h-10 sm:gap-1.5 sm:px-2 ${isYourTurn ? "border-2 border-[#b8ff8e] bg-[#51df20]/20 shadow-[0_0_18px_rgba(81,223,32,0.22)]" : ""}`}
     >
       {isYourTurn ? (
-        <span className="rounded-full bg-[#51df20] px-2 py-1 text-[0.58rem] font-black tracking-[0.12em] text-[#123d08]">
+        <span className="rounded-full bg-[#51df20] px-1.5 py-0.5 text-[0.5rem] font-black tracking-[0.1em] text-[#123d08] sm:px-2 sm:py-1 sm:text-[0.58rem]">
           Your turn
         </span>
       ) : null}
@@ -29,7 +29,7 @@ export function TurnBanner({
           src={avatarUrlForPlayer(player)}
           alt={player.displayName}
           title={player.displayName}
-          className="h-8 w-8 shrink-0 rounded-full border-2 border-white object-cover"
+          className="h-6 w-6 shrink-0 rounded-full border-2 border-white object-cover sm:h-8 sm:w-8"
         />
       ) : null}
       <button
@@ -37,7 +37,7 @@ export function TurnBanner({
         onClick={onHelp}
         aria-label="How to play"
         title="How to play"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#54df20] text-base text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)] transition-transform hover:scale-110 active:scale-95"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#54df20] text-sm text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)] transition-transform hover:scale-110 active:scale-95 sm:h-7 sm:w-7 sm:text-base"
       >
         <span aria-hidden="true">?</span>
       </button>

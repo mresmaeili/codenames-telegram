@@ -12,6 +12,8 @@
   --card-cream: #fffaf2;
   --card-back: #987653;
   --confirm-green: #51df20;
+  --font-persian: Tahoma, "Segoe UI", sans-serif;
+  --font-digital: "Courier New", Consolas, monospace;
   font-family: "Arial Narrow", Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -169,4 +171,41 @@ textarea:focus-visible {
 
 * {
   box-sizing: border-box;
+}
+
+.font-persian {
+  font-family: var(--font-persian);
+  font-weight: 700;
+}
+
+.font-digital {
+  font-family: var(--font-digital);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.game-log-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.55) transparent;
+}
+
+.game-log-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.game-log-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.game-log-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.game-log-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  background-clip: padding-box;
 }

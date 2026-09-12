@@ -21,6 +21,8 @@ import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
+import ostadBagheriImage from "@/assets/ostad-bagheri.png";
+import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -406,10 +408,6 @@ function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
 
-function getSpectatorCount(room: Room | null): number {
-  return room?.players.filter((player) => player.team === null).length ?? 0;
-}
-
 export function GamePage({
   roomCode,
   onLeave,
@@ -434,6 +432,8 @@ export function GamePage({
   const [refreshingGame, setRefreshingGame] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const lastGameStatusRef = useRef<string | null>(null);
+  const lastHintIdRef = useRef<string | null>(null);
+  const hintOverlayTimeoutRef = useRef<number | null>(null);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const [spymasterSecondsRemaining, setSpymasterSecondsRemaining] = useState<
@@ -747,6 +747,52 @@ export function GamePage({
     }
     lastGameStatusRef.current = status;
   }, [state.game?.status, state.game?.winningTeam, viewerPlayer?.team]);
+
+  const [hintOverlay, setHintOverlay] = useState<HintEntry | null>(null);
+
+  useEffect(() => {
+    const hintHistory = state.game?.hintHistory ?? [];
+    const latestHint = hintHistory[hintHistory.length - 1];
+    const latestHintId = latestHint
+      ? `${new Date(latestHint.submittedAt).getTime()}-${latestHint.word}-${latestHint.number}`
+      : null;
+
+    if (!latestHintId || latestHintId === lastHintIdRef.current) {
+      return;
+    }
+
+    if (lastHintIdRef.current === null) {
+      lastHintIdRef.current = latestHintId;
+      return;
+    }
+
+    lastHintIdRef.current = latestHintId;
+    setHintOverlay(latestHint);
+    playActionSound("hint");
+    if (hintOverlayTimeoutRef.current !== null) {
+      window.clearTimeout(hintOverlayTimeoutRef.current);
+    }
+    hintOverlayTimeoutRef.current = window.setTimeout(() => {
+      setHintOverlay(null);
+      hintOverlayTimeoutRef.current = null;
+    }, 1000);
+
+    return () => {
+      if (hintOverlayTimeoutRef.current !== null) {
+        window.clearTimeout(hintOverlayTimeoutRef.current);
+        hintOverlayTimeoutRef.current = null;
+      }
+    };
+  }, [state.game?.hintHistory]);
+
+  useEffect(
+    () => () => {
+      if (hintOverlayTimeoutRef.current !== null) {
+        window.clearTimeout(hintOverlayTimeoutRef.current);
+      }
+    },
+    [],
+  );
   const isActiveSpymaster = isActiveRole(state.game, viewerPlayer, "spymaster");
   const isActiveOperative = isActiveRole(state.game, viewerPlayer, "operative");
   const hasActiveHint = hasActiveHintForGame(state.game);
@@ -914,7 +960,7 @@ export function GamePage({
   async function handleCopyRoomCode() {
     try {
       await navigator.clipboard.writeText(roomCode);
-      toast.success(`Room code ${roomCode} copied to clipboard.`);
+      toast.success("Room code copied");
     } catch {
       toast.error("Unable to copy the room code.");
     }
@@ -1086,26 +1132,54 @@ export function GamePage({
   return (
     <PageContainer>
       <div
-        className={`mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
+        className={`relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
       >
+        {hintOverlay ? (
+          <div className="pointer-events-none absolute left-1/2 top-[62%] z-40 w-[min(88%,34rem)] -translate-x-1/2 -translate-y-1/2">
+            <img
+              src={
+                hintOverlay.team === "blue"
+                  ? ostadBagheriImage
+                  : yuzeYaldarImage
+              }
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-0 z-10 h-[280%] w-[94%] -translate-x-1/2 -translate-y-[88%] object-contain"
+            />
+            <div className="relative z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+              <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
+                <span>{hintOverlay.word}</span>
+                <span
+                  className={
+                    hintOverlay.team === "blue"
+                      ? "text-[#159dce]"
+                      : "text-[#c94b3b]"
+                  }
+                >
+                  {hintOverlay.number}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
-          spectatorCount={getSpectatorCount(state.room)}
+          roomCode={roomCode}
           refreshingGame={refreshingGame}
           onShowPlayers={handleShowPlayers}
-          onLeave={onLeave}
-          onReturnToLobby={onReturnToLobby}
-          onRefresh={refreshGameState}
           onCopyRoomCode={() => void handleCopyRoomCode()}
-          onSettings={openPopup}
+          onLeave={onLeave}
+          isRoomOwner={isRoomOwner}
+          onResetGame={handleResetGame}
+          onRefresh={refreshGameState}
         />
         {isReconnecting ? (
           <div className="mb-3">
             <LoadingIndicator />
           </div>
         ) : null}
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(4.5rem,0.72fr)_minmax(0,2.4fr)_minmax(4.5rem,0.72fr)] items-stretch gap-1 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
-          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(7.25rem,1.4fr)_minmax(0,1fr)] items-stretch gap-1 sm:hidden">
+          <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#07558f]/70 p-1">
             <TeamPanel
               team="blue"
               remainingCards={blueCardsRemaining}
@@ -1113,6 +1187,65 @@ export function GamePage({
               active={isBlueTurn}
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
+              className="min-w-0 flex-1"
+              compact
+            />
+            <div className="flex items-center justify-center px-1 text-3xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
+              {blueCardsRemaining}
+            </div>
+            <SpymasterPanel
+              team="blue"
+              player={blueSpymaster}
+              active={isBlueTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+              className="min-w-0"
+              compact
+            />
+          </div>
+          <GameLog
+            entries={gameLog}
+            players={state.room?.players ?? []}
+            timerDuration={timerDuration}
+            secondsRemaining={activeSecondsRemaining}
+            timerProgress={timerProgress}
+            className="h-[9rem] max-h-[9rem] min-h-0 border-2 border-white/20 bg-[#292929] sm:h-full sm:max-h-none"
+          />
+          <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#7c281f]/70 p-1">
+            <TeamPanel
+              team="red"
+              remainingCards={redCardsRemaining}
+              operatives={redOperatives}
+              active={isRedTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+              className="min-w-0 flex-1"
+              compact
+            />
+            <div className="flex items-center justify-center px-1 text-3xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
+              {redCardsRemaining}
+            </div>
+            <SpymasterPanel
+              team="red"
+              player={redSpymaster}
+              active={isRedTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+              className="min-w-0"
+              compact
+            />
+          </div>
+        </div>
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-1 sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
+          <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
+            <TeamPanel
+              team="blue"
+              remainingCards={blueCardsRemaining}
+              operatives={blueOperatives}
+              active={isBlueTurn}
+              canManagePlayers={isRoomOwner}
+              onPlayerClick={handleGamePlayerClick}
+              className="flex-1"
             />
             <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {blueCardsRemaining}
@@ -1124,16 +1257,6 @@ export function GamePage({
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
             />
-            <div className="hidden min-h-0 flex-1 sm:block">
-              <GameLog
-                entries={gameLog}
-                players={state.room?.players ?? []}
-                timerDuration={timerDuration}
-                secondsRemaining={activeSecondsRemaining}
-                timerProgress={timerProgress}
-                className="!h-full !max-h-none"
-              />
-            </div>
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
@@ -1210,7 +1333,6 @@ export function GamePage({
               remainingGuesses={state.game.remainingGuesses}
               canPass={canPassTurn}
               canTake={canTakeTurn}
-              activeOperative={isActiveOperative}
               onPass={() => {
                 playActionSound("pass");
                 passTurn();
@@ -1222,7 +1344,7 @@ export function GamePage({
             />
           </div>
 
-          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+          <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="red"
               remainingCards={redCardsRemaining}
@@ -1230,6 +1352,7 @@ export function GamePage({
               active={isRedTurn}
               canManagePlayers={isRoomOwner}
               onPlayerClick={handleGamePlayerClick}
+              className="flex-1"
             />
             <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
               {redCardsRemaining}
@@ -1242,6 +1365,16 @@ export function GamePage({
               onPlayerClick={handleGamePlayerClick}
             />
           </div>
+        </div>
+        <div className="pointer-events-auto fixed bottom-3 right-3 z-30 hidden w-64 lg:block">
+          <GameLog
+            entries={gameLog}
+            players={state.room?.players ?? []}
+            timerDuration={timerDuration}
+            secondsRemaining={activeSecondsRemaining}
+            timerProgress={timerProgress}
+            className="!h-52 !max-h-52 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
+          />
         </div>
         {hintMessage ? (
           <div className="absolute bottom-1 left-1/2 z-30 w-[min(92%,32rem)] -translate-x-1/2">

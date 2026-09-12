@@ -9,6 +9,7 @@ interface TeamPanelProps {
   canManagePlayers: boolean;
   onPlayerClick: (player: Room["players"][number]) => void;
   className?: string;
+  compact?: boolean;
 }
 
 const teamStyles = {
@@ -40,14 +41,17 @@ export function TeamPanel({
   canManagePlayers,
   onPlayerClick,
   className = "",
+  compact = false,
 }: TeamPanelProps) {
   const styles = teamStyles[team];
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} p-1.5 text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
+      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} ${compact ? "p-1" : "p-1.5"} text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
-      <div className="mb-1 text-center text-[8px] font-black uppercase tracking-[0.14em] text-white/85">
+      <div
+        className={`${compact ? "mb-0 text-[7px]" : "mb-1 text-[8px]"} text-center font-black uppercase tracking-[0.14em] text-white/85`}
+      >
         Operatives
       </div>
       <div className="flex items-end justify-center gap-1">
@@ -65,9 +69,11 @@ export function TeamPanel({
                 src={avatarUrlForPlayer(player)}
                 alt={player.displayName}
                 title={player.displayName}
-                className="h-7 w-7 rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]"
+                className={`${compact ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]`}
               />
-              <span className="mt-0.5 max-w-14 truncate text-[8px] font-bold leading-none text-white/90">
+              <span
+                className={`${compact ? "text-[7px]" : "text-[8px]"} mt-0.5 max-w-14 truncate font-bold leading-none text-white/90`}
+              >
                 {player.displayName}
               </span>
             </button>

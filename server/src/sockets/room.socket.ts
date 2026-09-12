@@ -1423,7 +1423,7 @@ export function registerRoomSocketHandlers(
       const existingRounds = game.rounds ?? [];
       const currentRound = existingRounds[existingRounds.length - 1];
       const rounds =
-        currentRound?.team === game.currentTurn
+        !timeoutAllowed && currentRound?.team === game.currentTurn
           ? existingRounds.map((round, index) =>
               index === existingRounds.length - 1
                 ? {

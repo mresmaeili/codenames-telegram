@@ -34,11 +34,11 @@ export function BoardCard({
   const isFlipped = Boolean(revealedColor);
   const hiddenWord = hideWord || (Boolean(revealedColor) && !showRevealedWord);
   const outerClasses: string[] = [
-    "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]",
+    "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)]",
   ];
   if (selectedPlaceholder)
     outerClasses.push(
-      "z-10 scale-[1.02] ring-4 ring-(--app-accent) shadow-[0_0_0_4px_rgba(110,229,27,0.28),0_8px_18px_rgba(0,0,0,0.3)]",
+      "z-10 scale-[1.025] ring-4 ring-(--app-accent) shadow-[0_0_0_4px_rgba(110,229,27,0.3),0_10px_20px_rgba(0,0,0,0.38)]",
     );
   if (disabled) outerClasses.push("opacity-60 pointer-events-none");
 
@@ -55,30 +55,42 @@ export function BoardCard({
     >
       {(!revealedColor || showRevealedWord) && (
         <div
-          className={`absolute flex items-center justify-center rounded-xs p-1 text-center ${selectedPlaceholder ? "inset-1.25 border-2 border-[#6e4d32] bg-[#fffaf2] shadow-[inset_0_0_0_3px_rgba(255,241,220,0.18)]" : revealedColor ? "inset-1.25 border-0 bg-[#fffaf2] shadow-[0_2px_4px_rgba(0,0,0,0.15)]" : "inset-1.25 border-0 bg-[#fffaf2]"}`}
+          className={`absolute flex items-center justify-center rounded-[3px] p-1 text-center ${selectedPlaceholder ? "inset-1.25 border-2 border-[#8d6543] bg-[#fffaf2] shadow-[inset_0_0_0_3px_rgba(255,241,220,0.5),0_2px_4px_rgba(0,0,0,0.2)]" : revealedColor ? "inset-1.25 border-0 bg-[#fffaf2] shadow-[0_2px_4px_rgba(0,0,0,0.15)]" : "inset-1.25 border-0 bg-[#fffaf2] shadow-[0_1px_2px_rgba(0,0,0,0.1)]"}`}
         >
           {selectedPlayers.length > 0 ? (
             <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
               {selectedPlayers.length === 1 ? (
-                <div className="flex min-w-0 items-center gap-0.5 rounded-full bg-black/65 pr-1 text-[0.55rem] font-bold leading-none text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+                <div className="relative flex min-w-0 items-center gap-0.5 rounded-full bg-[#4cdf25] pr-1 text-[0.55rem] font-bold leading-none text-[#123d08] shadow-[0_2px_5px_rgba(0,0,0,0.45)]">
                   <img
                     src={avatarUrlForPlayer(selectedPlayers[0])}
                     alt={
                       selectedPlayers[0]?.displayName ?? "Selected by player"
                     }
                     title={selectedPlayers[0]?.displayName}
-                    className="h-6 w-6 shrink-0 rounded-full border-2 border-white object-cover"
+                    className="h-7 w-7 shrink-0 rounded-full border-2 border-white object-cover"
                   />
                   <span className="max-w-14 truncate">
                     {selectedPlayers[0]?.displayName ?? "Player"}
                   </span>
+                  <span
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#4cdf25] text-xs leading-none text-white shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
+                    aria-hidden="true"
+                  >
+                    ☝
+                  </span>
                 </div>
               ) : (
                 <span
-                  className="flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-black/75 px-1 text-[0.65rem] font-black leading-none text-white shadow-[0_1px_3px_rgba(0,0,0,0.45)]"
+                  className="relative flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-white bg-[#4cdf25] px-1 text-[0.65rem] font-black leading-none text-[#123d08] shadow-[0_2px_5px_rgba(0,0,0,0.45)]"
                   aria-label={`${selectedPlayers.length} operatives selected this card`}
                 >
                   {selectedPlayers.length}
+                  <span
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-[#4cdf25] text-xs leading-none text-white shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
+                    aria-hidden="true"
+                  >
+                    ☝
+                  </span>
                 </span>
               )}
             </div>
@@ -86,13 +98,13 @@ export function BoardCard({
           {selectedPlaceholder ? (
             <span
               aria-label="Selected card"
-              className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#51df20] text-xs font-black text-[#123d08] shadow-[0_1px_4px_rgba(0,0,0,0.35)]"
+              className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#51df20] text-xs font-black text-[#123d08] shadow-[0_1px_4px_rgba(0,0,0,0.35)]"
             >
               <Icon name="check" size={13} />
             </span>
           ) : null}
           <span
-            className={`absolute bottom-1 block w-full font-black uppercase tracking-[0.01em] text-[clamp(0.64rem,2.5vw,1rem)] leading-none text-[#111820] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+            className={`font-persian absolute bottom-1 block w-full uppercase tracking-[0.01em] text-[clamp(0.64rem,2.5vw,1rem)] leading-none text-[#111820] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
           >
             {word}
           </span>

@@ -35,7 +35,8 @@ export function shouldAllowDevSocketAuth(
     requestOrigin === "http://localhost:5176" ||
     requestOrigin === "http://localhost:5177" ||
     requestOrigin === "http://localhost:5178" ||
-    requestOrigin === "http://localhost:5179"
+    requestOrigin === "http://localhost:5179" ||
+    /^http:\/\/127\.0\.0\.1:517[3-9]$/.test(requestOrigin ?? "")
   );
 }
 
@@ -50,7 +51,15 @@ export function createSocketServer(
 ) {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: options.corsOrigin,
+      origin: (origin, callback) => {
+        const isLocalDevOrigin =
+          typeof origin === "string" &&
+          /^http:\/\/(localhost|127\.0\.0\.1):517[3-9]$/.test(origin);
+        callback(
+          null,
+          !origin || origin === options.corsOrigin || isLocalDevOrigin,
+        );
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },

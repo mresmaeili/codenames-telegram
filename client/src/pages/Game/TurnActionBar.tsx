@@ -4,7 +4,6 @@ interface TurnActionBarProps {
   remainingGuesses: number;
   canPass: boolean;
   canTake: boolean;
-  activeOperative: boolean;
   onPass: () => void;
   onTake: () => void;
 }
@@ -15,27 +14,31 @@ export function TurnActionBar({
   remainingGuesses,
   canPass,
   canTake,
-  activeOperative,
   onPass,
   onTake,
 }: TurnActionBarProps) {
   if (hintWord && hintNumber !== null) {
     return (
-      <div className="sticky bottom-2 z-20 mt-3 flex items-center gap-2 rounded-2xl border-2 border-white/25 bg-[#292929] px-2 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.4)]">
-        <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl bg-white px-3 py-2 text-center text-xl font-black uppercase tracking-tight text-black">
+      <div className="relative z-20 mt-1 flex w-full items-center gap-1 rounded-[18px] border-2 border-[#121719] bg-[#292d30] px-1.5 py-1 shadow-[0_4px_14px_rgba(0,0,0,0.4)] sm:sticky sm:bottom-2 sm:z-20 sm:mt-3 sm:gap-2 sm:rounded-2xl sm:px-2 sm:py-2">
+        <div className="font-persian flex min-w-0 flex-1 items-center justify-center rounded-full border-2 border-[#d7d7d7] bg-white px-2 py-1 text-center text-lg font-bold uppercase tracking-tight text-[#222] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] sm:px-3 sm:py-2 sm:text-xl">
           {hintWord} ({hintNumber})
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#159dce] text-xl font-black">
+        <div className="font-digital flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#159dce] text-lg font-normal text-white shadow-[0_2px_4px_rgba(0,0,0,0.35)] sm:h-11 sm:w-11 sm:text-xl">
           {remainingGuesses}
         </div>
         {canPass || canTake ? (
           <button
             type="button"
             onClick={canTake ? onTake : onPass}
-            className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
+            className="flex h-9 w-11 items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-[#51df20] px-2 py-1 text-xl font-black text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:h-11 sm:w-auto sm:px-4 sm:py-3 sm:text-sm"
             aria-label={canTake ? "Take turn" : "Pass turn"}
           >
-            {canTake ? "Take turn" : "Pass"}
+            <span className="sm:hidden" aria-hidden="true">
+              {canTake ? "↑" : "✓"}
+            </span>
+            <span className="hidden sm:inline">
+              {canTake ? "Take turn" : "✓"}
+            </span>
           </button>
         ) : null}
       </div>
@@ -51,17 +54,11 @@ export function TurnActionBar({
           className="rounded-full bg-[#51df20] px-4 py-3 text-sm font-black uppercase text-white shadow-[0_2px_5px_rgba(0,0,0,0.35)]"
           aria-label={canTake ? "Take turn" : "Pass turn"}
         >
-          {canTake ? "Take turn" : "Pass"}
+          {canTake ? "Take turn" : "✓"}
         </button>
       </div>
     );
   }
 
-  return activeOperative ? (
-    <div className="mt-4 flex items-center gap-3 rounded-full bg-[#2b2b2b] px-3 py-3 shadow-inner">
-      <div className="flex-1 px-2 text-left text-sm font-semibold text-white/80">
-        Your spymaster has not given a clue yet.
-      </div>
-    </div>
-  ) : null;
+  return null;
 }

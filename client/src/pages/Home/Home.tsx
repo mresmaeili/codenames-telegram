@@ -9,7 +9,6 @@ import { apiUrl } from "@/config/env";
 import { GamePage } from "@/pages/Game";
 import { LobbyPage } from "@/pages/Lobby";
 import { getSocketClient } from "@/socket/client";
-import { FUNNY_AVATARS } from "@/lib/avatar";
 
 interface RoomResponse {
   id?: string;
@@ -46,7 +45,6 @@ export function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
-  const [guestAvatarId, setGuestAvatarId] = useState<string | undefined>();
   const [isGuestSession, setIsGuestSession] = useState(false);
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
     "home",
@@ -317,7 +315,7 @@ export function HomePage() {
   async function submitGuestLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading || guestName.trim().length < 2) return;
-    await loginWithGuest(guestName, guestAvatarId);
+    await loginWithGuest(guestName);
   }
 
   if (roomCode && activeView === "game") {
@@ -343,6 +341,64 @@ export function HomePage() {
         }}
         onGameStart={() => setActiveView("game")}
       />
+    );
+  }
+
+  if (!loading && !error && !user) {
+    return (
+      <PageContainer>
+        <div className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_0%,#1e9fdf_0%,transparent_42%),linear-gradient(160deg,#07538f_0%,#0b78b7_46%,#ff824a_100%)] px-3 py-6 sm:px-6">
+          <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.3)_21%,transparent_23%,transparent_48%,rgba(255,255,255,0.18)_49%,transparent_51%)] [background-size:320px_240px]" />
+          <main className="relative w-full max-w-xl rounded-[30px] border border-white/20 bg-[#0c70b4]/90 px-4 py-6 text-white shadow-[0_24px_60px_rgba(3,25,52,0.35)] backdrop-blur-sm sm:px-8 sm:py-8">
+            <header className="text-center">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/75">
+                Play the classic board game online
+              </p>
+              <h1 className="mt-2 text-4xl font-black uppercase tracking-[0.03em] text-white drop-shadow-[0_3px_0_rgba(0,0,0,0.18)] sm:text-6xl">
+                Codenames <span className="text-[#ffb21c]">Online</span>
+              </h1>
+            </header>
+
+            <section className="mt-6 rounded-[26px] border border-white/10 bg-[#102d49]/85 p-5 text-left shadow-inner sm:p-6">
+              <h2 className="text-2xl font-black text-white">How to play</h2>
+              <ol className="mt-3 space-y-1.5 text-sm font-semibold leading-6 text-white/90 sm:text-base">
+                <li>1. Enter your nickname to enter the game.</li>
+                <li>2. Create a room or join your friends.</li>
+                <li>3. Share the room code with your team.</li>
+                <li>4. Give clever clues and find your words.</li>
+              </ol>
+              <p className="mt-5 text-sm font-semibold text-white/70">
+                Ready when your team is.
+              </p>
+            </section>
+
+            <form onSubmit={submitGuestLogin} className="mt-6 space-y-3">
+              <label
+                htmlFor="guestName"
+                className="block text-center text-lg font-bold text-white"
+              >
+                Enter your nickname
+              </label>
+              <input
+                id="guestName"
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                placeholder="Nickname"
+                maxLength={24}
+                autoComplete="nickname"
+                className="w-full rounded-2xl border-2 border-white/70 bg-white px-4 py-3 text-lg text-[#18324d] shadow-[0_4px_10px_rgba(0,0,0,0.18)] outline-none placeholder:text-[#8190a1] focus:border-[#ffcf55]"
+              />
+              <button
+                type="submit"
+                disabled={loading || guestName.trim().length < 2}
+                className="w-full rounded-2xl border-2 border-[#a7ef62] bg-[#29c500] px-4 py-3 text-xl font-black uppercase tracking-[0.04em] text-white shadow-[0_5px_0_#159500,0_9px_18px_rgba(0,0,0,0.22)] transition hover:bg-[#35d20a] active:translate-y-1 active:shadow-[0_2px_0_#159500] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {loading ? "Entering..." : "Enter game"}
+              </button>
+            </form>
+          </main>
+        </div>
+      </PageContainer>
     );
   }
 
@@ -468,76 +524,7 @@ export function HomePage() {
                 </div>
               ) : null}
             </div>
-          ) : (
-            <div className="mt-5">
-              <form
-                onSubmit={submitGuestLogin}
-                className="space-y-4 rounded-3xl border border-white/15 bg-white/8 p-4"
-              >
-                <div>
-                  <p className="text-lg font-bold text-white">
-                    Play with friends
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-[#dfeeff]">
-                    Choose a name to create a room or join one.
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
-                    Choose an avatar{" "}
-                    <span className="font-normal normal-case tracking-normal">
-                      (optional)
-                    </span>
-                  </p>
-                  <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-8">
-                    {FUNNY_AVATARS.map((avatar) => (
-                      <button
-                        key={avatar.id}
-                        type="button"
-                        onClick={() =>
-                          setGuestAvatarId((current) =>
-                            current === avatar.id ? undefined : avatar.id,
-                          )
-                        }
-                        aria-label={`Choose ${avatar.label} avatar`}
-                        aria-pressed={guestAvatarId === avatar.id}
-                        className={`flex aspect-square items-center justify-center rounded-2xl border-2 text-2xl transition-transform hover:-translate-y-0.5 ${guestAvatarId === avatar.id ? "border-[#b8ff8e] bg-[#51df20]/30" : "border-white/15 bg-[#1d7bd7]"}`}
-                      >
-                        {avatar.emoji}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs text-[#dfeeff]/75">
-                    Optional. Skip it to get a random funny avatar.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="guestName"
-                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
-                  >
-                    Your name
-                  </label>
-                  <input
-                    id="guestName"
-                    value={guestName}
-                    onChange={(event) => setGuestName(event.target.value)}
-                    placeholder="Enter a name"
-                    maxLength={24}
-                    autoComplete="nickname"
-                    className="mt-2 w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || guestName.trim().length < 2}
-                  className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Start playing
-                </button>
-              </form>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </PageContainer>
