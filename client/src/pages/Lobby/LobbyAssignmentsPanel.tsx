@@ -1,5 +1,6 @@
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import type { Room } from "../../../../shared/src/types/room";
 
 interface LobbyAssignmentsPanelProps {
@@ -52,6 +53,7 @@ function PlayerList({
               title={player.displayName}
               className="h-11 w-11 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
             />
+            <PlayerPresenceDot player={player} className="border-white" />
             <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
           </span>
           <span className="max-w-18 truncate rounded-sm bg-black/65 px-1.5 text-[10px] font-bold text-white whitespace-nowrap">

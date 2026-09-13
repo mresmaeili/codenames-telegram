@@ -5,6 +5,7 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 import { Icon } from "@/components/Icon";
 import { isDevModeEnabled } from "@/lib/dev";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 export interface GameLogEntry {
   id: string;
@@ -146,6 +147,12 @@ export function GameLog({
                         title={hintPlayer?.displayName ?? round.hint.team}
                         className={`h-7 w-7 rounded-full border-2 object-cover ${teamColor.avatar}`}
                       />
+                      {hintPlayer ? (
+                        <PlayerPresenceDot
+                          player={hintPlayer}
+                          className="border-white"
+                        />
+                      ) : null}
                       <PlayerAdminBadge
                         isAdmin={ownerIds.includes(hintPlayer?.telegramId ?? 0)}
                       />
@@ -157,7 +164,11 @@ export function GameLog({
                     </span>
                   </div>
                   <div className="flex min-w-0 flex-1 items-center gap-0.5">
-                    <span className="font-persian min-w-0 flex-1 overflow-hidden whitespace-nowrap rounded-md border-2 border-white/90 bg-white px-1 py-1 text-center text-[9px] font-bold uppercase leading-tight text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]">
+                    <span
+                      dir="rtl"
+                      lang="fa"
+                      className="font-persian min-w-0 flex-1 overflow-hidden whitespace-nowrap rounded-md border-2 border-white/90 bg-white px-1 py-1 text-center text-[9px] font-bold uppercase leading-tight text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]"
+                    >
                       {round.hint.word}
                     </span>
                     <span className="font-persian flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-white text-[9px] font-extrabold leading-none text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]">
@@ -194,6 +205,12 @@ export function GameLog({
                                 title={guessPlayer?.displayName ?? guess.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
                               />
+                              {guessPlayer ? (
+                                <PlayerPresenceDot
+                                  player={guessPlayer}
+                                  className="border-white"
+                                />
+                              ) : null}
                               <PlayerAdminBadge
                                 isAdmin={ownerIds.includes(
                                   guessPlayer?.telegramId ?? 0,
@@ -207,6 +224,8 @@ export function GameLog({
                             </span>
                           </div>
                           <span
+                            dir="rtl"
+                            lang="fa"
                             className={`font-persian min-w-0 whitespace-nowrap rounded-r-md border border-white/25 px-1.5 py-1 text-left text-[8px] font-bold uppercase leading-none text-white shadow-[0_2px_3px_rgba(0,0,0,0.25)] ${guessColor}`}
                           >
                             {guess.word}
@@ -233,6 +252,12 @@ export function GameLog({
                                 title={passPlayer?.displayName ?? pass.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
                               />
+                              {passPlayer ? (
+                                <PlayerPresenceDot
+                                  player={passPlayer}
+                                  className="border-white"
+                                />
+                              ) : null}
                               <PlayerAdminBadge
                                 isAdmin={ownerIds.includes(
                                   passPlayer?.telegramId ?? 0,

@@ -1,6 +1,7 @@
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 interface TurnBannerProps {
   instruction: string;
@@ -35,6 +36,7 @@ export function TurnBanner({
             title={player.displayName}
             className="h-6 w-6 rounded-full border-2 border-white object-cover sm:h-8 sm:w-8"
           />
+          <PlayerPresenceDot player={player} className="border-white" />
           <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
         </span>
       ) : null}

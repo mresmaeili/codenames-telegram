@@ -1,6 +1,7 @@
 export type Team = "red" | "blue";
 export type PlayerRole = "operative" | "spymaster";
 export type RoomStatus = "waiting" | "playing" | "finished";
+export type PlayerPresence = "online" | "away" | "offline";
 
 export interface RoomPlayer {
   userId: string;
@@ -12,6 +13,7 @@ export interface RoomPlayer {
   team: Team | null;
   role: PlayerRole;
   joinedAt: Date;
+  presence?: PlayerPresence;
 }
 
 export interface RoomSettings {

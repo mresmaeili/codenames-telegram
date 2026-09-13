@@ -94,6 +94,37 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       }
     };
 
+    const handlePresence = (payload: {
+      roomCode?: unknown;
+      players?: Array<{ telegramId: number; presence: "online" | "offline" }>;
+    }) => {
+      if (
+        !isMounted ||
+        currentRoomCodeRef.current !== roomCode ||
+        !Array.isArray(payload.players)
+      ) {
+        return;
+      }
+
+      const presenceByPlayer = new Map(
+        payload.players.map((player) => [player.telegramId, player.presence]),
+      );
+      setLobbyState((current) =>
+        current.room
+          ? {
+              ...current,
+              room: {
+                ...current.room,
+                players: current.room.players.map((player) => ({
+                  ...player,
+                  presence: presenceByPlayer.get(player.telegramId) ?? "away",
+                })),
+              },
+            }
+          : current,
+      );
+    };
+
     const joinRoomSocket = () => {
       if (!socket || !user || !isMounted) {
         return;
@@ -113,6 +144,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
       socket.on("connect", joinRoomSocket);
       socket.on("connected", joinRoomSocket);
       socket.on("room:updated", handleRoomUpdated);
+      socket.on("room:presence", handlePresence);
     }
 
     // Cleanup: leave listener when room changes or component unmounts
@@ -122,6 +154,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         socket.off("connect", joinRoomSocket);
         socket.off("connected", joinRoomSocket);
         socket.off("room:updated", handleRoomUpdated);
+        socket.off("room:presence", handlePresence);
       }
     };
   }, [refreshLobby, roomCode, socket, user]);

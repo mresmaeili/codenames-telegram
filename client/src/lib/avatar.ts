@@ -15,6 +15,28 @@ export function avatarUrlForName(name: string): string {
   return avatarUrlForEmoji(avatarEmojiForSeed(name || "Player"), name);
 }
 
+export function avatarUrlForProfile(profile: {
+  displayName: string;
+  avatarId?: string | null;
+  photoUrl?: string | null;
+  ghibliAvatarUrl?: string | null;
+}): string {
+  if (profile.avatarId) {
+    const selectedAvatar = FUNNY_AVATARS.find(
+      (avatar) => avatar.id === profile.avatarId,
+    );
+    if (selectedAvatar) {
+      return avatarUrlForEmoji(selectedAvatar.emoji, selectedAvatar.id);
+    }
+  }
+
+  return (
+    profile.ghibliAvatarUrl ??
+    profile.photoUrl ??
+    avatarUrlForName(profile.displayName)
+  );
+}
+
 function avatarUrlForEmoji(emoji: string, seed: string): string {
   const background = avatarBackgroundForSeed(seed || "Player");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="${background}"/><circle cx="13" cy="14" r="4" fill="rgba(255,255,255,.55)"/><circle cx="51" cy="48" r="6" fill="rgba(255,255,255,.2)"/><text x="32" y="43" text-anchor="middle" font-size="32" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text></svg>`;
@@ -25,18 +47,7 @@ export function avatarUrlForPlayer(
   player: Room["players"][number] | null | undefined,
 ): string {
   if (!player) return avatarUrlForName("Player");
-  if (player.avatarId) {
-    const selectedAvatar = FUNNY_AVATARS.find(
-      (avatar) => avatar.id === player.avatarId,
-    );
-    if (selectedAvatar)
-      return avatarUrlForEmoji(selectedAvatar.emoji, selectedAvatar.id);
-  }
-  return (
-    player.ghibliAvatarUrl ??
-    player.photoUrl ??
-    avatarUrlForName(player.displayName)
-  );
+  return avatarUrlForProfile(player);
 }
 
 const EMOJIS = [

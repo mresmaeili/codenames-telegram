@@ -1,7 +1,11 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 
-import { registerRoomSocketHandlers } from "./room.socket.js";
+import {
+  markSocketPresence,
+  registerRoomSocketHandlers,
+  startGameTimer,
+} from "./room.socket.js";
 import {
   authenticateTelegramUser,
   authenticateTelegramWidgetUser,
@@ -130,7 +134,17 @@ export function createSocketServer(
     });
 
     socket.on("disconnect", (_reason: string) => {
-      // connection lifecycle is handled externally
+      if (
+        typeof socket.data?.roomCode === "string" &&
+        typeof socket.data?.telegramId === "number"
+      ) {
+        markSocketPresence(
+          io,
+          socket.data.roomCode,
+          socket.data.telegramId,
+          "offline",
+        );
+      }
     });
 
     socket.on("connect", () => {

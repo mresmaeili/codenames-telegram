@@ -12,6 +12,7 @@ import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
 import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
@@ -894,6 +895,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                                 src={avatarUrlForPlayer(p)}
                                 alt={p.displayName}
                                 className="h-8 w-8 rounded-full object-cover"
+                              />
+                              <PlayerPresenceDot
+                                player={p}
+                                className="border-white"
                               />
                               <PlayerAdminBadge
                                 isAdmin={room.ownerIds.includes(p.telegramId)}

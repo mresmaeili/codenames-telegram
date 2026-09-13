@@ -98,6 +98,26 @@ function roleSocketRoom(
 function playerSocketRoom(roomCode: string, telegramId: number): string {
   return `${roomCode}:player:${telegramId}`;
 }
+const roomPresence = new Map<string, Map<number, "online" | "offline">>();
+
+export function markSocketPresence(
+  io: SocketIOServer,
+  roomCode: string,
+  telegramId: number,
+  presence: "online" | "offline",
+): void {
+  const normalizedRoomCode = roomCode.toUpperCase();
+  const players = roomPresence.get(normalizedRoomCode) ?? new Map();
+  players.set(telegramId, presence);
+  roomPresence.set(normalizedRoomCode, players);
+  io.to(normalizedRoomCode).emit("room:presence", {
+    roomCode: normalizedRoomCode,
+    players: Array.from(players, ([playerTelegramId, status]) => ({
+      telegramId: playerTelegramId,
+      presence: status,
+    })),
+  });
+}
 
 async function joinSocketRoleRooms(
   socket: Socket,
@@ -384,6 +404,12 @@ export function registerRoomSocketHandlers(
         payload.ownerTelegramId,
         "operative",
       );
+      socket.data = {
+        ...socket.data,
+        telegramId: payload.ownerTelegramId,
+        roomCode: room.roomCode,
+      };
+      markSocketPresence(io, room.roomCode, payload.ownerTelegramId, "online");
       socket.emit("room:created", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
@@ -438,6 +464,7 @@ export function registerRoomSocketHandlers(
         telegramId: payload.telegramId,
         roomCode: room.roomCode,
       };
+      markSocketPresence(io, room.roomCode, payload.telegramId, "online");
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
       const message =

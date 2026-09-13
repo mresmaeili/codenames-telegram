@@ -2,6 +2,7 @@ import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 interface BoardCardProps {
   word: string;
@@ -72,6 +73,10 @@ export function BoardCard({
                     }
                     title={selectedPlayers[0]?.displayName}
                     className="h-7 w-7 rounded-full border-2 border-white object-cover"
+                  />
+                  <PlayerPresenceDot
+                    player={selectedPlayers[0]}
+                    className="border-white"
                   />
                   <PlayerAdminBadge
                     isAdmin={ownerIds.includes(

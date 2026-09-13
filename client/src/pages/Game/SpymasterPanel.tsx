@@ -1,6 +1,7 @@
 import type { Room, Team } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 interface SpymasterPanelProps {
   team: Team;
@@ -69,6 +70,7 @@ export function SpymasterPanel({
                 title={player.displayName}
                 className="h-full w-full object-cover"
               />
+              <PlayerPresenceDot player={player} className="border-white" />
               <PlayerAdminBadge
                 isAdmin={ownerIds.includes(player.telegramId)}
               />

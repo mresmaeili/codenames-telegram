@@ -1,4 +1,5 @@
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
+import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GameLog, type GameLogEntry } from "./GameLog";
@@ -24,8 +25,6 @@ import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
 import ostadBagheriImage from "@/assets/ostad-bagheri.webp";
 import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
-import opponentCardImage from "@/assets/opponnet-card.webp";
-import grayCardImage from "@/assets/gray-card.webp";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -170,6 +169,10 @@ function RoomSettingsPopupContent({
                   src={avatarUrlForPlayer(roomPlayer)}
                   alt={roomPlayer.displayName}
                   className="h-11 w-11 rounded-full border-2 border-white object-cover"
+                />
+                <PlayerPresenceDot
+                  player={roomPlayer}
+                  className="border-white"
                 />
                 <PlayerAdminBadge
                   isAdmin={room.ownerIds.includes(roomPlayer.telegramId)}
@@ -346,6 +349,10 @@ function PlayerRosterPopupContent({
                         alt={player.displayName}
                         className={`h-11 w-11 rounded-full border-3 object-cover shadow-[0_3px_8px_rgba(0,0,0,0.3)] ${borderClass}`}
                       />
+                      <PlayerPresenceDot
+                        player={player}
+                        className="border-white"
+                      />
                       <PlayerAdminBadge
                         isAdmin={ownerIds.includes(player.telegramId)}
                       />
@@ -451,9 +458,13 @@ export function GamePage({
   const lastHintIdRef = useRef<string | null>(null);
   const lastWrongGuessIdRef = useRef<string | null>(null);
   const wrongGuessTimeoutRef = useRef<number | null>(null);
-  const [cardFeedback, setCardFeedback] = useState<"opponent" | "gray" | null>(
-    null,
-  );
+  const [cardFeedback, setCardFeedback] = useState<
+    "opponent" | "gray" | "assassin" | null
+  >(null);
+  const [wrongCardIndex, setWrongCardIndex] = useState<number | null>(null);
+  const [endGameConfirmation, setEndGameConfirmation] = useState<
+    "rematch" | "lobby" | null
+  >(null);
   const hintOverlayTimeoutRef = useRef<number | null>(null);
   const toast = useToast();
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
@@ -544,6 +555,26 @@ export function GamePage({
       }
       setState((current) => ({ ...current, room, error: null }));
     },
+    onPresence: (payload) => {
+      if (!Array.isArray(payload.players)) return;
+      const presenceByPlayer = new Map(
+        payload.players.map((player) => [player.telegramId, player.presence]),
+      );
+      setState((current) =>
+        current.room
+          ? {
+              ...current,
+              room: {
+                ...current.room,
+                players: current.room.players.map((player) => ({
+                  ...player,
+                  presence: presenceByPlayer.get(player.telegramId) ?? "away",
+                })),
+              },
+            }
+          : current,
+      );
+    },
     onRoomReset: onReturnToLobby,
   });
 
@@ -551,6 +582,7 @@ export function GamePage({
     setSelectedPlayersByCard({});
     lastWrongGuessIdRef.current = null;
     setCardFeedback(null);
+    setWrongCardIndex(null);
   }, [state.game?.id, state.game?.roomId]);
 
   useEffect(() => {
@@ -578,14 +610,21 @@ export function GamePage({
     const isOpponentCard =
       (cardColor === "red" || cardColor === "blue") &&
       cardColor !== latestRound?.team;
-    if (cardColor === "assassin") return;
-    setCardFeedback(isOpponentCard ? "opponent" : "gray");
+    setCardFeedback(
+      cardColor === "assassin"
+        ? "assassin"
+        : isOpponentCard
+          ? "opponent"
+          : "gray",
+    );
+    setWrongCardIndex(latestGuess.cardIndex);
     playActionSound("lose");
     if (wrongGuessTimeoutRef.current !== null) {
       window.clearTimeout(wrongGuessTimeoutRef.current);
     }
     wrongGuessTimeoutRef.current = window.setTimeout(() => {
       setCardFeedback(null);
+      setWrongCardIndex(null);
       wrongGuessTimeoutRef.current = null;
     }, 2000);
   }, [state.game?.rounds, viewerPlayer?.userId]);
@@ -1458,44 +1497,64 @@ export function GamePage({
               hideWords={false}
               selectedPlayersByCard={visibleSelectedPlayersByCard}
               ownerIds={state.room?.ownerIds ?? []}
+              wrongCardIndex={wrongCardIndex}
+              cardFeedback={cardFeedback}
             />
-            {cardFeedback ? (
-              <div
-                className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/20"
-                role="status"
-                aria-label={
-                  cardFeedback === "opponent" ? "Opponent card" : "Gray card"
-                }
-              >
-                <img
-                  src={
-                    cardFeedback === "opponent"
-                      ? opponentCardImage
-                      : grayCardImage
-                  }
-                  alt={
-                    cardFeedback === "opponent" ? "Opponent card" : "Gray card"
-                  }
-                  className="animate-wrong-card h-auto w-[min(72vw,22rem)] drop-shadow-[0_1rem_1.5rem_rgba(0,0,0,0.5)]"
-                />
-              </div>
-            ) : null}
             {gameFinished && isRoomOwner ? (
-              <div className="mt-1 grid grid-cols-2 gap-1">
+              <div className="relative mt-2 grid grid-cols-2 gap-2 px-1">
                 <button
                   type="button"
-                  onClick={handleQuickRematch}
-                  className="w-full rounded-full border border-[#b8ff8e] bg-[#51df20] px-2 py-2 text-[10px] font-black uppercase text-[#123d08]"
+                  onClick={() => setEndGameConfirmation("rematch")}
+                  className="flex h-11 w-full items-center justify-center rounded-xl border-2 border-[#9be783] bg-[#35b94b] px-2 text-[10px] font-black uppercase tracking-[0.04em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_#247b35] transition hover:brightness-110 active:translate-y-0.5 active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_0_#247b35]"
                 >
                   Quick rematch
                 </button>
                 <button
                   type="button"
-                  onClick={handleResetGame}
-                  className="w-full rounded-full border border-white/70 bg-white px-2 py-2 text-[10px] font-black uppercase text-[#0a63d4]"
+                  onClick={() => setEndGameConfirmation("lobby")}
+                  className="flex h-11 w-full items-center justify-center rounded-xl border-2 border-white/75 bg-white px-2 text-[10px] font-black uppercase tracking-[0.04em] text-[#28618d] shadow-[0_3px_0_rgba(0,0,0,0.22)] transition hover:bg-[#f1f6f8] active:translate-y-0.5 active:shadow-[0_1px_0_rgba(0,0,0,0.22)]"
                 >
                   Return to lobby
                 </button>
+                {endGameConfirmation ? (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    className="absolute bottom-[calc(100%+0.5rem)] left-1/2 z-50 w-[calc(100%-0.5rem)] max-w-xs -translate-x-1/2 rounded-2xl border-2 border-white/25 bg-[#292929] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,0.55)]"
+                  >
+                    <h2 className="text-base font-black">
+                      {endGameConfirmation === "rematch"
+                        ? "Start a quick rematch?"
+                        : "Return to lobby?"}
+                    </h2>
+                    <p className="mt-2 text-sm text-white/75">
+                      {endGameConfirmation === "rematch"
+                        ? "The current game will end and a new board will be created."
+                        : "The game will end and every player will return to the lobby."}
+                    </p>
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEndGameConfirmation(null)}
+                        className="rounded-lg border border-white/25 px-3 py-2 text-sm font-bold text-white/80"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const action = endGameConfirmation;
+                          setEndGameConfirmation(null);
+                          if (action === "rematch") handleQuickRematch();
+                          else handleResetGame();
+                        }}
+                        className="rounded-lg bg-[#d84c3e] px-3 py-2 text-sm font-bold text-white"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {canSubmitHint ? (

@@ -13,6 +13,8 @@ interface GameBoardSurfaceProps {
   hideWords: boolean;
   selectedPlayersByCard: Record<number, Room["players"]>;
   ownerIds: number[];
+  wrongCardIndex: number | null;
+  cardFeedback: "opponent" | "gray" | "assassin" | null;
 }
 
 export function GameBoardSurface({
@@ -26,6 +28,8 @@ export function GameBoardSurface({
   hideWords,
   selectedPlayersByCard,
   ownerIds,
+  wrongCardIndex,
+  cardFeedback,
 }: GameBoardSurfaceProps) {
   return (
     <div className="mt-2">
@@ -44,6 +48,8 @@ export function GameBoardSurface({
         hideWords={hideWords}
         selectedPlayersByCard={selectedPlayersByCard}
         ownerIds={ownerIds}
+        wrongCardIndex={wrongCardIndex}
+        cardFeedback={cardFeedback}
       />
     </div>
   );

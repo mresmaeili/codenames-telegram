@@ -9,6 +9,7 @@ import { apiUrl } from "@/config/env";
 import { GamePage } from "@/pages/Game";
 import { LobbyPage } from "@/pages/Lobby";
 import { getSocketClient } from "@/socket/client";
+import { avatarUrlForProfile } from "@/lib/avatar";
 
 interface RoomResponse {
   id?: string;
@@ -43,7 +44,6 @@ export function HomePage() {
   });
   const [formValue, setFormValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
   const [isGuestSession, setIsGuestSession] = useState(false);
   const [activeView, setActiveView] = useState<"home" | "lobby" | "game">(
@@ -216,7 +216,6 @@ export function HomePage() {
     }
 
     setSubmitting(true);
-    setFeedback(null);
 
     try {
       const response = await fetch(apiUrl("/api/rooms"), {
@@ -240,13 +239,12 @@ export function HomePage() {
       setRoomCode(payload.roomCode);
       setFormValue(payload.roomCode);
       setActiveView(payload.status === "playing" ? "game" : "lobby");
-      setFeedback("Room created successfully.");
     } catch (createError) {
       const message =
         createError instanceof Error
           ? createError.message
           : "Could not create room.";
-      setFeedback(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -258,7 +256,6 @@ export function HomePage() {
     }
 
     setSubmitting(true);
-    setFeedback(null);
 
     try {
       const response = await fetch(apiUrl("/api/rooms/join"), {
@@ -282,7 +279,6 @@ export function HomePage() {
       setRoomCode(payload.roomCode);
       setFormValue(payload.roomCode);
       setActiveView(payload.status === "playing" ? "game" : "lobby");
-      setFeedback("Joined room successfully.");
       if (socket) {
         socket.emit("room:join", {
           roomCode: payload.roomCode,
@@ -296,7 +292,7 @@ export function HomePage() {
     } catch (joinError) {
       const message =
         joinError instanceof Error ? joinError.message : "Could not join room.";
-      setFeedback(message);
+      toast.error(message);
       return null;
     } finally {
       setSubmitting(false);
@@ -404,25 +400,25 @@ export function HomePage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-3xl px-3 py-3 sm:px-6 sm:py-6">
-        <div className="w-full rounded-[28px] border border-white/10 bg-[#0b69ad] px-4 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)] sm:px-8 sm:py-7">
+      <div className="home-page min-h-[100dvh] w-full bg-[#273238] px-3 py-3 sm:px-6 sm:py-6">
+        <div className="home-shell mx-auto w-full max-w-3xl rounded-[28px] border border-[#d8c9b5] bg-[#f4ecdf] px-4 py-5 text-[#263238] shadow-[0_16px_40px_rgba(25,29,32,0.3)] sm:px-8 sm:py-7">
           <div className="relative space-y-2 text-center">
             {user && isGuestSession ? (
               <button
                 type="button"
                 onClick={logoutGuest}
-                className="absolute right-0 top-0 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85 transition hover:bg-white/20"
+                className="absolute right-0 top-0 rounded-full border border-[#cbbba5] bg-[#e9dfd0] px-3 py-1.5 text-xs font-semibold text-[#6f6256] transition hover:bg-[#ded1c0]"
               >
                 Log out
               </button>
             ) : null}
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#dfeeff]">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#a84b36]">
               A social word game
             </p>
-            <h1 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-5xl">
+            <h1 className="text-3xl font-black tracking-[-0.05em] text-[#263238] sm:text-5xl">
               Codenames
             </h1>
-            <p className="mx-auto max-w-md text-sm leading-6 text-[#dfeeff] sm:text-base">
+            <p className="mx-auto max-w-md text-sm leading-6 text-[#5f6868] sm:text-base">
               Give clever clues, find your team&apos;s words, and play together.
             </p>
           </div>
@@ -451,18 +447,32 @@ export function HomePage() {
             </div>
           ) : user ? (
             <div className="mt-5 space-y-4">
-              <div className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/8 p-3 text-left">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]">
-                    Ready to play
-                  </p>
-                  <p className="mt-1 text-base font-bold text-white">
-                    {user.firstName}
-                  </p>
+              <div className="flex items-center justify-between rounded-2xl border border-[#d8c9b5] bg-[#e9dfd0] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="relative shrink-0">
+                    <img
+                      src={avatarUrlForProfile({
+                        displayName: user.firstName,
+                        avatarId: user.avatarId,
+                        photoUrl: user.photoUrl,
+                      })}
+                      alt={user.firstName}
+                      className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover shadow-[0_2px_5px_rgba(63,48,35,0.22)]"
+                    />
+                    <span
+                      aria-label="Online"
+                      className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#e9dfd0] bg-[#35c77f]"
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7a6b5d]">
+                      Ready to play
+                    </p>
+                    <p className="mt-1 text-base font-bold text-[#263238]">
+                      {user.firstName}
+                    </p>
+                  </div>
                 </div>
-                <span className="rounded-full bg-[#51df20]/20 px-3 py-1 text-xs font-bold text-[#d9ffbf]">
-                  Online
-                </span>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
@@ -470,22 +480,22 @@ export function HomePage() {
                   type="button"
                   onClick={createRoom}
                   disabled={submitting}
-                  className="rounded-2xl border border-[#d4eeff] bg-[#ffffff] px-4 py-5 text-left text-[#0b69ad] shadow-[0_6px_12px_rgba(14,35,67,0.2)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-2xl border border-[#b86b52] bg-[#fffaf2] px-4 py-5 text-left text-[#a13f2c] shadow-[0_5px_0_#d8c9b5,0_10px_18px_rgba(83,53,39,0.14)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <p className="text-base font-black uppercase tracking-[0.08em]">
                     Create room
                   </p>
-                  <p className="mt-1 text-sm text-[#0d5ca6]">
+                  <p className="mt-1 text-sm text-[#6d645c]">
                     Start a new lobby for your friends.
                   </p>
                 </button>
 
                 <form
                   onSubmit={joinRoom}
-                  className="space-y-3 rounded-2xl border border-white/15 bg-[#0f5ea9] p-3"
+                  className="space-y-3 rounded-2xl border border-[#cbbba5] bg-[#ded1c0] p-3"
                 >
                   <label
-                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dfeeff]"
+                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f6256]"
                     htmlFor="roomCode"
                   >
                     Join room
@@ -497,32 +507,17 @@ export function HomePage() {
                       setFormValue(event.target.value.toUpperCase())
                     }
                     placeholder="Enter room code"
-                    className="w-full rounded-xl border border-white/15 bg-[#1d7bd7] px-3 py-2.5 text-sm text-white placeholder:text-[#dfeeff] outline-none ring-0"
+                    className="w-full rounded-xl border border-[#bda98f] bg-[#fffaf2] px-3 py-2.5 text-sm text-[#263238] placeholder:text-[#8b8177] outline-none ring-0"
                   />
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full rounded-xl border border-white/15 bg-[#c92f16] px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-xl border border-[#a92d1d] bg-[#c7432c] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_3px_0_#8f2417] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting ? "Working…" : "Join room"}
                   </button>
                 </form>
               </div>
-
-              {feedback ? (
-                <div className="mt-2">
-                  <StatusPanel
-                    title={submitting ? "Working" : "Update"}
-                    description={feedback}
-                    tone={
-                      feedback.toLowerCase().includes("error") ||
-                      feedback.toLowerCase().includes("could not")
-                        ? "error"
-                        : "success"
-                    }
-                  />
-                </div>
-              ) : null}
             </div>
           ) : null}
         </div>
