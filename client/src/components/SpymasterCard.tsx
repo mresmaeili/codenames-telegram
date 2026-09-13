@@ -50,7 +50,7 @@ export function SpymasterCard({
           <span
             dir="rtl"
             lang="fa"
-            className={`game-card-label max-w-full whitespace-nowrap px-0.5 text-center font-persian ${tileStyle.label} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em]`}
+            className={`game-card-label max-w-full whitespace-nowrap text-center font-persian ${tileStyle.label} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em]`}
           >
             {word}
           </span>

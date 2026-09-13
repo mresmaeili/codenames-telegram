@@ -109,7 +109,7 @@ export function BoardCard({
         <span
           dir="rtl"
           lang="fa"
-          className={`game-card-label max-w-full whitespace-nowrap px-0.5 text-center font-persian ${labelColor} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`game-card-label max-w-full whitespace-nowrap text-center font-persian ${labelColor} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>
