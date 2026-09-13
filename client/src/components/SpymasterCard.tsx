@@ -32,14 +32,16 @@ export function SpymasterCard({
 }: SpymasterCardProps) {
   const tileStyle = tileStyles[color];
   const wordLengthClass =
-    word.length >= 11
-      ? "text-[clamp(0.62rem,2.25vw,0.9rem)]"
-      : word.length >= 8
-        ? "text-[clamp(0.7rem,2.6vw,1rem)]"
-        : "text-[clamp(0.8rem,3vw,1.25rem)]";
+    word.length >= 14
+      ? "text-[clamp(0.52rem,1.9vw,0.76rem)]"
+      : word.length >= 11
+        ? "text-[clamp(0.62rem,2.25vw,0.9rem)]"
+        : word.length >= 8
+          ? "text-[clamp(0.7rem,2.6vw,1rem)]"
+          : "text-[clamp(0.8rem,3vw,1.25rem)]";
   const card = (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[7px] border-2 ${selected ? "border-[#76f21b] ring-4 ring-[#76f21b] shadow-[0_0_0_4px_rgba(118,242,27,0.3),0_10px_20px_rgba(0,0,0,0.38)]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90" : ""}`}
+      className={`relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "border-[#76f21b] ring-4 ring-[#76f21b] shadow-[0_0_0_4px_rgba(118,242,27,0.3),0_10px_20px_rgba(0,0,0,0.38)]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >
@@ -48,7 +50,7 @@ export function SpymasterCard({
           <span
             dir="rtl"
             lang="fa"
-            className={`game-card-label max-w-full px-0.5 text-center font-persian ${tileStyle.label} ${wordLengthClass} font-bold uppercase leading-[1.05] tracking-[0.01em] [overflow-wrap:anywhere]`}
+            className={`game-card-label max-w-full whitespace-nowrap px-0.5 text-center font-persian ${tileStyle.label} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em]`}
           >
             {word}
           </span>

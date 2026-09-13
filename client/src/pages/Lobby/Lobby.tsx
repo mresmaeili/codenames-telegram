@@ -277,6 +277,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       actorTelegramId: user.telegramId,
       targetTelegramId,
     });
+    closePopup();
     toast.info("Removing spectator...");
   }
 
@@ -324,6 +325,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
         >
           Spectators
         </button>
+        {!isCreator && player.team === null ? (
+          <button
+            type="button"
+            onClick={() => handleKickPlayer(player.telegramId)}
+            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#ff554b] px-3 py-3 text-sm font-black text-[#ff8b84]"
+          >
+            <Icon name="close" size={16} />
+            Remove spectator
+          </button>
+        ) : null}
         {isRoomCreator && !isCreator ? (
           <button
             type="button"

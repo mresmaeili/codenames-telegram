@@ -55,15 +55,17 @@ export function BoardCard({
   const tileColor = revealedStyles?.tile ?? "border-[#e8b98c] bg-[#f8cda8]";
   const labelColor = revealedStyles?.label ?? "";
   const wordLengthClass =
-    word.length >= 11
-      ? "text-[clamp(0.58rem,2.2vw,0.86rem)]"
-      : word.length >= 8
-        ? "text-[clamp(0.65rem,2.5vw,0.96rem)]"
-        : "text-[clamp(0.72rem,2.8vw,1.08rem)]";
+    word.length >= 14
+      ? "text-[clamp(0.48rem,1.8vw,0.72rem)]"
+      : word.length >= 11
+        ? "text-[clamp(0.58rem,2.2vw,0.86rem)]"
+        : word.length >= 8
+          ? "text-[clamp(0.65rem,2.5vw,0.96rem)]"
+          : "text-[clamp(0.72rem,2.8vw,1.08rem)]";
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[7px] border-2 lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`relative flex aspect-square items-center justify-center rounded-[7px] border lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       <div className="game-card-shell">
@@ -107,7 +109,7 @@ export function BoardCard({
         <span
           dir="rtl"
           lang="fa"
-          className={`game-card-label max-w-full px-0.5 text-center font-persian ${labelColor} ${wordLengthClass} font-bold uppercase leading-[1.05] tracking-[0.01em] [overflow-wrap:anywhere] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`game-card-label max-w-full whitespace-nowrap px-0.5 text-center font-persian ${labelColor} ${wordLengthClass} overflow-hidden font-bold uppercase leading-[1.05] tracking-[0.01em] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>
