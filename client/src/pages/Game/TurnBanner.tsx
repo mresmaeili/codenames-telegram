@@ -1,9 +1,11 @@
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 
 interface TurnBannerProps {
   instruction: string;
   player?: Room["players"][number];
+  ownerIds?: number[];
   isYourTurn?: boolean;
   onHelp: () => void;
 }
@@ -11,6 +13,7 @@ interface TurnBannerProps {
 export function TurnBanner({
   instruction,
   player,
+  ownerIds = [],
   isYourTurn = false,
   onHelp,
 }: TurnBannerProps) {
@@ -25,12 +28,15 @@ export function TurnBanner({
       ) : null}
       <span>{instruction}</span>
       {player ? (
-        <img
-          src={avatarUrlForPlayer(player)}
-          alt={player.displayName}
-          title={player.displayName}
-          className="h-6 w-6 shrink-0 rounded-full border-2 border-white object-cover sm:h-8 sm:w-8"
-        />
+        <span className="relative shrink-0">
+          <img
+            src={avatarUrlForPlayer(player)}
+            alt={player.displayName}
+            title={player.displayName}
+            className="h-6 w-6 rounded-full border-2 border-white object-cover sm:h-8 sm:w-8"
+          />
+          <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
+        </span>
       ) : null}
       <button
         type="button"

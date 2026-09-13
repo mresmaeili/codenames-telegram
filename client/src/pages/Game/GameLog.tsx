@@ -1,8 +1,10 @@
 import type { CardColor, Turn } from "@/../shared/src/types/game";
+import { useEffect, useRef } from "react";
 import type { Room } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { Icon } from "@/components/Icon";
 import { isDevModeEnabled } from "@/lib/dev";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 
 export interface GameLogEntry {
   id: string;
@@ -18,6 +20,7 @@ export interface GameLogEntry {
 interface GameLogProps {
   entries: GameLogEntry[];
   players: Room["players"];
+  ownerIds?: number[];
   timerDuration: number | null;
   secondsRemaining: number | null;
   timerProgress: number;
@@ -58,31 +61,30 @@ function groupRounds(entries: GameLogEntry[]): GameLogRound[] {
 export function GameLog({
   entries,
   players,
+  ownerIds = [],
   timerDuration,
   secondsRemaining,
   timerProgress,
   className = "",
 }: GameLogProps) {
-  const hasPassEntry = entries.some((entry) => entry.kind === "pass");
-  const previewEntries =
-    isDevModeEnabled() && entries.length > 0 && !hasPassEntry
-      ? [
-          ...entries,
-          {
-            id: "dev-preview-manual-pass",
-            kind: "pass" as const,
-            team: entries[entries.length - 1].team,
-            word: "Pass",
-            playerId: entries[entries.length - 1].playerId,
-          },
-        ]
-      : entries;
+  const previewEntries = entries;
   const previewTimerDuration =
     timerDuration ?? (isDevModeEnabled() ? 90 : null);
   const previewSecondsRemaining =
     secondsRemaining ?? (isDevModeEnabled() ? 58 : null);
   const previewTimerProgress =
     secondsRemaining === null && isDevModeEnabled() ? 65 : timerProgress;
+  const logScrollRef = useRef<HTMLDivElement>(null);
+  const latestEntryId = previewEntries[previewEntries.length - 1]?.id ?? null;
+
+  useEffect(() => {
+    const scrollContainer = logScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  }, [latestEntryId, previewEntries.length]);
 
   return (
     <div
@@ -106,7 +108,10 @@ export function GameLog({
           </div>
         </div>
       ) : null}
-      <div className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-scroll overscroll-contain text-left text-[8px] text-white/80">
+      <div
+        ref={logScrollRef}
+        className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-scroll overscroll-contain text-left text-[8px] text-white/80"
+      >
         {previewEntries.length > 0 ? (
           groupRounds(previewEntries).map((round) => {
             const hintPlayer = players.find(
@@ -122,7 +127,7 @@ export function GameLog({
                 : {
                     avatar: "border-red-300",
                     name: "bg-[#9f3028]",
-                    accent: "border-l-[#c94b3b]",
+                    accent: "border-l-[#d66055]",
                   };
 
             return (
@@ -131,15 +136,20 @@ export function GameLog({
                 className="min-w-0 animate-event-in px-0 py-2"
               >
                 <div
-                  className={`relative flex min-h-7 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0.5 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#c94b3b]"}`}
+                  className={`relative flex min-h-7 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0.5 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#d66055]"}`}
                 >
                   <div className="absolute -left-1 bottom-[-0.35rem] z-10 flex w-8 flex-col items-center">
-                    <img
-                      src={avatarUrlForPlayer(hintPlayer)}
-                      alt={hintPlayer?.displayName ?? round.hint.team}
-                      title={hintPlayer?.displayName ?? round.hint.team}
-                      className={`h-7 w-7 rounded-full border-2 object-cover ${teamColor.avatar}`}
-                    />
+                    <span className="relative">
+                      <img
+                        src={avatarUrlForPlayer(hintPlayer)}
+                        alt={hintPlayer?.displayName ?? round.hint.team}
+                        title={hintPlayer?.displayName ?? round.hint.team}
+                        className={`h-7 w-7 rounded-full border-2 object-cover ${teamColor.avatar}`}
+                      />
+                      <PlayerAdminBadge
+                        isAdmin={ownerIds.includes(hintPlayer?.telegramId ?? 0)}
+                      />
+                    </span>
                     <span
                       className={`max-w-9 truncate rounded-sm px-0.5 text-[5px] font-normal leading-tight text-white ${teamColor.name}`}
                     >
@@ -165,7 +175,7 @@ export function GameLog({
                         guess.color === "blue"
                           ? "bg-[#08a6d0]"
                           : guess.color === "red"
-                            ? "bg-[#f4513f]"
+                            ? "bg-[#d66055]"
                             : guess.color === "assassin"
                               ? "bg-[#252525]"
                               : "bg-[#5a5a5a]";
@@ -177,12 +187,19 @@ export function GameLog({
                           className="relative flex min-w-0 max-w-[calc(50%-0.375rem)] shrink items-center"
                         >
                           <div className="relative z-10 -mr-1.5 translate-y-0.5 flex w-6 shrink-0 flex-col items-center">
-                            <img
-                              src={avatarUrlForPlayer(guessPlayer)}
-                              alt={guessPlayer?.displayName ?? guess.team}
-                              title={guessPlayer?.displayName ?? guess.team}
-                              className="h-5 w-5 rounded-full border border-white/90 object-cover"
-                            />
+                            <span className="relative">
+                              <img
+                                src={avatarUrlForPlayer(guessPlayer)}
+                                alt={guessPlayer?.displayName ?? guess.team}
+                                title={guessPlayer?.displayName ?? guess.team}
+                                className="h-5 w-5 rounded-full border border-white/90 object-cover"
+                              />
+                              <PlayerAdminBadge
+                                isAdmin={ownerIds.includes(
+                                  guessPlayer?.telegramId ?? 0,
+                                )}
+                              />
+                            </span>
                             <span
                               className={`-mt-px max-w-10 truncate rounded-sm px-0.5 text-[6px] font-semibold leading-none text-white ${guessNameColor}`}
                             >
@@ -209,12 +226,19 @@ export function GameLog({
                           className="relative flex shrink-0 items-center"
                         >
                           <div className="relative z-10 -mr-1.5 translate-y-0.5 flex w-6 shrink-0 flex-col items-center">
-                            <img
-                              src={avatarUrlForPlayer(passPlayer)}
-                              alt={passPlayer?.displayName ?? pass.team}
-                              title={passPlayer?.displayName ?? pass.team}
-                              className="h-5 w-5 rounded-full border border-white/90 object-cover"
-                            />
+                            <span className="relative">
+                              <img
+                                src={avatarUrlForPlayer(passPlayer)}
+                                alt={passPlayer?.displayName ?? pass.team}
+                                title={passPlayer?.displayName ?? pass.team}
+                                className="h-5 w-5 rounded-full border border-white/90 object-cover"
+                              />
+                              <PlayerAdminBadge
+                                isAdmin={ownerIds.includes(
+                                  passPlayer?.telegramId ?? 0,
+                                )}
+                              />
+                            </span>
                             <span
                               className={`-mt-px max-w-10 truncate rounded-sm px-0.5 text-[6px] font-semibold leading-none text-white ${passNameColor}`}
                             >

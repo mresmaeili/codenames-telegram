@@ -1,5 +1,6 @@
 import type { Room, Team } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 
 interface TeamPanelProps {
   team: Team;
@@ -24,12 +25,12 @@ const teamStyles = {
     fallback: "🐟",
   },
   red: {
-    panel: "bg-[#c94b3b]",
-    border: "border-[#e88963]",
+    panel: "bg-[#d66055]",
+    border: "border-[#efaa9d]",
     activeBorder: "border-[#76f21b]",
-    card: "bg-[#a23d38]",
-    cardTop: "bg-[#d84c3e]",
-    cardBottom: "bg-[#f1d4c4]",
+    card: "bg-[#b4514a]",
+    cardTop: "bg-[#d66055]",
+    cardBottom: "bg-[#f0d8cf]",
     fallback: "🐙",
   },
 } as const;
@@ -74,14 +75,9 @@ export function TeamPanel({
                   title={player.displayName}
                   className={`${compact ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]`}
                 />
-                {ownerIds.includes(player.telegramId) ? (
-                  <span
-                    aria-label="Room admin"
-                    className="absolute -right-1 -top-2 text-[10px] leading-none"
-                  >
-                    👑
-                  </span>
-                ) : null}
+                <PlayerAdminBadge
+                  isAdmin={ownerIds.includes(player.telegramId)}
+                />
               </span>
               <span
                 className={`${compact ? "text-[7px]" : "text-[8px]"} mt-0.5 max-w-14 truncate font-bold leading-none text-white/90`}

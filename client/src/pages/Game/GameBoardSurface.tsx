@@ -12,6 +12,7 @@ interface GameBoardSurfaceProps {
   onToggleHintCard?: (cardIndex: number) => void;
   hideWords: boolean;
   selectedPlayersByCard: Record<number, Room["players"]>;
+  ownerIds: number[];
 }
 
 export function GameBoardSurface({
@@ -24,6 +25,7 @@ export function GameBoardSurface({
   onToggleHintCard,
   hideWords,
   selectedPlayersByCard,
+  ownerIds,
 }: GameBoardSurfaceProps) {
   return (
     <div className="mt-2">
@@ -41,6 +43,7 @@ export function GameBoardSurface({
         onToggleHintCard={onToggleHintCard}
         hideWords={hideWords}
         selectedPlayersByCard={selectedPlayersByCard}
+        ownerIds={ownerIds}
       />
     </div>
   );

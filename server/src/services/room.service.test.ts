@@ -569,6 +569,70 @@ test("shuffleRoomTeams fans the room into red and blue assignments", async () =>
   }
 });
 
+test("shuffleRoomTeams assigns unassigned players and team roles", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFindOne = (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne;
+
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: 1,
+    ownerIds: [1],
+    status: "waiting",
+    players: [1, 2, 3, 4, 5].map((telegramId) => ({
+      userId: `user-${telegramId}`,
+      telegramId,
+      displayName: `Player ${telegramId}`,
+      team: null,
+      role: "operative" as const,
+      joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+    })),
+  });
+
+  roomRepository.findByCode = async () => room;
+  (
+    UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+  ).findOne = async () => ({
+    _id: { toString: () => "user-1" },
+    telegramId: 1,
+  });
+
+  try {
+    const updatedRoom = await shuffleRoomTeams({
+      roomCode: "ABC123",
+      ownerTelegramId: 1,
+    });
+
+    assert.ok(updatedRoom.players.every((player) => player.team !== null));
+    assert.equal(
+      updatedRoom.players.filter((player) => player.team === "red").length,
+      3,
+    );
+    assert.equal(
+      updatedRoom.players.filter((player) => player.team === "blue").length,
+      2,
+    );
+    assert.equal(
+      updatedRoom.players.filter(
+        (player) => player.team === "red" && player.role === "spymaster",
+      ).length,
+      1,
+    );
+    assert.equal(
+      updatedRoom.players.filter(
+        (player) => player.team === "blue" && player.role === "spymaster",
+      ).length,
+      1,
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    (
+      UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
+    ).findOne = originalFindOne;
+  }
+});
+
 test("resetRoomTeams restores active players to a clean team allocation", async () => {
   const originalFindByCode = roomRepository.findByCode;
   const originalFindOne = (

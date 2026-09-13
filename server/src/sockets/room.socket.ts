@@ -212,6 +212,11 @@ interface AddBotSocketPayload {
   botName?: unknown;
 }
 
+interface PopulateBotsSocketPayload {
+  roomCode?: unknown;
+  count?: unknown;
+}
+
 type ResetRoomSocketPayload = RoomResetPayload;
 
 type DebugRevealSocketPayload = GameDebugRevealPayload;
@@ -679,6 +684,76 @@ export function registerRoomSocketHandlers(
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Bot spawn failed.";
+      socket.emit("room:error", { message });
+    }
+  });
+
+  socket.on("room:populateBots", async (payload: PopulateBotsSocketPayload) => {
+    try {
+      if (!env.DEV_MODE && socket.data?.devMode !== true) {
+        socket.emit("room:error", {
+          message: "Bot population is available only in dev mode.",
+        });
+        return;
+      }
+
+      if (typeof payload.roomCode !== "string") {
+        socket.emit("room:error", {
+          message: "Invalid bot population payload.",
+        });
+        return;
+      }
+
+      const requestedCount =
+        typeof payload.count === "number" && Number.isInteger(payload.count)
+          ? payload.count
+          : 5;
+      const targetCount = Math.max(1, Math.min(requestedCount, 5));
+      const initialRoom = await roomRepository.findByCode(payload.roomCode);
+      if (!initialRoom) {
+        socket.emit("room:error", { message: "Room not found." });
+        return;
+      }
+      const roomCode = initialRoom.roomCode;
+      let populatedRoom = initialRoom.toObject() as unknown as Room;
+
+      const existingBotCount = populatedRoom.players.filter((player) =>
+        player.displayName.startsWith("Dev Player "),
+      ).length;
+
+      for (let index = existingBotCount; index < targetCount; index += 1) {
+        const botName = `Dev Player ${index + 1}`;
+        const joinedRoom = await joinRoom({
+          roomCode,
+          telegramId: generateBotTelegramId(botName),
+          displayName: botName,
+        });
+        const bot = joinedRoom.players.find(
+          (player) => player.displayName === botName,
+        );
+        if (!bot) {
+          throw new Error("Bot was not added to the room.");
+        }
+
+        const team = chooseBotTeam(joinedRoom);
+        const role = chooseBotRole(joinedRoom, team);
+        populatedRoom = await updateRoomPlayerAssignment({
+          roomCode: joinedRoom.roomCode,
+          telegramId: bot.telegramId,
+          team,
+          role,
+        });
+      }
+
+      await socket.join(roomCode);
+      io.to(roomCode).emit("room:updated", populatedRoom);
+      socket.emit("room:devPopulated", {
+        roomCode,
+        playerCount: populatedRoom.players.length,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Bot population failed.";
       socket.emit("room:error", { message });
     }
   });

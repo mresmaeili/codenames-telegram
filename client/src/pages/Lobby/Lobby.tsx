@@ -11,11 +11,12 @@ import { useSession } from "@/context/SessionContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
 import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
+import { LobbyHeaderBar } from "./LobbyHeaderBar";
 import { LobbySettingsPanel } from "./LobbySettingsPanel";
-import { ROOM_MIN_PLAYERS } from "../../../../shared/src/constants/room";
 import type { PlayerRole, Room, Team } from "../../../../shared/src/types/room";
 
 type AssignmentTeam = Team | null;
@@ -56,45 +57,7 @@ export interface SettingsFormState {
   customWords: string[];
 }
 
-type HostControlAction = "timer" | "language" | "word-pack";
-
-function getReadinessIssues(room: Room | null): string[] {
-  if (!room) {
-    return [];
-  }
-
-  const issues: string[] = [];
-
-  const activePlayers = room.players.filter((player) => player.team !== null);
-  if (activePlayers.length < ROOM_MIN_PLAYERS) {
-    issues.push(`At least ${ROOM_MIN_PLAYERS} players are required.`);
-  }
-
-  if (!room.players.some((player) => player.team === "red")) {
-    issues.push("At least one player must join the Red team.");
-  }
-
-  if (!room.players.some((player) => player.team === "blue")) {
-    issues.push("At least one player must join the Blue team.");
-  }
-
-  const redSpymasters = room.players.filter(
-    (player) => player.team === "red" && player.role === "spymaster",
-  );
-  const blueSpymasters = room.players.filter(
-    (player) => player.team === "blue" && player.role === "spymaster",
-  );
-
-  if (redSpymasters.length !== 1) {
-    issues.push("Red team must have exactly one Spymaster.");
-  }
-
-  if (blueSpymasters.length !== 1) {
-    issues.push("Blue team must have exactly one Spymaster.");
-  }
-
-  return issues;
-}
+type HostControlAction = "timer" | "word-pack";
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
@@ -214,16 +177,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
     if (!isOwner) {
       toast.error("Only the room owner can start the game.");
-      return;
-    }
-
-    if (!canStart) {
-      // show specific readiness issues to guide the owner
-      if (readinessIssues.length > 0) {
-        toast.error(`Cannot start: ${readinessIssues.join("; ")}`);
-      } else {
-        toast.error("Cannot start the game. Please check room setup.");
-      }
       return;
     }
 
@@ -495,8 +448,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     const titleMap: Record<HostControlAction, string> = {
       timer: "Timer",
-      language: "Language",
-      "word-pack": "Word pack",
+      "word-pack": "Word packs & language",
     };
 
     const title = titleMap[settingsPopupAction] ?? "Setting";
@@ -509,34 +461,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         </div>
 
-        {settingsPopupAction === "language" ? (
-          <div className="space-y-3">
-            {[
-              { value: "en", label: "English" },
-              { value: "fa", label: "Farsi" },
-              { value: "es", label: "Spanish" },
-              { value: "he", label: "Hebrew" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setSettingsForm((current) => ({
-                    ...current,
-                    language: option.value as SettingsFormState["language"],
-                  }))
-                }
-                className={`w-full rounded-3xl border px-4 py-3 text-left font-semibold ${
-                  settingsForm.language === option.value
-                    ? "border-[#2cc86c] bg-white/10 text-white"
-                    : "border-white/10 bg-(--app-background) text-(--app-text)"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        ) : settingsPopupAction === "timer" ? (
+        {settingsPopupAction === "timer" ? (
           <div className="space-y-4">
             {settingsForm.timer !== "none" ? (
               <div className="grid grid-cols-2 gap-3">
@@ -675,7 +600,45 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
             </div>
           </div>
         ) : settingsPopupAction === "word-pack" ? (
-          <WordPackEditor />
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-[0.2em] text-(--app-muted)">
+                Language
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "en", label: "English" },
+                  { value: "fa", label: "Farsi" },
+                  { value: "es", label: "Spanish" },
+                  { value: "he", label: "Hebrew" },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setSettingsForm((current) => ({
+                        ...current,
+                        language: option.value as SettingsFormState["language"],
+                      }))
+                    }
+                    className={`rounded-2xl border px-4 py-3 text-left font-semibold ${
+                      settingsForm.language === option.value
+                        ? "border-[#2cc86c] bg-white/10 text-white"
+                        : "border-white/10 bg-(--app-background) text-(--app-text)"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-[0.2em] text-(--app-muted)">
+                Word packs
+              </p>
+              <WordPackEditor />
+            </div>
+          </div>
         ) : null}
 
         <div className="mt-4 flex gap-2">
@@ -800,27 +763,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     );
   }
 
-  const readinessIssues = getReadinessIssues(room);
-  const isReady = readinessIssues.length === 0;
-  // Allow starting when both teams have a spymaster and minimum players,
-  // even if there are no operatives. This supports the "two spymasters, no
-  // operatives" flow where the next screen will proceed.
-  const activePlayers =
-    room?.players.filter((player) => player.team !== null) ?? [];
-  const redSpymasters =
-    room?.players.filter(
-      (player) => player.team === "red" && player.role === "spymaster",
-    ) ?? [];
-  const blueSpymasters =
-    room?.players.filter(
-      (player) => player.team === "blue" && player.role === "spymaster",
-    ) ?? [];
-
-  const canStart =
-    isReady ||
-    (redSpymasters.length === 1 &&
-      blueSpymasters.length === 1 &&
-      activePlayers.length >= ROOM_MIN_PLAYERS);
   const devMode = isDevModeEnabled();
   const redPlayers =
     room?.players.filter((player) => player.team === "red") ?? [];
@@ -898,148 +840,115 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="mx-auto w-full max-w-150 bg-[#070b12] px-3 pb-4 pt-0 text-white">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/15 bg-[#070b12]/96 py-2 backdrop-blur-md">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={onLeave}
-              className="ui-control flex h-10 w-10 items-center justify-center border-2 border-white/75 bg-white/5 text-xl text-white hover:bg-white/15"
-              aria-label="Leave lobby"
-            >
-              <Icon name="close" />
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5" />
-          <button
-            type="button"
-            onClick={() => void refreshLobby()}
-            disabled={loading}
-            className="ui-control flex h-10 items-center gap-1 border border-white/20 bg-white/5 px-3 text-xs font-bold text-white hover:bg-white/15"
-            data-syncing={loading}
-            aria-label="Sync lobby"
-            title="Sync lobby"
-          >
-            <span aria-hidden="true" className="text-base">
-              <Icon name="refresh" />
-            </span>
-            Sync
-          </button>
-        </div>
+      <div className="lobby-page mx-auto flex h-[100dvh] max-h-[100dvh] min-h-0 w-full max-w-150 flex-col overflow-hidden bg-[#070b12] px-3 pb-0 pt-0 text-white">
+        {room ? (
+          <LobbyHeaderBar
+            playerCount={room.players.length}
+            roomCode={room.roomCode}
+            refreshingLobby={loading}
+            onCopyRoomCode={handleCopyRoomCode}
+            onLeave={onLeave}
+            onRefresh={() => void refreshLobby()}
+          />
+        ) : null}
 
         {starting ? (
-          <div className="mb-4">
+          <div className="shrink-0 pb-2">
             <LoadingIndicator />
           </div>
         ) : null}
 
-        {loading ? (
-          <LoadingSkeleton variant="lobby" />
-        ) : error ? (
-          <div className="mb-4">
-            <StatusPanel
-              title="Lobby unavailable"
-              description={error}
-              tone="error"
-            />
-          </div>
-        ) : room ? (
-          <>
-            <div className="mt-2 w-full px-2">
-              <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#0b0f13] px-4 py-4 text-center sm:flex-row sm:justify-between sm:px-6">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">
-                    Room code
-                  </p>
-                  <div className="mt-1 text-4xl font-black tracking-[0.16em] text-white sm:text-5xl">
-                    {room.roomCode}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyRoomCode}
-                  className="ui-control flex min-h-11 w-full items-center justify-center gap-2 border border-white/20 bg-white px-5 py-2.5 text-sm font-black text-[#0b69ad] sm:w-auto"
-                >
-                  <Icon name="copy" size={16} />
-                  Copy room code
-                </button>
-              </div>
-
-              <div className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">
-                    Spectators
-                  </div>
-                </div>
-                <div className="flex min-h-12 items-center justify-center gap-3 overflow-x-auto py-2">
-                  {displaySpectatorPlayers.length > 0 ? (
-                    displaySpectatorPlayers.map((p) => (
-                      <button
-                        key={p.userId}
-                        type="button"
-                        onClick={() => handlePlayerClick(p)}
-                        disabled={!isOwner}
-                        className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
-                      >
-                        <img
-                          src={avatarUrlForPlayer(p)}
-                          alt={p.displayName}
-                          className="h-8 w-8 rounded-full object-cover"
-                        />
-                        <span className="whitespace-nowrap text-xs font-semibold text-white">
-                          {p.displayName}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-xs text-white/40 italic">
-                      No spectators
+        <div className="lobby-content min-h-0 flex-1 overflow-hidden">
+          {loading ? (
+            <LoadingSkeleton variant="lobby" />
+          ) : error ? (
+            <div className="mb-4">
+              <StatusPanel
+                title="Lobby unavailable"
+                description={error}
+                tone="error"
+              />
+            </div>
+          ) : room ? (
+            <>
+              <div className="lobby-body min-h-0 overflow-hidden">
+                <div className="lobby-room-meta mt-2 w-full shrink-0 px-2">
+                  <div className="lobby-spectators rounded-xl border border-white/15 bg-white/5 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/60">
+                        Spectators
+                      </div>
                     </div>
-                  )}
+                    <div className="flex min-h-12 items-center justify-center gap-3 overflow-x-auto py-2">
+                      {displaySpectatorPlayers.length > 0 ? (
+                        displaySpectatorPlayers.map((p) => (
+                          <button
+                            key={p.userId}
+                            type="button"
+                            onClick={() => handlePlayerClick(p)}
+                            disabled={!isOwner}
+                            className="flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
+                          >
+                            <span className="relative">
+                              <img
+                                src={avatarUrlForPlayer(p)}
+                                alt={p.displayName}
+                                className="h-8 w-8 rounded-full object-cover"
+                              />
+                              <PlayerAdminBadge
+                                isAdmin={room.ownerIds.includes(p.telegramId)}
+                              />
+                            </span>
+                            <span className="whitespace-nowrap text-xs font-semibold text-white">
+                              {p.displayName}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="text-xs text-white/40 italic">
+                          No spectators
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <LobbySettingsPanel
+                  settingsForm={settingsForm}
+                  isOwner={isOwner}
+                  onResetTeams={handleResetTeams}
+                  onRandomizeTeams={handleRandomizeTeams}
+                  onOpenTimerSettings={() => handleOpenSettingsPopup("timer")}
+                  onOpenWordPackSettings={() =>
+                    handleOpenSettingsPopup("word-pack")
+                  }
+                />
+
+                <LobbyAssignmentsPanel
+                  bluePlayers={displayBluePlayers}
+                  redPlayers={displayRedPlayers}
+                  ownerIds={room.ownerIds}
+                  onAssignmentChange={handleAssignmentChange}
+                  pendingAssignment={pendingAssignment}
+                  canManagePlayers={isOwner}
+                  onPlayerClick={handlePlayerClick}
+                  activeTeam={currentPlayer?.team}
+                  activeRole={currentPlayer?.role}
+                />
+
+                <div className="lobby-start mt-4 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleStartGame}
+                    className="lobby-start-button mt-4 w-full rounded-full border-2 border-[#a5ff55] bg-gradient-to-b from-[#54e313] to-[#25b900] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.42),0_5px_0_#168900,0_12px_18px_rgba(40,200,100,0.35)]"
+                  >
+                    Start game
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <LobbySettingsPanel
-              settingsForm={settingsForm}
-              isOwner={isOwner}
-              hostActionPending={hostActionPending}
-              onResetTeams={handleResetTeams}
-              onRandomizeTeams={handleRandomizeTeams}
-              onSaveSettings={handleSettingsSave}
-              onOpenLanguageSettings={() => handleOpenSettingsPopup("language")}
-              onOpenTimerSettings={() => handleOpenSettingsPopup("timer")}
-              onOpenWordPackSettings={() =>
-                handleOpenSettingsPopup("word-pack")
-              }
-              onModeChange={(gameMode) =>
-                setSettingsForm((current) => ({ ...current, gameMode }))
-              }
-            />
-
-            <LobbyAssignmentsPanel
-              bluePlayers={displayBluePlayers}
-              redPlayers={displayRedPlayers}
-              ownerIds={room.ownerIds}
-              onAssignmentChange={handleAssignmentChange}
-              pendingAssignment={pendingAssignment}
-              canManagePlayers={isOwner}
-              onPlayerClick={handlePlayerClick}
-              activeTeam={currentPlayer?.team}
-              activeRole={currentPlayer?.role}
-            />
-
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={handleStartGame}
-                className="mt-4 w-full rounded-full bg-[#2cc86c] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[0_12px_18px_rgba(40,200,100,0.35)]"
-              >
-                Start game
-              </button>
-            </div>
-          </>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </div>
     </PageContainer>
   );

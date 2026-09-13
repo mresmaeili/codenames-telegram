@@ -1,4 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
+
+.lobby-team-card-blue {
+  background: linear-gradient(145deg, #43add4 0%, #258fbd 100%);
+  border-color: rgba(164, 222, 235, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 12px rgba(22, 78, 104, 0.24);
+}
+
+.lobby-team-card-red {
+  background: linear-gradient(145deg, #ed806f 0%, #d66055 100%);
+  border-color: rgba(255, 198, 184, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 12px rgba(116, 48, 45, 0.24);
+}
+
+.lobby-join-button {
+  border-color: #a6df86;
+  background: linear-gradient(180deg, #68cf49 0%, #3dac2d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 2px 0 #2d8424;
+}
+
+.lobby-start-button {
+  border-color: #a8db8d;
+  background: linear-gradient(180deg, #68cf49 0%, #3dac2d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 3px 0 #2d8424,
+    0 9px 16px rgba(46, 130, 38, 0.25);
+}
+
+.lobby-settings {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(180deg, #5a5a5a 0%, #414141 48%, #303030 100%);
+}
+
+.lobby-word-pack-language {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(180deg, #555555 0%, #383838 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 0 rgba(0, 0, 0, 0.22);
+}
+
+.lobby-timer {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(180deg, #555555 0%, #383838 100%);
+}
+
+.lobby-setting-copy {
+  min-width: 0;
+}
+
+.lobby-setting-icon {
+  flex: 0 0 auto;
+}
 
 :root {
   --app-bg: var(--tg-bg-color, #0b69ad);
@@ -12,7 +72,9 @@
   --card-cream: #fffaf2;
   --card-back: #987653;
   --confirm-green: #51df20;
-  --font-persian: Tahoma, "Segoe UI", sans-serif;
+  --font-persian:
+    "Noto Sans Arabic", "Vazirmatn", "Yekan", "B Yekan", "Yekan Bakh", Tahoma,
+    "Segoe UI", sans-serif;
   --font-digital: "Courier New", Consolas, monospace;
   font-family: "Arial Narrow", Arial, sans-serif;
   line-height: 1.5;
@@ -56,6 +118,247 @@ body {
 @media (max-width: 480px) {
   body {
     font-size: 15px;
+  }
+
+  .lobby-page {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .dev-toolbar {
+    display: none;
+  }
+
+  .lobby-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lobby-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .lobby-room-meta {
+    margin-top: 0.35rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .lobby-spectators {
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    text-align: center;
+  }
+
+  .lobby-spectators > div:first-child {
+    justify-content: center;
+  }
+
+  .lobby-spectators > div:last-child {
+    min-height: 2rem;
+    gap: 0.35rem;
+    overflow: hidden;
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+  }
+
+  .lobby-spectators button {
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+  }
+
+  .lobby-spectators img {
+    height: 1.75rem;
+    width: 1.75rem;
+  }
+
+  .lobby-header-room {
+    gap: 0.35rem;
+  }
+
+  .lobby-header-room button {
+    min-height: 2rem;
+  }
+
+  .lobby-admin-mark {
+    color: #ffe45b;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.65));
+  }
+
+  .lobby-settings {
+    margin-top: 0.3rem;
+    border-width: 2px;
+    border-radius: 1rem;
+    padding: 0.35rem;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 5px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  .lobby-settings h2 {
+    margin-bottom: 0.25rem;
+    font-size: 0.98rem;
+    letter-spacing: 0.06em;
+  }
+
+  .lobby-mode-picker {
+    margin-bottom: 0.4rem;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .lobby-mode-button {
+    min-height: 3.8rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, #505050 0%, #292929 100%);
+    padding: 0.35rem 0.5rem;
+    text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .lobby-mode-button span:first-child {
+    font-size: 1.2rem;
+    line-height: 1.05;
+  }
+
+  .lobby-mode-button span:last-child {
+    font-size: 0.7rem;
+    margin-top: 0.2rem;
+  }
+
+  .lobby-option-grid {
+    gap: 0.3rem;
+  }
+
+  .lobby-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.7rem;
+    border-radius: 1.25rem;
+    border-width: 2px;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .lobby-word-pack-icon {
+    display: flex;
+    height: 2.7rem;
+    width: 3.3rem;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ead8c0;
+    border-radius: 0.25rem;
+    background: #d8c2a5;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.42);
+    color: #303030;
+    text-align: center;
+  }
+
+  .lobby-word-pack-icon span {
+    display: block;
+    width: 2.55rem;
+    border: 1px solid #a88d6e;
+    background: #f4e4cf;
+    padding: 0.12rem 0.05rem;
+    font-size: 0.48rem;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .lobby-timer-icon {
+    display: flex;
+    height: 2.9rem;
+    width: 2.9rem;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #e0b77b;
+    border-radius: 999px;
+    background: #f4f0e9;
+    color: #22252b;
+    font-size: 1.7rem;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+  }
+
+  .lobby-option > div:last-child {
+    margin-top: 0.05rem;
+    font-size: 0.88rem;
+  }
+
+  .lobby-timer > div:first-child > div:first-child {
+    height: 2rem;
+    width: 2rem;
+    font-size: 1rem;
+  }
+
+  .lobby-settings > div:nth-of-type(3) {
+    margin-top: 0.25rem;
+    gap: 0.3rem;
+  }
+
+  .lobby-settings > div:nth-of-type(3) button,
+  .lobby-settings > button {
+    min-height: 2rem;
+    border-width: 2px;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+  }
+
+  .lobby-assignment-row {
+    margin-top: 0.4rem;
+    gap: 0.35rem;
+  }
+
+  .lobby-assignment-row section {
+    min-height: 4.5rem;
+    padding: 0.35rem;
+  }
+
+  .lobby-assignment-row section > p {
+    font-size: 0.8rem;
+  }
+
+  .lobby-assignment-row section > div {
+    margin-top: 0.15rem;
+    margin-bottom: 0.15rem;
+    min-height: 1.5rem;
+    gap: 0.15rem;
+  }
+
+  .lobby-assignment-row section img {
+    height: 1.75rem;
+    width: 1.75rem;
+  }
+
+  .lobby-assignment-row section > button {
+    min-height: 2.35rem;
+    margin-top: 0.15rem;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+    font-size: 0.7rem;
+  }
+
+  .lobby-start {
+    margin-top: 0.25rem;
+  }
+
+  .lobby-start button {
+    min-height: 3.1rem;
+    margin-top: 0;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+    font-size: 1.7rem;
+    letter-spacing: 0.01em;
   }
 }
 
@@ -201,9 +504,79 @@ textarea:focus-visible {
   box-sizing: border-box;
 }
 
+.game-card-shell {
+  position: absolute;
+  inset: 0.45rem;
+  overflow: hidden;
+  border: 1px solid rgba(143, 91, 56, 0.42);
+  border-radius: 0.28rem;
+  background: linear-gradient(180deg, #ffdcb8 0%, #f7cda6 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 222, 0.58);
+}
+
+.game-card-label {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  left: 0.2rem;
+  display: flex;
+  min-height: 31%;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(107, 64, 38, 0.38);
+  border-radius: 0.18rem;
+  background: #9b7757;
+  padding: 0.15rem 0.25rem;
+  color: #fffaf2;
+  box-shadow: inset 0 1px 0 rgba(255, 227, 193, 0.18);
+}
+
+.game-card-label-red {
+  border-color: rgba(105, 25, 12, 0.58);
+  background: #982d17;
+}
+
+.game-card-label-blue {
+  border-color: rgba(10, 67, 108, 0.58);
+  background: #185d8a;
+}
+
+.game-card-label-neutral {
+  border-color: rgba(84, 84, 84, 0.52);
+  background: #464646;
+}
+
+.game-card-label-assassin {
+  border-color: rgba(0, 0, 0, 0.7);
+  background: #202020;
+}
+
+.game-card-tile-red {
+  border-color: #f58d61;
+  background: #ff553e;
+}
+
+.game-card-tile-blue {
+  border-color: #4adff2;
+  background: #08a8d3;
+}
+
+.game-card-tile-neutral {
+  border-color: #737373;
+  background: #626262;
+}
+
+.game-card-tile-assassin {
+  border-color: #555;
+  background: #303030;
+}
+
 .font-persian {
   font-family: var(--font-persian);
   font-weight: 700;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
 }
 
 .font-digital {

@@ -804,8 +804,7 @@ export async function shuffleRoomTeams(
 
   await assertRoomOwner(room, input.ownerTelegramId);
 
-  const activePlayers = room.players.filter((player) => player.team !== null);
-  const shuffled = [...activePlayers];
+  const shuffled = [...room.players];
 
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
@@ -820,10 +819,6 @@ export async function shuffleRoomTeams(
   const blueMirror = shuffled.slice(breakPoint);
 
   room.players.forEach((player) => {
-    if (!player.team) {
-      return;
-    }
-
     player.team = null;
     player.role = "operative";
   });
@@ -928,11 +923,6 @@ export async function startRoom(
   }
 
   await assertRoomOwner(room, input.ownerTelegramId);
-
-  const readinessErrors = collectReadinessErrors(room);
-  if (readinessErrors.length > 0) {
-    throw new Error(`Room is not ready: ${readinessErrors.join(" ")}`);
-  }
 
   room.status = "playing" as RoomStatus;
   const updatedRoom = await room.save();

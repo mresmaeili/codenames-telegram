@@ -1,3 +1,4 @@
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GameLog, type GameLogEntry } from "./GameLog";
@@ -21,7 +22,7 @@ import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
-import ostadBagheriImage from "@/assets/ostad-bagheri.png";
+import ostadBagheriImage from "@/assets/ostad-bagheri.webp";
 import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
 import opponentCardImage from "@/assets/opponnet-card.webp";
 import grayCardImage from "@/assets/gray-card.webp";
@@ -170,14 +171,10 @@ function RoomSettingsPopupContent({
                   alt={roomPlayer.displayName}
                   className="h-11 w-11 rounded-full border-2 border-white object-cover"
                 />
-                {room.ownerIds.includes(roomPlayer.telegramId) ? (
-                  <span
-                    aria-label="Room admin"
-                    className="absolute -right-1 -top-2 text-sm leading-none"
-                  >
-                    👑
-                  </span>
-                ) : null}
+                <PlayerAdminBadge
+                  isAdmin={room.ownerIds.includes(roomPlayer.telegramId)}
+                  className="text-sm"
+                />
               </span>
               <span className="max-w-16 truncate rounded-sm bg-white/15 px-1 text-[10px] font-bold text-white">
                 {roomPlayer.displayName}
@@ -282,10 +279,12 @@ function PlayerAssignmentPopupContent({
 
 function PlayerRosterPopupContent({
   room,
+  ownerIds,
   canManagePlayers,
   onPlayerClick,
 }: {
   room: Room;
+  ownerIds: number[];
   canManagePlayers: boolean;
   onPlayerClick: (player: Room["players"][number]) => void;
 }) {
@@ -341,11 +340,16 @@ function PlayerRosterPopupContent({
                     className="flex w-16 flex-col items-center gap-1 text-white disabled:cursor-default"
                     aria-label={`${canManagePlayers ? "Manage" : "View"} ${player.displayName}`}
                   >
-                    <img
-                      src={avatarUrlForPlayer(player)}
-                      alt={player.displayName}
-                      className={`h-11 w-11 rounded-full border-3 object-cover shadow-[0_3px_8px_rgba(0,0,0,0.3)] ${borderClass}`}
-                    />
+                    <span className="relative">
+                      <img
+                        src={avatarUrlForPlayer(player)}
+                        alt={player.displayName}
+                        className={`h-11 w-11 rounded-full border-3 object-cover shadow-[0_3px_8px_rgba(0,0,0,0.3)] ${borderClass}`}
+                      />
+                      <PlayerAdminBadge
+                        isAdmin={ownerIds.includes(player.telegramId)}
+                      />
+                    </span>
                     <span className="w-full truncate text-center text-[10px] font-bold">
                       {player.displayName}
                     </span>
@@ -466,6 +470,23 @@ export function GamePage({
   const viewerPlayer = state.room?.players.find(
     (player) => player.telegramId === user?.telegramId,
   );
+
+  useEffect(() => {
+    if (
+      !socket ||
+      !user?.telegramId ||
+      !state.game ||
+      !viewerPlayer ||
+      state.game.role === viewerPlayer.role
+    ) {
+      return;
+    }
+
+    socket.emit("game:sync", {
+      roomCode,
+      telegramId: user.telegramId,
+    });
+  }, [roomCode, socket, state.game, user?.telegramId, viewerPlayer]);
 
   useGameStateSync(
     socket,
@@ -1245,6 +1266,7 @@ export function GamePage({
     registerPopup(
       <PlayerRosterPopupContent
         room={state.room}
+        ownerIds={state.room.ownerIds}
         canManagePlayers={isRoomOwner}
         onPlayerClick={handleGamePlayerClick}
       />,
@@ -1264,7 +1286,7 @@ export function GamePage({
   return (
     <PageContainer>
       <div
-        className={`relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#c92f16]" : "bg-[#0b69ad]"}`}
+        className={`relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"}`}
       >
         {hintOverlay ? (
           <div className="pointer-events-none absolute left-1/2 top-[62%] z-40 w-[min(88%,34rem)] -translate-x-1/2 -translate-y-1/2">
@@ -1285,7 +1307,7 @@ export function GamePage({
                   className={
                     hintOverlay.team === "blue"
                       ? "text-[#159dce]"
-                      : "text-[#c94b3b]"
+                      : "text-[#d66055]"
                   }
                 >
                   {hintOverlay.number}
@@ -1431,6 +1453,7 @@ export function GamePage({
               }
               hideWords={false}
               selectedPlayersByCard={visibleSelectedPlayersByCard}
+              ownerIds={state.room?.ownerIds ?? []}
             />
             {cardFeedback ? (
               <div

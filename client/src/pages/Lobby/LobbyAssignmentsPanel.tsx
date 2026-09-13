@@ -1,4 +1,5 @@
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import type { Room } from "../../../../shared/src/types/room";
 
 interface LobbyAssignmentsPanelProps {
@@ -51,14 +52,7 @@ function PlayerList({
               title={player.displayName}
               className="h-11 w-11 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
             />
-            {ownerIds.includes(player.telegramId) ? (
-              <span
-                aria-label="Room admin"
-                className="absolute -right-1 -top-2 text-sm leading-none"
-              >
-                👑
-              </span>
-            ) : null}
+            <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
           </span>
           <span className="max-w-18 truncate rounded-sm bg-black/65 px-1.5 text-[10px] font-bold text-white whitespace-nowrap">
             {player.displayName}
@@ -85,13 +79,13 @@ export function LobbyAssignmentsPanel({
     team: "blue" | "red",
     role: "operative" | "spymaster",
   ) =>
-    `rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.2)] ${
-      team === "blue" ? "bg-[#159dce]" : "bg-[#ef5b5b]"
+    `lobby-team-card ${team === "blue" ? "lobby-team-card-blue" : "lobby-team-card-red"} rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.3)] ${
+      team === "blue" ? "bg-[#079ddd]" : "bg-[#ff5947]"
     } ${activeTeam === team && activeRole === role ? "border-[#76f21b]" : team === "blue" ? "border-[#75eaff]/70" : "border-[#ffc2aa]/80"}`;
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="lobby-assignment-row mt-5 grid grid-cols-2 gap-3">
         <section className={panelClasses("blue", "operative")}>
           <p className="text-center text-lg font-black uppercase tracking-tight">
             Operatives
@@ -106,7 +100,7 @@ export function LobbyAssignmentsPanel({
             type="button"
             onClick={() => onAssignmentChange("blue", "operative")}
             disabled={isAssignmentPending}
-            className="mt-2 w-full rounded-full border-2 border-white/80 bg-white/10 px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white active:bg-white/25 hover:bg-white/15 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
+            className="lobby-join-button mt-2 w-full rounded-full border-2 border-[#b9ff79] bg-gradient-to-b from-[#63ee21] to-[#22b900] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_3px_0_#168900] active:bg-[#25b900] hover:brightness-105 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
             {pendingAssignment?.team === "blue" &&
@@ -130,7 +124,7 @@ export function LobbyAssignmentsPanel({
             type="button"
             onClick={() => onAssignmentChange("red", "operative")}
             disabled={isAssignmentPending}
-            className="mt-2 w-full rounded-full border-2 border-white/80 bg-white/10 px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white active:bg-white/25 hover:bg-white/15 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
+            className="lobby-join-button mt-2 w-full rounded-full border-2 border-[#b9ff79] bg-gradient-to-b from-[#63ee21] to-[#22b900] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_3px_0_#168900] active:bg-[#25b900] hover:brightness-105 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
             {pendingAssignment?.team === "red" &&
@@ -141,7 +135,7 @@ export function LobbyAssignmentsPanel({
         </section>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="lobby-assignment-row mt-5 grid grid-cols-2 gap-3">
         <section className={panelClasses("blue", "spymaster")}>
           <p className="text-center text-lg font-black uppercase tracking-tight">
             Spymasters
@@ -156,7 +150,7 @@ export function LobbyAssignmentsPanel({
             type="button"
             onClick={() => onAssignmentChange("blue", "spymaster")}
             disabled={isAssignmentPending}
-            className="mt-2 w-full rounded-full border-2 border-white/80 bg-white/10 px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white active:bg-white/25 hover:bg-white/15 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
+            className="lobby-join-button mt-2 w-full rounded-full border-2 border-[#b9ff79] bg-gradient-to-b from-[#63ee21] to-[#22b900] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_3px_0_#168900] active:bg-[#25b900] hover:brightness-105 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
             {pendingAssignment?.team === "blue" &&
@@ -180,7 +174,7 @@ export function LobbyAssignmentsPanel({
             type="button"
             onClick={() => onAssignmentChange("red", "spymaster")}
             disabled={isAssignmentPending}
-            className="mt-2 w-full rounded-full border-2 border-white/80 bg-white/10 px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white active:bg-white/25 hover:bg-white/15 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
+            className="lobby-join-button mt-2 w-full rounded-full border-2 border-[#b9ff79] bg-gradient-to-b from-[#63ee21] to-[#22b900] px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_3px_0_#168900] active:bg-[#25b900] hover:brightness-105 touch-manipulation select-none disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ WebkitUserSelect: "none" }}
           >
             {pendingAssignment?.team === "red" &&

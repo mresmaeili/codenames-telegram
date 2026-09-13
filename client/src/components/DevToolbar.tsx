@@ -1,19 +1,12 @@
 import { useEffect, useState } from "react";
 
-import {
-  getDevModeInfo,
-  getDevModeUrl,
-  getDevModeUser,
-  isDevModeEnabled,
-} from "@/lib/dev";
+import { getDevModeInfo, getDevModeUser, isDevModeEnabled } from "@/lib/dev";
 import {
   disconnectSocketClient,
   getSocketClient,
   getSocketClientStatus,
   reconnectSocketClient,
 } from "@/socket/client";
-
-const fakeUsers = ["alice", "bob", "charlie"];
 
 export function DevToolbar() {
   const devModeEnabled = isDevModeEnabled();
@@ -59,6 +52,36 @@ export function DevToolbar() {
       socket.offAny(handleAny);
     };
   }, [socket]);
+
+  useEffect(() => {
+    if (!socket || !devUser) {
+      return undefined;
+    }
+
+    const handleBotsPopulated = (payload: { roomCode?: unknown }) => {
+      const roomCode =
+        typeof payload.roomCode === "string"
+          ? payload.roomCode
+          : currentRoom?.toUpperCase();
+      if (!roomCode) {
+        return;
+      }
+
+      socket.emit("room:start", {
+        roomCode,
+        ownerTelegramId: devUser.telegramId,
+      });
+      pushEventLog("room:start", {
+        roomCode,
+        ownerTelegramId: devUser.telegramId,
+      });
+    };
+
+    socket.on("room:devPopulated", handleBotsPopulated);
+    return () => {
+      socket.off("room:devPopulated", handleBotsPopulated);
+    };
+  }, [currentRoom, devUser, socket]);
 
   if (!devModeEnabled || typeof window === "undefined") {
     return null;
@@ -107,10 +130,20 @@ export function DevToolbar() {
     pushEventLog("game:debugReveal", { roomCode });
   };
 
+  const handlePopulateGameplay = () => {
+    const roomCode = currentRoom?.toUpperCase();
+    if (!socket || !roomCode) {
+      return;
+    }
+
+    socket.emit("room:populateBots", { roomCode, count: 5 });
+    pushEventLog("room:populateBots", { roomCode, count: 5 });
+  };
+
   const roomCode = currentRoom?.toUpperCase() || null;
 
   return (
-    <div className="border-t border-(--app-border) bg-(--app-background) px-3 py-2 text-xs text-(--app-muted)">
+    <div className="dev-toolbar border-t border-(--app-border) bg-(--app-background) px-3 py-2 text-xs text-(--app-muted)">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 truncate">
           <span className="font-semibold text-(--app-text)">DEV</span>
@@ -122,21 +155,13 @@ export function DevToolbar() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {fakeUsers.map((userName) => (
-            <button
-              key={userName}
-              type="button"
-              onClick={() => {
-                window.open(
-                  getDevModeUrl(userName, roomCode ?? undefined),
-                  "_blank",
-                );
-              }}
-              className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
-            >
-              Open {userName}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={handlePopulateGameplay}
+            className="rounded-full border border-(--app-border) px-3 py-2 text-(--app-text) transition hover:bg-(--app-border)"
+          >
+            Show gameplay with 5 players
+          </button>
           <button
             type="button"
             onClick={handleResetRoom}

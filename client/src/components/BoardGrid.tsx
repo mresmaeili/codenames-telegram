@@ -24,6 +24,7 @@ interface BoardGridProps {
   hintTeam?: Turn;
   hideWords?: boolean;
   selectedPlayersByCard?: Record<number, Room["players"]>;
+  ownerIds?: number[];
 }
 
 export function BoardGrid({
@@ -40,6 +41,7 @@ export function BoardGrid({
   hintTeam,
   hideWords = false,
   selectedPlayersByCard = {},
+  ownerIds = [],
 }: BoardGridProps) {
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
     new Set(),
@@ -146,6 +148,7 @@ export function BoardGrid({
                 selectedPlayers={
                   canSelectCard ? (selectedPlayersByCard[index] ?? []) : []
                 }
+                ownerIds={ownerIds}
               />
             </button>
             {isConfirmable ? (

@@ -1,5 +1,6 @@
 import type { Room, Team } from "@/../shared/src/types/room";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 
 interface SpymasterPanelProps {
   team: Team;
@@ -20,8 +21,8 @@ const panelStyles = {
     fallback: "🐟",
   },
   red: {
-    panel: "bg-[#c94b3b]",
-    border: "border-[#f39b84]",
+    panel: "bg-[#d66055]",
+    border: "border-[#efaa9d]",
     avatar: "border-[#ffc3be]",
     fallback: "🐙",
   },
@@ -68,14 +69,9 @@ export function SpymasterPanel({
                 title={player.displayName}
                 className="h-full w-full object-cover"
               />
-              {ownerIds.includes(player.telegramId) ? (
-                <span
-                  aria-label="Room admin"
-                  className="absolute -right-1 -top-2 text-[10px] leading-none"
-                >
-                  👑
-                </span>
-              ) : null}
+              <PlayerAdminBadge
+                isAdmin={ownerIds.includes(player.telegramId)}
+              />
             </>
           ) : (
             <span className="text-base">{styles.fallback}</span>
