@@ -159,7 +159,7 @@ export function BoardGrid({
             </button>
             {wrongCardIndex === index && cardFeedback ? (
               <div
-                className="pointer-events-none absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/90 bg-[#252525] shadow-[0_0_0_2px_rgba(0,0,0,0.3),0_4px_10px_rgba(0,0,0,0.45)]"
+                className="animate-wrong-card pointer-events-none absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white/90 bg-[#252525] shadow-[0_0_0_2px_rgba(0,0,0,0.3),0_4px_10px_rgba(0,0,0,0.45)]"
                 role="status"
                 aria-label={
                   cardFeedback === "opponent"
@@ -182,7 +182,7 @@ export function BoardGrid({
                         ? "Assassin card"
                         : "Gray card"
                   }
-                  className="animate-wrong-card h-full w-full object-cover"
+                  className="h-full w-full rounded-full object-contain"
                 />
               </div>
             ) : null}

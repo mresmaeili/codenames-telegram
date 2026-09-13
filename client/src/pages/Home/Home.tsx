@@ -314,6 +314,52 @@ export function HomePage() {
     await loginWithGuest(guestName);
   }
 
+  if (roomCode && !loading && !error && !user) {
+    return (
+      <PageContainer>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102d49]/70 px-4 backdrop-blur-sm">
+          <form
+            onSubmit={submitGuestLogin}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-name-title"
+            className="w-full max-w-sm rounded-[26px] border border-white/20 bg-[#0c70b4] p-5 text-white shadow-[0_24px_60px_rgba(3,25,52,0.45)] sm:p-6"
+          >
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/70">
+              Joining room {roomCode}
+            </p>
+            <h1 id="guest-name-title" className="mt-2 text-2xl font-black">
+              Choose your name
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-white/80">
+              Enter a name your friends will see in the game.
+            </p>
+            <label htmlFor="guestName" className="sr-only">
+              Your name
+            </label>
+            <input
+              id="guestName"
+              value={guestName}
+              onChange={(event) => setGuestName(event.target.value)}
+              placeholder="Your name"
+              maxLength={24}
+              autoComplete="nickname"
+              autoFocus
+              className="mt-5 w-full rounded-2xl border-2 border-white/70 bg-white px-4 py-3 text-lg text-[#18324d] outline-none placeholder:text-[#8190a1] focus:border-[#ffcf55]"
+            />
+            <button
+              type="submit"
+              disabled={loading || guestName.trim().length < 2}
+              className="mt-3 w-full rounded-2xl border-2 border-[#a7ef62] bg-[#29c500] px-4 py-3 text-lg font-black uppercase tracking-[0.04em] text-white shadow-[0_5px_0_#159500] transition hover:bg-[#35d20a] active:translate-y-1 active:shadow-[0_2px_0_#159500] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {loading ? "Joining..." : "Join game"}
+            </button>
+          </form>
+        </div>
+      </PageContainer>
+    );
+  }
+
   if (roomCode && activeView === "game") {
     return (
       <GamePage
