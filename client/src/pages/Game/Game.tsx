@@ -55,7 +55,11 @@ interface GamePageState {
 }
 
 function GameLoadingState() {
-  return <LoadingSkeleton variant="game" />;
+  return (
+    <div className="min-h-[100dvh] w-full bg-[#0b69ad]">
+      <LoadingSkeleton variant="game" />
+    </div>
+  );
 }
 
 function GameErrorState({
