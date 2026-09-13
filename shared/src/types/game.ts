@@ -61,6 +61,7 @@ export interface SpymasterCard extends PublicCard {
 export interface Game {
   id?: string;
   roomId: string;
+  stateVersion: number;
   status: GameStatus;
   board: Card[];
   startingTeam: Turn;
@@ -90,6 +91,7 @@ export interface Game {
 export interface GameViewBase {
   id?: string;
   roomId: string;
+  stateVersion: number;
   status: GameStatus;
   board: PublicCard[] | SpymasterCard[];
   startingTeam: Turn;

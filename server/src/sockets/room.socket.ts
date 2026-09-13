@@ -35,6 +35,7 @@ import { roomRepository } from "../repositories/room.repository.js";
 import { GameModel } from "../models/game.model.js";
 import { RoomModel } from "../models/room.model.js";
 import { env } from "../config/env.js";
+import { recordGameBroadcast } from "../utils/realtime-metrics.js";
 import type { Room } from "../../../shared/src/types/room.js";
 import type {
   RoomAssignPlayerPayload,
@@ -86,6 +87,41 @@ type SelectionSocketPayload = GameSelectInputPayload;
 type GameActionAcknowledgement = (error?: { message: string }) => void;
 
 type PassSocketPayload = GamePassInputPayload;
+
+function roleSocketRoom(
+  roomCode: string,
+  role: "operative" | "spymaster",
+): string {
+  return `${roomCode}:${role}s`;
+}
+
+function playerSocketRoom(roomCode: string, telegramId: number): string {
+  return `${roomCode}:player:${telegramId}`;
+}
+
+async function joinSocketRoleRooms(
+  socket: Socket,
+  roomCode: string,
+  telegramId: number,
+  role: "operative" | "spymaster",
+): Promise<void> {
+  await socket.join(roomCode);
+  await socket.join(playerSocketRoom(roomCode, telegramId));
+  await socket.join(roleSocketRoom(roomCode, role));
+}
+
+async function updatePlayerRoleRooms(
+  io: SocketIOServer,
+  roomCode: string,
+  telegramId: number,
+  role: "operative" | "spymaster",
+): Promise<void> {
+  const playerRoom = playerSocketRoom(roomCode, telegramId);
+  const nextRoleRoom = roleSocketRoom(roomCode, role);
+  const previousRole = role === "spymaster" ? "operative" : "spymaster";
+  io.in(playerRoom).socketsLeave(roleSocketRoom(roomCode, previousRole));
+  await io.in(playerRoom).socketsJoin(nextRoleRoom);
+}
 
 function getActorTelegramId(
   socket: Socket,
@@ -217,16 +253,20 @@ function buildGameSnapshotView(
   game: Awaited<ReturnType<typeof gameRepository.findById>>,
   room: Room,
   viewerTelegramId: number,
+  roleOverride?: "operative" | "spymaster",
 ) {
   if (!game || !room) return null;
 
   const viewerRole =
+    roleOverride ??
     room.players.find((player) => player.telegramId === viewerTelegramId)
-      ?.role ?? "operative";
+      ?.role ??
+    "operative";
 
   return buildGameView({
     id: game._id?.toString(),
     roomId: game.roomId,
+    stateVersion: game.stateVersion ?? 0,
     status: game.status,
     board: game.board,
     startingTeam: game.startingTeam,
@@ -264,23 +304,43 @@ async function emitGameState(
   game: Awaited<ReturnType<typeof gameRepository.findById>>,
 ): Promise<void> {
   if (!room || !game) return;
+  const startedAt = performance.now();
 
-  const connectedSockets = await io.in(roomCode).fetchSockets();
-  await Promise.all(
-    connectedSockets.map(async (connectedSocket) => {
-      const viewerTelegramId = connectedSocket.data.telegramId;
-      if (typeof viewerTelegramId !== "number") return;
+  const operativeView = buildGameSnapshotView(game, room, 0, "operative");
+  const spymasterView = buildGameSnapshotView(game, room, 0, "spymaster");
+  if (!operativeView || !spymasterView) return;
 
-      const gameView = buildGameSnapshotView(game, room, viewerTelegramId);
-      if (!gameView) return;
+  const serverTime = new Date().toISOString();
+  io.to(roleSocketRoom(roomCode, "operative")).emit("game:state", {
+    room,
+    game: operativeView,
+    serverTime,
+  });
+  io.to(roleSocketRoom(roomCode, "spymaster")).emit("game:state", {
+    room,
+    game: spymasterView,
+    serverTime,
+  });
+  recordGameBroadcast(performance.now() - startedAt, game.stateVersion ?? 0);
+}
 
-      connectedSocket.emit("game:state", {
-        room,
-        game: gameView,
-        serverTime: new Date().toISOString(),
-      });
-    }),
-  );
+function emitGameStateToSocket(
+  socket: Socket,
+  room: Room,
+  game: Awaited<ReturnType<typeof gameRepository.findById>>,
+  telegramId: number,
+): void {
+  if (!game) return;
+  const viewerRole =
+    room.players.find((player) => player.telegramId === telegramId)?.role ??
+    "operative";
+  const gameView = buildGameSnapshotView(game, room, telegramId, viewerRole);
+  if (!gameView) return;
+  socket.emit("game:state", {
+    room,
+    game: gameView,
+    serverTime: new Date().toISOString(),
+  });
 }
 
 export function startGameTimer(io: SocketIOServer): () => void {
@@ -313,7 +373,12 @@ export function registerRoomSocketHandlers(
             : undefined,
       });
 
-      await socket.join(room.roomCode);
+      await joinSocketRoleRooms(
+        socket,
+        room.roomCode,
+        payload.ownerTelegramId,
+        "operative",
+      );
       socket.emit("room:created", room);
       io.to(room.roomCode).emit("room:updated", room);
     } catch (error) {
@@ -354,7 +419,15 @@ export function registerRoomSocketHandlers(
           typeof payload.avatarId === "string" ? payload.avatarId : undefined,
       });
 
-      await socket.join(room.roomCode);
+      const joinedPlayer = room.players.find(
+        (player) => player.telegramId === payload.telegramId,
+      );
+      await joinSocketRoleRooms(
+        socket,
+        room.roomCode,
+        payload.telegramId,
+        joinedPlayer?.role === "spymaster" ? "spymaster" : "operative",
+      );
       socket.data = {
         ...socket.data,
         telegramId: payload.telegramId,
@@ -394,6 +467,12 @@ export function registerRoomSocketHandlers(
           role: payload.role,
         });
 
+        await updatePlayerRoleRooms(
+          io,
+          room.roomCode,
+          payload.telegramId,
+          payload.role as "operative" | "spymaster",
+        );
         io.to(room.roomCode).emit("room:updated", room);
         callback?.({});
       } catch (error) {
@@ -492,6 +571,12 @@ export function registerRoomSocketHandlers(
           role: payload.role,
         });
 
+        await updatePlayerRoleRooms(
+          io,
+          room.roomCode,
+          payload.targetTelegramId,
+          payload.role as "operative" | "spymaster",
+        );
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -688,6 +773,46 @@ export function registerRoomSocketHandlers(
   });
 
   socket.on(
+    "game:sync",
+    async (payload: { roomCode?: unknown; telegramId?: unknown }) => {
+      try {
+        if (
+          typeof payload.roomCode !== "string" ||
+          typeof payload.telegramId !== "number"
+        ) {
+          socket.emit("game:error", { message: "Invalid sync payload." });
+          return;
+        }
+
+        const telegramId = getActorTelegramId(socket, payload.telegramId);
+        const room = await RoomModel.findOne({
+          roomCode: payload.roomCode.toUpperCase(),
+        }).exec();
+        if (!room) {
+          socket.emit("game:error", { message: "Room not found." });
+          return;
+        }
+        const game = await gameRepository.findByRoomId(room._id.toString());
+        if (!game) {
+          socket.emit("game:error", { message: "Game not found." });
+          return;
+        }
+
+        emitGameStateToSocket(
+          socket,
+          room as unknown as Room,
+          game,
+          telegramId,
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to sync game.";
+        socket.emit("game:error", { message });
+      }
+    },
+  );
+
+  socket.on(
     "game:requestKeycard",
     async (payload: { roomCode?: unknown; requesterTelegramId?: unknown }) => {
       try {
@@ -819,6 +944,16 @@ export function registerRoomSocketHandlers(
           },
         });
 
+        await Promise.all(
+          room.players.map((player) =>
+            updatePlayerRoleRooms(
+              io,
+              room.roomCode,
+              player.telegramId,
+              "operative",
+            ),
+          ),
+        );
         io.to(room.roomCode).emit("room:updated", room);
       } catch (error) {
         const message =
@@ -999,40 +1134,49 @@ export function registerRoomSocketHandlers(
     }
   });
 
-  socket.on("game:hint", async (payload: HintSocketPayload) => {
-    try {
-      if (
-        typeof payload.gameId !== "string" ||
-        typeof payload.roomCode !== "string" ||
-        typeof payload.telegramId !== "number" ||
-        typeof payload.word !== "string" ||
-        typeof payload.number !== "number"
-      ) {
-        socket.emit("game:error", { message: "Invalid hint payload." });
-        return;
+  socket.on(
+    "game:hint",
+    async (
+      payload: HintSocketPayload,
+      acknowledge?: GameActionAcknowledgement,
+    ) => {
+      try {
+        if (
+          typeof payload.gameId !== "string" ||
+          typeof payload.roomCode !== "string" ||
+          typeof payload.telegramId !== "number" ||
+          typeof payload.word !== "string" ||
+          typeof payload.number !== "number"
+        ) {
+          socket.emit("game:error", { message: "Invalid hint payload." });
+          acknowledge?.({ message: "Invalid hint payload." });
+          return;
+        }
+
+        const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
+        const result = await submitHint({
+          gameId: payload.gameId,
+          roomCode: payload.roomCode,
+          telegramId: actorTelegramId,
+          word: payload.word,
+          number: payload.number,
+        });
+
+        await emitGameState(
+          io,
+          payload.roomCode.toUpperCase(),
+          result.room as unknown as Room,
+          result.game,
+        );
+        acknowledge?.();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to submit hint.";
+        socket.emit("game:error", { message });
+        acknowledge?.({ message });
       }
-
-      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
-      const result = await submitHint({
-        gameId: payload.gameId,
-        roomCode: payload.roomCode,
-        telegramId: actorTelegramId,
-        word: payload.word,
-        number: payload.number,
-      });
-
-      await emitGameState(
-        io,
-        payload.roomCode.toUpperCase(),
-        result.room as unknown as Room,
-        result.game,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to submit hint.";
-      socket.emit("game:error", { message });
-    }
-  });
+    },
+  );
 
   socket.on(
     "game:select",
@@ -1100,17 +1244,13 @@ export function registerRoomSocketHandlers(
             cardId: payload.cardId,
           });
 
-          await emitGameState(
-            io,
-            payload.roomCode.toUpperCase(),
-            selectedResult.room as unknown as Room,
-            selectedResult.game,
-          );
           const selectedPlayerId = room.players.find(
             (player) => player.telegramId === actorTelegramId,
           )?.userId;
           if (selectedPlayerId) {
             io.to(payload.roomCode.toUpperCase()).emit("game:selection", {
+              gameId: payload.gameId,
+              stateVersion: selectedResult.game.stateVersion ?? 0,
               cardId: payload.cardId,
               playerId: selectedPlayerId,
               selected: (selectedResult.game.pendingSelections ?? []).some(
@@ -1120,6 +1260,7 @@ export function registerRoomSocketHandlers(
               ),
             });
           }
+          acknowledge?.();
           return;
         }
 
@@ -1276,150 +1417,159 @@ export function registerRoomSocketHandlers(
     },
   );
 
-  socket.on("game:pass", async (payload: PassSocketPayload) => {
-    try {
-      if (
-        typeof payload.gameId !== "string" ||
-        typeof payload.roomCode !== "string" ||
-        typeof payload.telegramId !== "number"
-      ) {
-        socket.emit("game:error", { message: "Invalid pass payload." });
-        return;
-      }
+  socket.on(
+    "game:pass",
+    async (
+      payload: PassSocketPayload,
+      acknowledge?: GameActionAcknowledgement,
+    ) => {
+      try {
+        if (
+          typeof payload.gameId !== "string" ||
+          typeof payload.roomCode !== "string" ||
+          typeof payload.telegramId !== "number"
+        ) {
+          socket.emit("game:error", { message: "Invalid pass payload." });
+          acknowledge?.({ message: "Invalid pass payload." });
+          return;
+        }
 
-      const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
+        const actorTelegramId = getActorTelegramId(socket, payload.telegramId);
 
-      const game = await gameRepository.findById(payload.gameId);
-      if (!game) {
-        socket.emit("game:error", { message: "Game not found." });
-        return;
-      }
+        const game = await gameRepository.findById(payload.gameId);
+        if (!game) {
+          socket.emit("game:error", { message: "Game not found." });
+          return;
+        }
 
-      const room = await RoomModel.findOne({
-        roomCode: payload.roomCode.toUpperCase(),
-      }).exec();
-      if (!room) {
-        socket.emit("game:error", { message: "Room not found." });
-        return;
-      }
+        const room = await RoomModel.findOne({
+          roomCode: payload.roomCode.toUpperCase(),
+        }).exec();
+        if (!room) {
+          socket.emit("game:error", { message: "Room not found." });
+          return;
+        }
 
-      if (!gameBelongsToRoom(game, room)) {
-        socket.emit("game:error", {
-          message: "Game does not belong to this room.",
+        if (!gameBelongsToRoom(game, room)) {
+          socket.emit("game:error", {
+            message: "Game does not belong to this room.",
+          });
+          return;
+        }
+
+        const timeoutRequested = payload.timeout === true;
+        const timeoutAllowed =
+          timeoutRequested && hasTurnTimerExpired(game, room);
+
+        if (timeoutRequested && !timeoutAllowed) {
+          socket.emit("game:error", {
+            message: "The turn timer has not expired.",
+          });
+          return;
+        }
+
+        const validation = validateGameplayAction({
+          game: {
+            status: game.status,
+            currentTurn: game.currentTurn,
+            startingTeam: game.startingTeam,
+            remainingGuesses: game.remainingGuesses,
+            currentHintWord: game.currentHintWord ?? null,
+            currentHintNumber: game.currentHintNumber ?? null,
+            hintSubmittedAt: game.hintSubmittedAt ?? null,
+            board: game.board,
+            selectedCardId: game.selectedCardId ?? null,
+            selectedByPlayerId: game.selectedByPlayerId ?? null,
+            selectedAt: game.selectedAt ?? null,
+            winningTeam: game.winningTeam ?? null,
+            completionReason: game.completionReason ?? null,
+            completedAt: game.completedAt ?? null,
+          },
         });
-        return;
-      }
 
-      const timeoutRequested = payload.timeout === true;
-      const timeoutAllowed =
-        timeoutRequested && hasTurnTimerExpired(game, room);
+        if (!validation.ok) {
+          socket.emit("game:error", { message: validation.error });
+          return;
+        }
 
-      if (timeoutRequested && !timeoutAllowed) {
-        socket.emit("game:error", {
-          message: "The turn timer has not expired.",
+        const result = applyTurnPass({
+          game: {
+            status: game.status,
+            currentTurn: game.currentTurn,
+            remainingGuesses: game.remainingGuesses,
+            currentHintWord: game.currentHintWord ?? null,
+            currentHintNumber: game.currentHintNumber ?? null,
+            hintSubmittedAt: game.hintSubmittedAt ?? null,
+            board: game.board,
+            selectedCardId: game.selectedCardId ?? null,
+            selectedByPlayerId: game.selectedByPlayerId ?? null,
+            selectedAt: game.selectedAt ?? null,
+          },
+          room: { players: room.players },
+          senderTelegramId: actorTelegramId,
+          allowTimeout: timeoutAllowed,
         });
-        return;
+
+        const existingRounds = game.rounds ?? [];
+        const currentRound = existingRounds[existingRounds.length - 1];
+        const rounds =
+          !timeoutAllowed && currentRound?.team === game.currentTurn
+            ? existingRounds.map((round, index) =>
+                index === existingRounds.length - 1
+                  ? {
+                      ...round,
+                      passes: [
+                        ...(round.passes ?? []),
+                        {
+                          playerId:
+                            room.players.find(
+                              (player) => player.telegramId === actorTelegramId,
+                            )?.userId ?? null,
+                          passedAt: new Date(),
+                        },
+                      ],
+                    }
+                  : round,
+              )
+            : existingRounds;
+
+        const updatedGame = await gameRepository.update(
+          payload.gameId,
+          {
+            currentTurn: result.game.currentTurn,
+            remainingGuesses: result.game.remainingGuesses,
+            currentHintWord: result.game.currentHintWord,
+            currentHintNumber: result.game.currentHintNumber,
+            hintSubmittedAt: result.game.hintSubmittedAt,
+            selectedCardId: result.game.selectedCardId,
+            selectedByPlayerId: result.game.selectedByPlayerId,
+            selectedAt: result.game.selectedAt,
+            rounds,
+            phase: "spymaster",
+            phaseStartedAt: new Date(),
+            turnStartedAt: new Date(),
+          },
+          game.updatedAt,
+        );
+
+        if (!updatedGame) {
+          socket.emit("game:error", { message: "Unable to pass turn." });
+          return;
+        }
+
+        await emitGameState(
+          io,
+          payload.roomCode.toUpperCase(),
+          room as unknown as Room,
+          updatedGame,
+        );
+        acknowledge?.();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unable to pass turn.";
+        socket.emit("game:error", { message });
+        acknowledge?.({ message });
       }
-
-      const validation = validateGameplayAction({
-        game: {
-          status: game.status,
-          currentTurn: game.currentTurn,
-          startingTeam: game.startingTeam,
-          remainingGuesses: game.remainingGuesses,
-          currentHintWord: game.currentHintWord ?? null,
-          currentHintNumber: game.currentHintNumber ?? null,
-          hintSubmittedAt: game.hintSubmittedAt ?? null,
-          board: game.board,
-          selectedCardId: game.selectedCardId ?? null,
-          selectedByPlayerId: game.selectedByPlayerId ?? null,
-          selectedAt: game.selectedAt ?? null,
-          winningTeam: game.winningTeam ?? null,
-          completionReason: game.completionReason ?? null,
-          completedAt: game.completedAt ?? null,
-        },
-      });
-
-      if (!validation.ok) {
-        socket.emit("game:error", { message: validation.error });
-        return;
-      }
-
-      const result = applyTurnPass({
-        game: {
-          status: game.status,
-          currentTurn: game.currentTurn,
-          remainingGuesses: game.remainingGuesses,
-          currentHintWord: game.currentHintWord ?? null,
-          currentHintNumber: game.currentHintNumber ?? null,
-          hintSubmittedAt: game.hintSubmittedAt ?? null,
-          board: game.board,
-          selectedCardId: game.selectedCardId ?? null,
-          selectedByPlayerId: game.selectedByPlayerId ?? null,
-          selectedAt: game.selectedAt ?? null,
-        },
-        room: { players: room.players },
-        senderTelegramId: actorTelegramId,
-        allowTimeout: timeoutAllowed,
-      });
-
-      const existingRounds = game.rounds ?? [];
-      const currentRound = existingRounds[existingRounds.length - 1];
-      const rounds =
-        !timeoutAllowed && currentRound?.team === game.currentTurn
-          ? existingRounds.map((round, index) =>
-              index === existingRounds.length - 1
-                ? {
-                    ...round,
-                    passes: [
-                      ...(round.passes ?? []),
-                      {
-                        playerId:
-                          room.players.find(
-                            (player) => player.telegramId === actorTelegramId,
-                          )?.userId ?? null,
-                        passedAt: new Date(),
-                      },
-                    ],
-                  }
-                : round,
-            )
-          : existingRounds;
-
-      const updatedGame = await gameRepository.update(
-        payload.gameId,
-        {
-          currentTurn: result.game.currentTurn,
-          remainingGuesses: result.game.remainingGuesses,
-          currentHintWord: result.game.currentHintWord,
-          currentHintNumber: result.game.currentHintNumber,
-          hintSubmittedAt: result.game.hintSubmittedAt,
-          selectedCardId: result.game.selectedCardId,
-          selectedByPlayerId: result.game.selectedByPlayerId,
-          selectedAt: result.game.selectedAt,
-          rounds,
-          phase: "spymaster",
-          phaseStartedAt: new Date(),
-          turnStartedAt: new Date(),
-        },
-        game.updatedAt,
-      );
-
-      if (!updatedGame) {
-        socket.emit("game:error", { message: "Unable to pass turn." });
-        return;
-      }
-
-      await emitGameState(
-        io,
-        payload.roomCode.toUpperCase(),
-        room as unknown as Room,
-        updatedGame,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to pass turn.";
-      socket.emit("game:error", { message });
-    }
-  });
+    },
+  );
 }

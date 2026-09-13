@@ -489,7 +489,11 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   assert.equal(game.selectedCardId, null);
 
   const stateEvents = emitted.filter((event) => event.event === "game:state");
-  assert.equal(stateEvents.length, 4);
+  assert.equal(stateEvents.length, 2);
+  const selectionEvents = emitted.filter(
+    (event) => event.event === "game:selection",
+  );
+  assert.equal(selectionEvents.length, 3);
   const latestState = stateEvents[stateEvents.length - 1]?.payload as {
     game: {
       blueCardsRemaining: number;

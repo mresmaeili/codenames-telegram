@@ -67,11 +67,16 @@ export function useGameActions({
       word: word.trim(),
       number,
     };
-    socket.emit("game:hint", payload);
+    socket.emit("game:hint", payload, (error?: { message?: string }) => {
+      setHintSubmitting(false);
+      if (error?.message) {
+        setHintMessage(error.message);
+        return;
+      }
+      setHintMessage("Hint submitted.");
+    });
     setHintDraft({ word: "", number: "" });
     setSelectedHintCardIds(new Set());
-    setHintMessage("Hint submitted.");
-    setHintSubmitting(false);
   }
 
   function selectCard(cardIndex: number): void {
@@ -90,7 +95,11 @@ export function useGameActions({
       cardId: String(cardIndex),
       confirm: false,
     };
-    socket.emit("game:select", payload);
+    socket.emit("game:select", payload, (error?: { message?: string }) => {
+      if (!error?.message) return;
+      setHintMessage(error.message);
+      void onGameUpdated?.();
+    });
   }
 
   function confirmSelection(cardId?: string): void {
@@ -135,7 +144,9 @@ export function useGameActions({
       telegramId,
       timeout: secondsRemaining !== null && secondsRemaining <= 0,
     };
-    socket.emit("game:pass", payload);
+    socket.emit("game:pass", payload, (error?: { message?: string }) => {
+      if (error?.message) setHintMessage(error.message);
+    });
   }
 
   function takeTurn(): void {
@@ -151,7 +162,9 @@ export function useGameActions({
       telegramId,
       timeout: true,
     };
-    socket.emit("game:pass", payload);
+    socket.emit("game:pass", payload, (error?: { message?: string }) => {
+      if (error?.message) setHintMessage(error.message);
+    });
   }
 
   return {

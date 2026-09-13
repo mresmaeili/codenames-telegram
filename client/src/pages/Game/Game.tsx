@@ -808,6 +808,10 @@ export function GamePage({
               avatarId: user.avatarId ?? undefined,
             });
             setHasJoinedRoom(true);
+            socket.emit("game:sync", {
+              roomCode: roomCode.toUpperCase(),
+              telegramId: user.telegramId,
+            });
           }
           void loadGameData();
         }
@@ -948,24 +952,7 @@ export function GamePage({
       setSelectedHintCardIds,
       onGameUpdated: refreshGameState,
     });
-  const currentSelectedCardIndex = state.game?.selectedCardId
-    ? Number.parseInt(state.game.selectedCardId, 10)
-    : null;
-  const currentSelectedPlayer = state.room?.players.find(
-    (player) => player.userId === state.game?.selectedByPlayerId,
-  );
-  const visibleSelectedPlayersByCard =
-    currentSelectedCardIndex !== null && currentSelectedPlayer
-      ? {
-          ...selectedPlayersByCard,
-          [currentSelectedCardIndex]: [
-            ...(selectedPlayersByCard[currentSelectedCardIndex] ?? []).filter(
-              (player) => player.userId !== currentSelectedPlayer.userId,
-            ),
-            currentSelectedPlayer,
-          ],
-        }
-      : selectedPlayersByCard;
+  const visibleSelectedPlayersByCard = selectedPlayersByCard;
   const gameFinished = state.game?.status === "finished";
   const roomSettings = state.room?.settings;
   const legacyTimerDuration =
@@ -1032,7 +1019,10 @@ export function GamePage({
     state.room.players.find((p) => p.telegramId === user?.telegramId)?.role ===
       "operative",
   );
-  const selectedCardActive = Boolean(state.game?.selectedCardId);
+  const selectedCardActive = Object.values(selectedPlayersByCard).some(
+    (players) =>
+      players.some((player) => player.userId === viewerPlayer?.userId),
+  );
   const turnInstruction = gameFinished
     ? `${state.game?.winningTeam ?? "Winning"} team wins`
     : isViewerSpymaster

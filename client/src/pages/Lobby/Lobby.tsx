@@ -93,12 +93,6 @@ function getReadinessIssues(room: Room | null): string[] {
     issues.push("Blue team must have exactly one Spymaster.");
   }
 
-  room.players.forEach((player) => {
-    if (!player.team && !room.settings.allowSpectators) {
-      issues.push(`${player.displayName} must select a team.`);
-    }
-  });
-
   return issues;
 }
 

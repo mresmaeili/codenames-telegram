@@ -371,12 +371,6 @@ function collectReadinessErrors(room: RoomDocument): string[] {
     errors.push("Blue team must have exactly one Spymaster.");
   }
 
-  room.players.forEach((player) => {
-    if (!player.team && !room.settings.allowSpectators) {
-      errors.push(`${player.displayName} must select a team.`);
-    }
-  });
-
   return errors;
 }
 

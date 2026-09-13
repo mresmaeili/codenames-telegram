@@ -33,7 +33,14 @@ export const gameRepository: GameRepository = {
       : { _id: id };
     return GameModel.findOneAndUpdate(
       filter,
-      { ...update, updatedAt: new Date() },
+      {
+        ...update,
+        $inc: {
+          ...(update.$inc ?? {}),
+          stateVersion: 1,
+        },
+        updatedAt: new Date(),
+      },
       { new: true, timestamps: false },
     ).exec();
   },

@@ -101,6 +101,7 @@ export function getRemainingCardCounts(
 export function buildGameView(input: {
   id?: string;
   roomId: string;
+  stateVersion: number;
   status: GameStatus;
   board: Card[];
   startingTeam: Turn;
@@ -129,6 +130,7 @@ export function buildGameView(input: {
   const base = {
     id: input.id,
     roomId: input.roomId,
+    stateVersion: input.stateVersion,
     status: input.status,
     startingTeam: input.startingTeam,
     currentTurn: input.currentTurn,
@@ -209,6 +211,7 @@ export async function getGameByRoomCode(
   return buildGameView({
     id: game._id?.toString(),
     roomId: game.roomId,
+    stateVersion: game.stateVersion ?? 0,
     status: game.status,
     board: game.board,
     startingTeam: game.startingTeam,
@@ -266,6 +269,7 @@ export async function createGame(
 
   const gamePayload: Partial<Game> = {
     roomId: room._id.toString(),
+    stateVersion: 0,
     status: "active" as GameStatus,
     board,
     startingTeam,

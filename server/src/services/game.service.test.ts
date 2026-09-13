@@ -13,6 +13,7 @@ test("buildGameView returns a public board for operatives and a colorized board 
 
   const operativeView = buildGameView({
     roomId: "room-1",
+    stateVersion: 0,
     status: "active",
     board,
     startingTeam: "blue",
@@ -69,6 +70,7 @@ test("buildGameView returns a public board for operatives and a colorized board 
 
   const spymasterView = buildGameView({
     roomId: "room-1",
+    stateVersion: 0,
     status: "active",
     board,
     startingTeam: "blue",
@@ -105,6 +107,7 @@ test("buildGameView reveals the full board to operatives after game completion",
 
   const finishedView = buildGameView({
     roomId: "room-1",
+    stateVersion: 0,
     status: "finished",
     board,
     startingTeam: "blue",

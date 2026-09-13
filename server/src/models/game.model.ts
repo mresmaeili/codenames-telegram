@@ -38,6 +38,12 @@ const gameSchema = new Schema<GameDocument>(
       required: true,
       index: true,
     },
+    stateVersion: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
     status: {
       type: String,
       enum: ["active", "finished"],
