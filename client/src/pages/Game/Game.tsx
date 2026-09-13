@@ -943,6 +943,10 @@ export function GamePage({
   const activeSecondsRemaining = isActiveSpymaster
     ? spymasterSecondsRemaining
     : operativeSecondsRemaining;
+  const gameLogSecondsRemaining =
+    state.game?.phase === "operatives"
+      ? operativeSecondsRemaining
+      : spymasterSecondsRemaining;
   const timerExpired =
     activeSecondsRemaining !== null && activeSecondsRemaining <= 0;
   const canPassTurn = canPassTurnForViewer(
@@ -1363,7 +1367,7 @@ export function GamePage({
             entries={gameLog}
             players={state.room?.players ?? []}
             timerDuration={timerDuration}
-            secondsRemaining={activeSecondsRemaining}
+            secondsRemaining={gameLogSecondsRemaining}
             timerProgress={timerProgress}
             className="h-28 max-h-28 min-h-0 border-2 border-white/20 bg-[#292929]"
           />
@@ -1551,7 +1555,7 @@ export function GamePage({
               entries={gameLog}
               players={state.room?.players ?? []}
               timerDuration={timerDuration}
-              secondsRemaining={activeSecondsRemaining}
+              secondsRemaining={gameLogSecondsRemaining}
               timerProgress={timerProgress}
               className="h-28 max-h-28 shrink-0 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
             />
