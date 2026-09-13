@@ -106,6 +106,12 @@ export interface RoomAssignPlayerPayload {
   role?: unknown;
 }
 
+export interface RoomKickPlayerPayload {
+  roomCode?: unknown;
+  actorTelegramId?: unknown;
+  targetTelegramId?: unknown;
+}
+
 export interface RoomTransferOwnerPayload {
   roomCode?: unknown;
   ownerTelegramId?: unknown;

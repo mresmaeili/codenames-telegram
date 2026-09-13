@@ -16,6 +16,7 @@ import {
   transferRoomOwnership,
   updateRoomPlayerAssignment,
   updateRoomSettings,
+  kickRoomPlayer,
 } from "./room.service.js";
 import { createRoomDocument } from "../test-utils/test-helpers.js";
 
@@ -320,6 +321,55 @@ test("updateRoomPlayerAssignment allows a spectator when spectators are enabled"
     assert.equal(updatedRoom.players[1]?.role, "operative");
   } finally {
     roomRepository.findByCode = originalFindByCode;
+  }
+});
+
+test("kickRoomPlayer removes only a spectator when requested by an owner", async () => {
+  const originalFindByCode = roomRepository.findByCode;
+  const originalFind = UserModel.find;
+  const room = createRoomDocument({
+    roomCode: "ABC123",
+    ownerId: 1,
+    ownerIds: [1],
+    players: [
+      {
+        userId: "owner-id",
+        telegramId: 1,
+        displayName: "Owner",
+        team: "red",
+        role: "spymaster",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: "spectator-id",
+        telegramId: 2,
+        displayName: "Spectator",
+        team: null,
+        role: "operative",
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  roomRepository.findByCode = async () => room;
+  (UserModel as unknown as { find: typeof UserModel.find }).find = (() => ({
+    select: () => ({ exec: async () => [] }),
+  })) as unknown as typeof UserModel.find;
+
+  try {
+    const updatedRoom = await kickRoomPlayer({
+      roomCode: "abc123",
+      actorTelegramId: 1,
+      targetTelegramId: 2,
+    });
+
+    assert.deepEqual(
+      updatedRoom.players.map((player) => player.telegramId),
+      [1],
+    );
+  } finally {
+    roomRepository.findByCode = originalFindByCode;
+    UserModel.find = originalFind;
   }
 });
 

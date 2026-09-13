@@ -3,6 +3,7 @@ import type { Server as SocketIOServer, Socket } from "socket.io";
 import { leaveRoom } from "../services/lobby.service.js";
 import {
   createRoom,
+  kickRoomPlayer,
   joinRoom,
   resetRoomTeams,
   assignRoomPlayer,
@@ -42,6 +43,7 @@ import type {
   RoomAdminPayload,
   RoomCreatePayload,
   RoomJoinPayload,
+  RoomKickPlayerPayload,
   RoomOwnerPayload,
   RoomSettingsPayload,
   RoomTransferOwnerPayload,
@@ -68,6 +70,8 @@ type TransferHostSocketPayload = RoomTransferOwnerPayload;
 type SetRoomAdminSocketPayload = RoomAdminPayload;
 
 type AssignRoomPlayerSocketPayload = RoomAssignPlayerPayload;
+
+type KickRoomPlayerSocketPayload = RoomKickPlayerPayload;
 
 type ShuffleRoomTeamsSocketPayload = RoomOwnerPayload;
 
@@ -592,6 +596,48 @@ export function registerRoomSocketHandlers(
           socket.emit("room:error", {
             message: "Invalid player assignment payload.",
           });
+
+          socket.on(
+            "room:kickPlayer",
+            async (payload: KickRoomPlayerSocketPayload) => {
+              try {
+                if (
+                  typeof payload.roomCode !== "string" ||
+                  typeof payload.actorTelegramId !== "number" ||
+                  typeof payload.targetTelegramId !== "number"
+                ) {
+                  socket.emit("room:error", {
+                    message: "Invalid kick player payload.",
+                  });
+                  return;
+                }
+
+                const actorTelegramId = getActorTelegramId(
+                  socket,
+                  payload.actorTelegramId,
+                );
+                const updatedRoom = await kickRoomPlayer({
+                  roomCode: payload.roomCode,
+                  actorTelegramId,
+                  targetTelegramId: payload.targetTelegramId,
+                });
+
+                io.to(updatedRoom.roomCode).emit("room:updated", updatedRoom);
+                io.in(
+                  playerSocketRoom(
+                    updatedRoom.roomCode,
+                    payload.targetTelegramId,
+                  ),
+                ).socketsLeave(updatedRoom.roomCode);
+              } catch (error) {
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : "Player kick failed.";
+                socket.emit("room:error", { message });
+              }
+            },
+          );
           return;
         }
 

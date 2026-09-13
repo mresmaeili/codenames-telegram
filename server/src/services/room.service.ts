@@ -84,6 +84,12 @@ export interface AssignRoomPlayerInput {
   role: unknown;
 }
 
+export interface KickRoomPlayerInput {
+  roomCode: string;
+  actorTelegramId: number;
+  targetTelegramId: number;
+}
+
 export interface ShuffleRoomTeamsInput {
   roomCode: string;
   ownerTelegramId: number;
@@ -773,6 +779,47 @@ export async function assignRoomPlayer(
 
   targetPlayer.team = assignmentValues.team;
   targetPlayer.role = assignmentValues.role;
+  const updatedRoom = await room.save();
+  return await serializeRoom(updatedRoom);
+}
+
+export async function kickRoomPlayer(
+  input: KickRoomPlayerInput,
+): Promise<CreateRoomResult> {
+  const normalizedRoomCode = input.roomCode.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(normalizedRoomCode)) {
+    throw new Error("Invalid room code format.");
+  }
+
+  const room = await roomRepository.findByCode(normalizedRoomCode);
+  if (!room) {
+    throw new Error("Room not found.");
+  }
+
+  await assertRoomOwner(room, input.actorTelegramId);
+
+  const targetPlayer = room.players.find(
+    (player) => player.telegramId === input.targetTelegramId,
+  );
+  if (!targetPlayer) {
+    throw new Error("Target user is not a member of this room.");
+  }
+
+  if (targetPlayer.team !== null) {
+    throw new Error("Only spectators can be kicked.");
+  }
+
+  if (targetPlayer.telegramId === room.ownerId) {
+    throw new Error("The room creator cannot be kicked.");
+  }
+
+  room.players = room.players.filter(
+    (player) => player.telegramId !== input.targetTelegramId,
+  );
+  room.ownerIds = room.ownerIds.filter(
+    (telegramId) => telegramId !== input.targetTelegramId,
+  );
+
   const updatedRoom = await room.save();
   return await serializeRoom(updatedRoom);
 }

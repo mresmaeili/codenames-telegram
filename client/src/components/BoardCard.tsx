@@ -54,6 +54,12 @@ export function BoardCard({
   const revealedStyles = revealedColor ? tileStyles[revealedColor] : null;
   const tileColor = revealedStyles?.tile ?? "border-[#e8b98c] bg-[#f8cda8]";
   const labelColor = revealedStyles?.label ?? "";
+  const wordLengthClass =
+    word.length >= 11
+      ? "text-[clamp(0.58rem,2.2vw,0.86rem)]"
+      : word.length >= 8
+        ? "text-[clamp(0.65rem,2.5vw,0.96rem)]"
+        : "text-[clamp(0.72rem,2.8vw,1.08rem)]";
 
   return (
     <div
@@ -101,7 +107,7 @@ export function BoardCard({
         <span
           dir="rtl"
           lang="fa"
-          className={`game-card-label font-persian ${labelColor} text-[clamp(0.72rem,2.8vw,1.08rem)] font-bold uppercase leading-tight tracking-[0.01em] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
+          className={`game-card-label max-w-full px-0.5 text-center font-persian ${labelColor} ${wordLengthClass} font-bold uppercase leading-[1.05] tracking-[0.01em] [overflow-wrap:anywhere] ${hiddenWord ? "opacity-0" : "opacity-100"}`}
         >
           {word}
         </span>
