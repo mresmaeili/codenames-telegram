@@ -38,6 +38,11 @@ const gameSchema = new Schema<GameDocument>(
       required: true,
       index: true,
     },
+    theme: {
+      type: String,
+      enum: ["classic", "persian"],
+      default: "classic",
+    },
     stateVersion: {
       type: Number,
       required: true,

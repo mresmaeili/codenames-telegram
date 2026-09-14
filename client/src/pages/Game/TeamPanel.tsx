@@ -1,5 +1,7 @@
 import type { Room, Team } from "@/../shared/src/types/room";
+import { characterForTeamSlot } from "../../../../shared/src/constants/characters";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { CharacterBadge } from "@/components/CharacterBadge";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
@@ -13,6 +15,7 @@ interface TeamPanelProps {
   onPlayerClick: (player: Room["players"][number]) => void;
   className?: string;
   compact?: boolean;
+  theme?: "classic" | "persian";
 }
 
 const teamStyles = {
@@ -46,6 +49,7 @@ export function TeamPanel({
   onPlayerClick,
   className = "",
   compact = false,
+  theme,
 }: TeamPanelProps) {
   const styles = teamStyles[team];
 
@@ -60,7 +64,7 @@ export function TeamPanel({
       </div>
       <div className="flex items-end justify-center gap-1">
         <div className="flex items-end justify-center -space-x-2">
-          {operatives.slice(0, 3).map((player) => (
+          {operatives.slice(0, 3).map((player, index) => (
             <button
               key={player.userId}
               type="button"
@@ -86,6 +90,9 @@ export function TeamPanel({
               >
                 {player.displayName}
               </span>
+              <CharacterBadge
+                character={characterForTeamSlot(theme, team, index)}
+              />
             </button>
           ))}
           {operatives.length === 0 ? (

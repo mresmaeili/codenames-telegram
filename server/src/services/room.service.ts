@@ -102,6 +102,7 @@ export interface ResetRoomTeamsInput {
 
 function createDefaultSettings(): RoomSettings {
   return {
+    theme: "classic",
     maxPlayers: ROOM_MAX_PLAYERS,
     allowSpectators: false,
     privateRoom: false,
@@ -180,17 +181,25 @@ async function ensureUserExists(
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "") || null;
 
-  const devUser = await UserModel.create({
-    telegramId,
-    username,
-    firstName: displayName.trim() || "Developer",
-    lastName: null,
-    photoUrl: null,
-    languageCode: "en",
-    lastLoginAt: new Date(),
-  });
+  try {
+    const devUser = await UserModel.create({
+      telegramId,
+      username,
+      firstName: displayName.trim() || "Developer",
+      lastName: null,
+      photoUrl: null,
+      languageCode: "en",
+      lastLoginAt: new Date(),
+    });
 
-  return devUser._id.toString();
+    return devUser._id.toString();
+  } catch (error) {
+    if (error instanceof Error && error.name === "MongoServerError") {
+      const racedUser = await UserModel.findOne({ telegramId });
+      if (racedUser) return racedUser._id.toString();
+    }
+    throw error;
+  }
 }
 
 function validateCreateRoomInput(input: CreateRoomInput): void {
@@ -239,6 +248,13 @@ function validateAssignmentValues(
 }
 
 function validateRoomSettings(settings: RoomSettings): void {
+  if (
+    settings.theme !== undefined &&
+    settings.theme !== "classic" &&
+    settings.theme !== "persian"
+  ) {
+    throw new Error("Invalid game theme.");
+  }
   if (!Number.isInteger(settings.maxPlayers)) {
     throw new Error("Maximum players must be a whole number.");
   }
@@ -455,7 +471,7 @@ async function serializeRoom(room: RoomDocument): Promise<CreateRoomResult> {
     ownerIds,
     players: playersWithPhotos,
     status: room.status,
-    settings: room.settings,
+    settings: { ...room.settings, theme: room.settings.theme ?? "classic" },
     createdAt: room.createdAt,
     updatedAt: room.updatedAt,
   };
@@ -634,7 +650,11 @@ export async function updateRoomSettings(
 
   await assertRoomOwner(room, input.ownerTelegramId);
 
-  room.settings = input.settings;
+  room.settings = {
+    ...room.settings,
+    ...input.settings,
+    theme: input.settings.theme ?? room.settings.theme ?? "classic",
+  };
   const updatedRoom = await room.save();
   return await serializeRoom(updatedRoom);
 }

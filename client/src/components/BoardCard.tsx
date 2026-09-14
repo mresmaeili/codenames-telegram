@@ -14,6 +14,7 @@ interface BoardCardProps {
   showRevealedWord?: boolean;
   selectedPlayers?: Room["players"];
   ownerIds?: number[];
+  revealAsset?: string | null;
 }
 
 const tileStyles: Record<CardColor, { tile: string; label: string }> = {
@@ -39,9 +40,11 @@ export function BoardCard({
   showRevealedWord = false,
   selectedPlayers = [],
   ownerIds = [],
+  revealAsset = null,
 }: BoardCardProps) {
   const isFlipped = Boolean(revealedColor);
-  const hiddenWord = hideWord || (Boolean(revealedColor) && !showRevealedWord);
+  const hiddenWord =
+    hideWord || (Boolean(revealedColor) && !showRevealedWord && !revealAsset);
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)]",
   ];
@@ -65,9 +68,17 @@ export function BoardCard({
 
   return (
     <div
-      className={`relative flex aspect-square items-center justify-center rounded-[7px] border lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
+      {revealAsset ? (
+        <img
+          src={revealAsset}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[18%] left-1/2 z-20 h-[145%] w-[82%] -translate-x-1/2 object-contain object-bottom animate-character-reveal"
+        />
+      ) : null}
       <div className="game-card-shell">
         {selectedPlayers.length > 0 ? (
           <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">

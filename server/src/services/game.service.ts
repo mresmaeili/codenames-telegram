@@ -101,6 +101,7 @@ export function getRemainingCardCounts(
 export function buildGameView(input: {
   id?: string;
   roomId: string;
+  theme?: Game["theme"];
   stateVersion: number;
   status: GameStatus;
   board: Card[];
@@ -130,6 +131,7 @@ export function buildGameView(input: {
   const base = {
     id: input.id,
     roomId: input.roomId,
+    theme: input.theme ?? "classic",
     stateVersion: input.stateVersion,
     status: input.status,
     startingTeam: input.startingTeam,
@@ -211,6 +213,7 @@ export async function getGameByRoomCode(
   return buildGameView({
     id: game._id?.toString(),
     roomId: game.roomId,
+    theme: game.theme ?? room.settings.theme ?? "classic",
     stateVersion: game.stateVersion ?? 0,
     status: game.status,
     board: game.board,
@@ -282,6 +285,7 @@ export async function createGame(
     phase: "spymaster",
     phaseStartedAt: new Date(),
     turnStartedAt: new Date(),
+    theme: room.settings.theme ?? "classic",
     hintHistory: [],
     selectedCardId: null,
     selectedByPlayerId: null,

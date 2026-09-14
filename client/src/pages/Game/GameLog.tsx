@@ -5,7 +5,6 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 import { Icon } from "@/components/Icon";
 import { isDevModeEnabled } from "@/lib/dev";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
-import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 export interface GameLogEntry {
   id: string;
@@ -24,7 +23,6 @@ interface GameLogProps {
   ownerIds?: number[];
   timerDuration: number | null;
   secondsRemaining: number | null;
-  timerProgress: number;
   className?: string;
 }
 
@@ -65,7 +63,6 @@ export function GameLog({
   ownerIds = [],
   timerDuration,
   secondsRemaining,
-  timerProgress,
   className = "",
 }: GameLogProps) {
   const previewEntries = entries;
@@ -73,8 +70,6 @@ export function GameLog({
     timerDuration ?? (isDevModeEnabled() ? 90 : null);
   const previewSecondsRemaining =
     secondsRemaining ?? (isDevModeEnabled() ? 58 : null);
-  const previewTimerProgress =
-    secondsRemaining === null && isDevModeEnabled() ? 65 : timerProgress;
   const logScrollRef = useRef<HTMLDivElement>(null);
   const latestEntryId = previewEntries[previewEntries.length - 1]?.id ?? null;
 
@@ -100,12 +95,6 @@ export function GameLog({
         >
           <div className="font-digital text-[clamp(0.7rem,2.5vw,0.85rem)] font-normal leading-none tracking-tight">
             {formatTimer(previewSecondsRemaining)}
-          </div>
-          <div className="mt-0.5 h-0.5 overflow-hidden rounded-full bg-black/20">
-            <div
-              className="h-full rounded-full bg-white/85 transition-[width] duration-500"
-              style={{ width: `${previewTimerProgress}%` }}
-            />
           </div>
         </div>
       ) : null}
@@ -147,12 +136,6 @@ export function GameLog({
                         title={hintPlayer?.displayName ?? round.hint.team}
                         className={`h-7 w-7 rounded-full border-2 object-cover ${teamColor.avatar}`}
                       />
-                      {hintPlayer ? (
-                        <PlayerPresenceDot
-                          player={hintPlayer}
-                          className="border-white"
-                        />
-                      ) : null}
                       <PlayerAdminBadge
                         isAdmin={ownerIds.includes(hintPlayer?.telegramId ?? 0)}
                       />
@@ -205,12 +188,6 @@ export function GameLog({
                                 title={guessPlayer?.displayName ?? guess.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
                               />
-                              {guessPlayer ? (
-                                <PlayerPresenceDot
-                                  player={guessPlayer}
-                                  className="border-white"
-                                />
-                              ) : null}
                               <PlayerAdminBadge
                                 isAdmin={ownerIds.includes(
                                   guessPlayer?.telegramId ?? 0,
@@ -252,12 +229,6 @@ export function GameLog({
                                 title={passPlayer?.displayName ?? pass.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
                               />
-                              {passPlayer ? (
-                                <PlayerPresenceDot
-                                  player={passPlayer}
-                                  className="border-white"
-                                />
-                              ) : null}
                               <PlayerAdminBadge
                                 isAdmin={ownerIds.includes(
                                   passPlayer?.telegramId ?? 0,

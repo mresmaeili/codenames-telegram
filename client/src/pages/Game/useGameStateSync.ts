@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Socket } from "socket.io-client";
 import type { GameStateSnapshot } from "@/../shared/src/types/socket";
 import { hydrateGameSnapshot } from "./gameSnapshot";
+import { shouldApplyGameState } from "./stateVersion";
 
 export function useGameStateSync(
   socket: Socket | null,
@@ -32,10 +33,16 @@ export function useGameStateSync(
       const gameId = snapshot.game.id ?? snapshot.game.roomId;
       const stateVersion = snapshot.game.stateVersion ?? 0;
       const latest = latestVersionRef.current;
+      if (
+        !shouldApplyGameState(
+          { gameId: latest.gameId ?? gameId, stateVersion: latest.version },
+          { gameId, stateVersion },
+        )
+      ) {
+        return;
+      }
       if (latest.gameId !== gameId) {
         latestVersionRef.current = { gameId, version: stateVersion };
-      } else if (stateVersion < latest.version) {
-        return;
       } else {
         latest.version = stateVersion;
       }
@@ -59,8 +66,16 @@ export function useGameStateSync(
       }
       const latest = latestVersionRef.current;
       if (
-        latest.gameId !== selection.gameId ||
-        selection.stateVersion < latest.version
+        !shouldApplyGameState(
+          {
+            gameId: latest.gameId ?? selection.gameId,
+            stateVersion: latest.version,
+          },
+          {
+            gameId: selection.gameId,
+            stateVersion: selection.stateVersion,
+          },
+        )
       ) {
         return;
       }

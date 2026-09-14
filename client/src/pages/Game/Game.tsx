@@ -435,6 +435,21 @@ function getPlayerCount(room: Room | null): number {
   return room?.players.length ?? 0;
 }
 
+function preserveRoomPresence(room: Room, previousRoom: Room | null): Room {
+  if (!previousRoom) return room;
+
+  const previousPresence = new Map(
+    previousRoom.players.map((player) => [player.telegramId, player.presence]),
+  );
+  return {
+    ...room,
+    players: room.players.map((player) => ({
+      ...player,
+      presence: player.presence ?? previousPresence.get(player.telegramId),
+    })),
+  };
+}
+
 export function GamePage({
   roomCode,
   onLeave,
@@ -458,6 +473,7 @@ export function GamePage({
 
   const [refreshingGame, setRefreshingGame] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const handledConnectionIdRef = useRef<string | null>(null);
   const lastGameStatusRef = useRef<string | null>(null);
   const lastHintIdRef = useRef<string | null>(null);
   const lastWrongGuessIdRef = useRef<string | null>(null);
@@ -506,25 +522,28 @@ export function GamePage({
   useGameStateSync(
     socket,
     ({ room, game }) => {
-      setState({ room, game, loading: false, error: null });
-      setSelectedPlayersByCard(
-        Object.fromEntries(
-          (game.pendingSelections ?? []).reduce<
-            Array<[string, Room["players"]]>
-          >((entries, selection) => {
-            const player = room.players.find(
-              (roomPlayer) => roomPlayer.userId === selection.playerId,
-            );
-            if (!player) return entries;
-            const existing = entries.find(
-              ([cardId]) => cardId === selection.cardId,
-            );
-            if (existing) existing[1].push(player);
-            else entries.push([selection.cardId, [player]]);
-            return entries;
-          }, []),
-        ),
-      );
+      setState((current) => ({
+        room: preserveRoomPresence(room, current.room),
+        game,
+        loading: false,
+        error: null,
+      }));
+      setSelectedPlayersByCard((current) => {
+        const next = { ...current };
+        for (const selection of game.pendingSelections ?? []) {
+          const player = room.players.find(
+            (roomPlayer) => roomPlayer.userId === selection.playerId,
+          );
+          if (!player) continue;
+          next[Number(selection.cardId)] = [
+            ...(next[Number(selection.cardId)] ?? []).filter(
+              (existingPlayer) => existingPlayer.userId !== player.userId,
+            ),
+            player,
+          ];
+        }
+        return next;
+      });
       setIsReconnecting(false);
     },
     ({ cardId, playerId, selected }) => {
@@ -557,7 +576,11 @@ export function GamePage({
         onReturnToLobby();
         return;
       }
-      setState((current) => ({ ...current, room, error: null }));
+      setState((current) => ({
+        ...current,
+        room: preserveRoomPresence(room, current.room),
+        error: null,
+      }));
     },
     onPresence: (payload) => {
       if (!Array.isArray(payload.players)) return;
@@ -652,19 +675,6 @@ export function GamePage({
     }
     previousTurnRef.current = currentTurn;
   }, [state.game?.currentTurn]);
-
-  useEffect(() => {
-    setSelectedPlayersByCard((current) => {
-      const next = Object.fromEntries(
-        Object.entries(current).filter(
-          ([index]) => !state.game?.board[Number(index)]?.revealed,
-        ),
-      );
-      return Object.keys(next).length === Object.keys(current).length
-        ? current
-        : next;
-    });
-  }, [state.game?.board]);
 
   useEffect(() => {
     const settings = state.room?.settings;
@@ -859,8 +869,13 @@ export function GamePage({
         }
       };
 
-      const handleReconnect = () => {
+      const handleReconnect = (payload?: { socketId?: string }) => {
         if (isMounted) {
+          const connectionId = payload?.socketId ?? socket.id;
+          if (connectionId && handledConnectionIdRef.current === connectionId) {
+            return;
+          }
+          handledConnectionIdRef.current = connectionId ?? null;
           setIsReconnecting(true);
           setHintMessage("Reconnected.");
           toast.info("Reconnected.");
@@ -1036,13 +1051,6 @@ export function GamePage({
         ? (roomSettings?.firstClueBonus ?? 0)
         : 0)
     : 0;
-  const timerProgress =
-    timerDuration && activeSecondsRemaining !== null
-      ? Math.max(
-          0,
-          Math.min(100, (activeSecondsRemaining / timerDuration) * 100),
-        )
-      : 0;
   const isRoomOwner = Boolean(
     state.room &&
     state.room.players.some(
@@ -1383,6 +1391,7 @@ export function GamePage({
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#07558f]/70 p-1">
             <TeamPanel
               team="blue"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               remainingCards={blueCardsRemaining}
               operatives={blueOperatives}
@@ -1397,6 +1406,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="blue"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               player={blueSpymaster}
               active={isBlueTurn}
@@ -1411,12 +1421,12 @@ export function GamePage({
             players={state.room?.players ?? []}
             timerDuration={timerDuration}
             secondsRemaining={gameLogSecondsRemaining}
-            timerProgress={timerProgress}
             className="h-28 max-h-28 min-h-0 border-2 border-white/20 bg-[#292929]"
           />
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#7c281f]/70 p-1">
             <TeamPanel
               team="red"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               remainingCards={redCardsRemaining}
               operatives={redOperatives}
@@ -1431,6 +1441,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="red"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               player={redSpymaster}
               active={isRedTurn}
@@ -1445,6 +1456,7 @@ export function GamePage({
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="blue"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               remainingCards={blueCardsRemaining}
               operatives={blueOperatives}
@@ -1458,6 +1470,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="blue"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               player={blueSpymaster}
               active={isBlueTurn}
@@ -1595,6 +1608,7 @@ export function GamePage({
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="red"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               remainingCards={redCardsRemaining}
               operatives={redOperatives}
@@ -1608,6 +1622,7 @@ export function GamePage({
             </div>
             <SpymasterPanel
               team="red"
+              theme={state.game?.theme}
               ownerIds={state.room?.ownerIds ?? []}
               player={redSpymaster}
               active={isRedTurn}
@@ -1619,7 +1634,6 @@ export function GamePage({
               players={state.room?.players ?? []}
               timerDuration={timerDuration}
               secondsRemaining={gameLogSecondsRemaining}
-              timerProgress={timerProgress}
               className="h-28 max-h-28 shrink-0 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
             />
           </div>

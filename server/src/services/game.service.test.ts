@@ -3,6 +3,31 @@ import assert from "node:assert/strict";
 
 import { buildGameBoard, buildGameView } from "./game.service.js";
 import { DEFAULT_FARSI_WORDS } from "./word.service.js";
+import {
+  PERSIAN_CHARACTER_POOL,
+  characterForTeamSlot,
+} from "../../../shared/src/constants/characters.js";
+
+test("Persian character pool contains 8 red, 8 blue, and one special definition", () => {
+  assert.equal(PERSIAN_CHARACTER_POOL.length, 17);
+  assert.equal(
+    PERSIAN_CHARACTER_POOL.filter((character) => character.team === "red")
+      .length,
+    8,
+  );
+  assert.equal(
+    PERSIAN_CHARACTER_POOL.filter((character) => character.team === "blue")
+      .length,
+    8,
+  );
+  assert.equal(
+    PERSIAN_CHARACTER_POOL.find((character) => character.id === "double-agent")
+      ?.team,
+    "special",
+  );
+  assert.equal(characterForTeamSlot("classic", "red", 0), null);
+  assert.equal(characterForTeamSlot("persian", "red", 0)?.id, "warrior");
+});
 
 test("buildGameView returns a public board for operatives and a colorized board for spymasters", () => {
   const board = [
@@ -13,6 +38,7 @@ test("buildGameView returns a public board for operatives and a colorized board 
 
   const operativeView = buildGameView({
     roomId: "room-1",
+    theme: "persian",
     stateVersion: 0,
     status: "active",
     board,
@@ -57,6 +83,7 @@ test("buildGameView returns a public board for operatives and a colorized board 
   });
 
   assert.equal(operativeView.role, "operative");
+  assert.equal(operativeView.theme, "persian");
   assert.equal(operativeView.redCardsRemaining, 1);
   assert.equal(operativeView.blueCardsRemaining, 1);
   assert.equal(operativeView.phase, "spymaster");

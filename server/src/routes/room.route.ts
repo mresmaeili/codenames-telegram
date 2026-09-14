@@ -147,6 +147,7 @@ roomRouter.patch("/:roomCode/settings", async (request, response, next) => {
       privateRoom?: unknown;
       gameMode?: unknown;
       timer?: unknown;
+      theme?: unknown;
       language?: unknown;
       wordPack?: unknown;
     };
@@ -173,6 +174,10 @@ roomRouter.patch("/:roomCode/settings", async (request, response, next) => {
         privateRoom: settingsPayload.privateRoom,
         gameMode: settingsPayload.gameMode as "standard" | "rush",
         timer: settingsPayload.timer as "none" | "30" | "60" | "90",
+        theme:
+          settingsPayload.theme === undefined
+            ? undefined
+            : (settingsPayload.theme as "classic" | "persian"),
         language: settingsPayload.language as "fa" | "en" | "es" | "he",
         wordPack: settingsPayload.wordPack as "classic" | "party",
       },

@@ -11,6 +11,7 @@ import type {
   Turn,
 } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
+import { persianRevealAsset } from "@/lib/persianRevealAssets";
 
 interface BoardGridProps {
   cards: PublicCard[] | SpymasterCardModel[];
@@ -29,6 +30,7 @@ interface BoardGridProps {
   ownerIds?: number[];
   wrongCardIndex?: number | null;
   cardFeedback?: "opponent" | "gray" | "assassin" | null;
+  theme?: "classic" | "persian";
 }
 
 export function BoardGrid({
@@ -48,6 +50,7 @@ export function BoardGrid({
   ownerIds = [],
   wrongCardIndex = null,
   cardFeedback = null,
+  theme,
 }: BoardGridProps) {
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
     new Set(),
@@ -71,6 +74,8 @@ export function BoardGrid({
               color={spymasterCard.color}
               revealed={spymasterCard.revealed}
               showRevealedWord={visibleRevealedWords.has(index)}
+              selectedPlayers={selectedPlayersByCard[index] ?? []}
+              ownerIds={ownerIds}
               selected={canSelectHintCard && selectedHintCardIds.has(index)}
               onClick={
                 spymasterCard.revealed
@@ -140,7 +145,7 @@ export function BoardGrid({
                   });
                 }
               }}
-              className={`block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (publicCard.revealed && canSelectCard) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
+              className={`group block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (publicCard.revealed && canSelectCard) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
               disabled={!isSelectable && !publicCard.revealed}
             >
               <BoardCard
@@ -151,10 +156,13 @@ export function BoardGrid({
                 revealedColor={publicCard.color}
                 showRevealedWord={isFinishedBoard || isRevealedWordVisible}
                 selectedPlaceholder={isSelected || hasLocalSelection}
-                selectedPlayers={
-                  canSelectCard ? (selectedPlayersByCard[index] ?? []) : []
-                }
+                selectedPlayers={selectedPlayersByCard[index] ?? []}
                 ownerIds={ownerIds}
+                revealAsset={
+                  publicCard.revealed
+                    ? persianRevealAsset(theme, publicCard.color, index)
+                    : null
+                }
               />
             </button>
             {wrongCardIndex === index && cardFeedback ? (

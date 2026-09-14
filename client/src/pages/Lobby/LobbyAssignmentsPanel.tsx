@@ -2,6 +2,8 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import type { Room } from "../../../../shared/src/types/room";
+import { characterForTeamSlot } from "../../../../shared/src/constants/characters";
+import { CharacterBadge } from "@/components/CharacterBadge";
 
 interface LobbyAssignmentsPanelProps {
   bluePlayers: Room["players"];
@@ -17,6 +19,7 @@ interface LobbyAssignmentsPanelProps {
   ownerIds?: number[];
   canManagePlayers?: boolean;
   onPlayerClick?: (player: Room["players"][number]) => void;
+  theme?: Room["settings"]["theme"];
   activeTeam?: "blue" | "red" | null;
   activeRole?: "operative" | "spymaster" | null;
 }
@@ -26,11 +29,15 @@ function PlayerList({
   ownerIds,
   canManagePlayers,
   onPlayerClick,
+  theme,
+  team,
 }: {
   players: Room["players"];
   ownerIds: number[];
   canManagePlayers: boolean;
   onPlayerClick?: (player: Room["players"][number]) => void;
+  theme?: Room["settings"]["theme"];
+  team: "blue" | "red";
 }) {
   if (players.length === 0) {
     return null;
@@ -38,7 +45,7 @@ function PlayerList({
 
   return (
     <div className="my-3 flex min-h-14 flex-wrap items-center justify-center gap-2">
-      {players.map((player) => (
+      {players.map((player, index) => (
         <button
           key={player.userId}
           type="button"
@@ -56,6 +63,9 @@ function PlayerList({
             <PlayerPresenceDot player={player} className="border-white" />
             <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
           </span>
+          <CharacterBadge
+            character={characterForTeamSlot(theme, team, index)}
+          />
           <span className="max-w-18 truncate rounded-sm bg-black/65 px-1.5 text-[10px] font-bold text-white whitespace-nowrap">
             {player.displayName}
           </span>
@@ -75,6 +85,7 @@ export function LobbyAssignmentsPanel({
   onPlayerClick,
   activeTeam = null,
   activeRole = null,
+  theme,
 }: LobbyAssignmentsPanelProps) {
   const isAssignmentPending = pendingAssignment !== null;
   const panelClasses = (
@@ -97,6 +108,8 @@ export function LobbyAssignmentsPanel({
             ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
+            theme={theme}
+            team="blue"
           />
           <button
             type="button"
@@ -121,6 +134,8 @@ export function LobbyAssignmentsPanel({
             ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
+            theme={theme}
+            team="red"
           />
           <button
             type="button"
@@ -147,6 +162,8 @@ export function LobbyAssignmentsPanel({
             ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
+            theme={theme}
+            team="blue"
           />
           <button
             type="button"
@@ -171,6 +188,8 @@ export function LobbyAssignmentsPanel({
             ownerIds={ownerIds}
             canManagePlayers={canManagePlayers}
             onPlayerClick={onPlayerClick}
+            theme={theme}
+            team="red"
           />
           <button
             type="button"

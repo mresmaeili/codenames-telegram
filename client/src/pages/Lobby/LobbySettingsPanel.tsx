@@ -16,6 +16,7 @@ interface LobbySettingsPanelProps {
   onRandomizeTeams: () => void;
   onOpenTimerSettings: () => void;
   onOpenWordPackSettings: () => void;
+  onThemeChange: (theme: SettingsFormState["theme"]) => void;
 }
 
 export function LobbySettingsPanel({
@@ -25,6 +26,7 @@ export function LobbySettingsPanel({
   onRandomizeTeams,
   onOpenTimerSettings,
   onOpenWordPackSettings,
+  onThemeChange,
 }: LobbySettingsPanelProps) {
   return (
     <div
@@ -35,6 +37,22 @@ export function LobbySettingsPanel({
         Game Settings
       </h2>
       <div className="lobby-option-grid grid gap-2 sm:grid-cols-3">
+        <label className="lobby-option lobby-timer rounded-xl border-2 border-white/25 bg-gradient-to-b from-[#555555] to-[#303030] px-3 py-3 text-left text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,0.08),0_3px_0_rgba(0,0,0,0.22)]">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/80">
+            Theme
+          </span>
+          <select
+            value={settingsForm.theme}
+            onChange={(event) =>
+              onThemeChange(event.target.value as SettingsFormState["theme"])
+            }
+            disabled={!isOwner}
+            className="mt-2 w-full rounded-lg bg-black/20 px-2 py-1 text-sm font-black text-white outline-none"
+          >
+            <option value="classic">Classic</option>
+            <option value="persian">Persian</option>
+          </select>
+        </label>
         <button
           type="button"
           onClick={onOpenWordPackSettings}

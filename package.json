@@ -10,12 +10,14 @@
     "shared"
   ],
   "devDependencies": {
+    "playwright": "^1.63.0",
     "vite": "6.4.3"
   },
   "scripts": {
     "dev": "npm run dev --workspace client",
     "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
     "preview": "npm run preview --workspace client",
+    "test:browser": "node scripts/browser-reconnect-smoke.mjs",
     "lint": "npm run typecheck --workspace client && npm run typecheck --workspace server",
     "test": "npm run test --workspace server"
   }

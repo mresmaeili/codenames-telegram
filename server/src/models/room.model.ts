@@ -73,6 +73,12 @@ const roomSettingsSchema = new Schema<RoomSettings>(
       required: true,
       default: false,
     },
+    theme: {
+      type: String,
+      required: true,
+      enum: ["classic", "persian"],
+      default: "classic",
+    },
     gameMode: {
       type: String,
       required: true,
@@ -149,6 +155,7 @@ const roomSchema = new Schema<RoomDocument>(
         maxPlayers: ROOM_MAX_PLAYERS,
         allowSpectators: false,
         privateRoom: false,
+        theme: "classic",
       }),
     },
   },

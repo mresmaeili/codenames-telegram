@@ -10,18 +10,8 @@ export function PlayerPresenceDot({
   className = "",
 }: PlayerPresenceDotProps) {
   const presence = player.presence ?? "away";
-  const color =
-    presence === "online"
-      ? "bg-[#35c77f]"
-      : presence === "offline"
-        ? "bg-[#7b8587]"
-        : "bg-[#e5a23c]";
-  const label =
-    presence === "online"
-      ? "Online"
-      : presence === "offline"
-        ? "Offline"
-        : "Recently inactive or syncing";
+  const color = presence === "online" ? "bg-[#35c77f]" : "bg-[#7b8587]";
+  const label = presence === "online" ? "Online" : "Offline";
 
   return (
     <span

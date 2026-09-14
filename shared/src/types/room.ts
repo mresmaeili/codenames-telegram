@@ -1,3 +1,5 @@
+import type { GameTheme } from "./theme.js";
+
 export type Team = "red" | "blue";
 export type PlayerRole = "operative" | "spymaster";
 export type RoomStatus = "waiting" | "playing" | "finished";
@@ -17,6 +19,7 @@ export interface RoomPlayer {
 }
 
 export interface RoomSettings {
+  theme?: GameTheme;
   maxPlayers: number;
   allowSpectators: boolean;
   privateRoom: boolean;

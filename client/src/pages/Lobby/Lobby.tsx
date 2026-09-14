@@ -45,6 +45,7 @@ interface LobbyPageProps {
 }
 
 export interface SettingsFormState {
+  theme: "classic" | "persian";
   maxPlayers: number;
   allowSpectators: boolean;
   privateRoom: boolean;
@@ -74,6 +75,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     role: "operative" | "spymaster";
   } | null>(null);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
+    theme: "classic",
     maxPlayers: 16,
     allowSpectators: false,
     privateRoom: false,
@@ -96,6 +98,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
     setSettingsForm({
       ...room.settings,
+      theme: room.settings.theme ?? "classic",
       spymasterTimer: room.settings.spymasterTimer ?? 180,
       operativeTimer: room.settings.operativeTimer ?? 120,
       firstClueBonus: room.settings.firstClueBonus ?? 120,
@@ -403,6 +406,37 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     toast,
     user,
   ]);
+
+  const handleThemeChange = useCallback(
+    (theme: SettingsFormState["theme"]) => {
+      if (!isOwner || !socket || !room || hostActionPending) return;
+      const nextSettings = { ...settingsForm, theme };
+      setSettingsForm(nextSettings);
+      setHostActionPending(true);
+      socket.emit(
+        "room:updateSettings",
+        {
+          roomCode: room.roomCode,
+          ownerTelegramId: user?.telegramId,
+          settings: nextSettings,
+        },
+        (ack?: { error?: string }) => {
+          setHostActionPending(false);
+          if (ack?.error) toast.error(ack.error);
+          else toast.success("Theme updated.");
+        },
+      );
+    },
+    [
+      hostActionPending,
+      isOwner,
+      room,
+      settingsForm,
+      socket,
+      toast,
+      user?.telegramId,
+    ],
+  );
 
   // Compact custom word editor used inside the word-pack popup.
   function WordPackEditor() {
@@ -973,6 +1007,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onOpenWordPackSettings={() =>
                     handleOpenSettingsPopup("word-pack")
                   }
+                  onThemeChange={handleThemeChange}
                 />
 
                 <LobbyAssignmentsPanel
@@ -985,6 +1020,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onPlayerClick={handlePlayerClick}
                   activeTeam={currentPlayer?.team}
                   activeRole={currentPlayer?.role}
+                  theme={room.settings.theme}
                 />
 
                 <div className="lobby-start mt-4 shrink-0">

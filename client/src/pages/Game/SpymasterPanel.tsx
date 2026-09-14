@@ -1,5 +1,7 @@
 import type { Room, Team } from "@/../shared/src/types/room";
+import { characterForTeamSlot } from "../../../../shared/src/constants/characters";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { CharacterBadge } from "@/components/CharacterBadge";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
@@ -12,6 +14,7 @@ interface SpymasterPanelProps {
   onPlayerClick: (player: Room["players"][number]) => void;
   className?: string;
   compact?: boolean;
+  theme?: "classic" | "persian";
 }
 
 const panelStyles = {
@@ -38,6 +41,7 @@ export function SpymasterPanel({
   onPlayerClick,
   className = "",
   compact = false,
+  theme,
 }: SpymasterPanelProps) {
   const styles = panelStyles[team];
 
@@ -57,7 +61,7 @@ export function SpymasterPanel({
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`flex ${compact ? "h-7 w-7" : "h-9 w-9"} items-center justify-center overflow-hidden rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
+          className={`relative flex ${compact ? "h-7 w-7" : "h-9 w-9"} items-center justify-center overflow-visible rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
@@ -68,7 +72,7 @@ export function SpymasterPanel({
                 src={avatarUrlForPlayer(player)}
                 alt={player.displayName}
                 title={player.displayName}
-                className="h-full w-full object-cover"
+                className="h-full w-full rounded-full object-cover"
               />
               <PlayerPresenceDot player={player} className="border-white" />
               <PlayerAdminBadge
@@ -84,6 +88,9 @@ export function SpymasterPanel({
         >
           {player?.displayName ?? "None"}
         </div>
+        <CharacterBadge
+          character={player ? characterForTeamSlot(theme, team, 0) : null}
+        />
       </div>
     </div>
   );

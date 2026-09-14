@@ -35,6 +35,7 @@ export function GameBoardSurface({
     <div className="mt-2">
       <BoardGrid
         cards={game.board}
+        theme={game.theme}
         role={game.role}
         selectedCardId={game.selectedCardId}
         selectedByPlayerId={game.selectedByPlayerId}

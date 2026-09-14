@@ -427,13 +427,30 @@ textarea:focus-visible {
 
 @keyframes flip-card {
   from {
-    transform: perspective(500px) rotateY(0deg) scale(0.96);
+    transform: perspective(700px) rotateY(0deg) scale(0.98);
   }
-  50% {
-    transform: perspective(500px) rotateY(90deg) scaleX(0.05);
+  42% {
+    transform: perspective(700px) rotateY(90deg) scaleX(0.08);
+  }
+  68% {
+    transform: perspective(700px) rotateY(0deg) scale(1.015);
   }
   to {
-    transform: perspective(500px) rotateY(0deg) scale(1);
+    transform: perspective(700px) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes character-reveal {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 22%) scale(0.88);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -18%) scale(1);
   }
 }
 
@@ -483,11 +500,19 @@ textarea:focus-visible {
 }
 
 .animate-flip-card {
-  animation: flip-card 260ms ease-out both;
+  animation: flip-card 500ms cubic-bezier(0.22, 0.72, 0.24, 1) both;
+}
+
+.animate-character-reveal {
+  animation: character-reveal 650ms cubic-bezier(0.2, 0.8, 0.25, 1) 180ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-flip-card {
+    animation: none;
+  }
+
+  .animate-character-reveal {
     animation: none;
   }
 
@@ -512,6 +537,42 @@ textarea:focus-visible {
   border-radius: 0.28rem;
   background: linear-gradient(180deg, #ffdcb8 0%, #f7cda6 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 244, 222, 0.58);
+}
+
+.game-card-surface {
+  position: relative;
+  isolation: isolate;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(72, 38, 20, 0.22),
+    0 5px 10px rgba(0, 0, 0, 0.24);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.game-card-surface::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  content: "";
+  pointer-events: none;
+}
+
+.group:hover .game-card-surface {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(72, 38, 20, 0.2),
+    0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.group:active .game-card-surface {
+  transform: translateY(1px) scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(72, 38, 20, 0.24),
+    0 3px 7px rgba(0, 0, 0, 0.26);
 }
 
 .game-card-label {

@@ -295,6 +295,7 @@ function buildGameSnapshotView(
   return buildGameView({
     id: game._id?.toString(),
     roomId: game.roomId,
+    theme: game.theme ?? room.settings.theme ?? "classic",
     stateVersion: game.stateVersion ?? 0,
     status: game.status,
     board: game.board,
@@ -1040,6 +1041,7 @@ export function registerRoomSocketHandlers(
           privateRoom?: unknown;
           gameMode?: unknown;
           timer?: unknown;
+          theme?: unknown;
           spymasterTimer?: unknown;
           operativeTimer?: unknown;
           firstClueBonus?: unknown;
@@ -1059,6 +1061,8 @@ export function registerRoomSocketHandlers(
           typeof settingsPayload.firstClueBonus !== "number" ||
           typeof settingsPayload.language !== "string" ||
           typeof settingsPayload.wordPack !== "string" ||
+          (settingsPayload.theme !== undefined &&
+            typeof settingsPayload.theme !== "string") ||
           (settingsPayload.customWords !== undefined &&
             (!Array.isArray(settingsPayload.customWords) ||
               !settingsPayload.customWords.every(
@@ -1080,6 +1084,10 @@ export function registerRoomSocketHandlers(
             privateRoom: settingsPayload.privateRoom,
             gameMode: settingsPayload.gameMode as "standard" | "rush",
             timer: settingsPayload.timer as "none" | "30" | "60" | "90",
+            theme:
+              settingsPayload.theme === undefined
+                ? undefined
+                : (settingsPayload.theme as "classic" | "persian"),
             spymasterTimer: settingsPayload.spymasterTimer,
             operativeTimer: settingsPayload.operativeTimer,
             firstClueBonus: settingsPayload.firstClueBonus,

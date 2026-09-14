@@ -213,3 +213,48 @@ test("applyCardSelection keeps selections independent between operatives and car
     ],
   );
 });
+
+test("duplicate selection actions toggle the same operative selection once", () => {
+  const game = {
+    status: "active" as const,
+    currentTurn: "blue" as const,
+    remainingGuesses: 1,
+    currentHintWord: "forest",
+    currentHintNumber: 1,
+    hintSubmittedAt: new Date("2024-01-01T00:00:00.000Z"),
+    board: [{ word: "alpha", color: "blue" as const, revealed: false }],
+    selectedCardId: null,
+    selectedByPlayerId: null,
+    selectedAt: null,
+    pendingSelections: [],
+  };
+  const room = {
+    players: [
+      {
+        userId: "user-1",
+        telegramId: 42,
+        displayName: "Agent One",
+        team: "blue" as const,
+        role: "operative" as const,
+        joinedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+    ],
+  };
+
+  const selected = applyCardSelection({
+    game,
+    room,
+    senderTelegramId: 42,
+    cardId: "0",
+  }).game;
+  const toggled = applyCardSelection({
+    game: selected,
+    room,
+    senderTelegramId: 42,
+    cardId: "0",
+  }).game;
+
+  assert.deepEqual(toggled.pendingSelections, []);
+  assert.equal(toggled.selectedCardId, null);
+  assert.equal(toggled.selectedByPlayerId, null);
+});

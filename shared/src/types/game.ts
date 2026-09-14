@@ -1,3 +1,5 @@
+import type { GameTheme } from "./theme.js";
+
 export type CardColor = "red" | "blue" | "neutral" | "assassin";
 export type GameStatus = "active" | "finished";
 export type Turn = "red" | "blue";
@@ -59,6 +61,7 @@ export interface SpymasterCard extends PublicCard {
 }
 
 export interface Game {
+  theme?: GameTheme;
   id?: string;
   roomId: string;
   stateVersion: number;
@@ -89,6 +92,7 @@ export interface Game {
 }
 
 export interface GameViewBase {
+  theme: GameTheme;
   id?: string;
   roomId: string;
   stateVersion: number;
