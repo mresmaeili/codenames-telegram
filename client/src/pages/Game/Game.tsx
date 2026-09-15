@@ -969,6 +969,7 @@ export function GamePage({
   }, [state.game?.status, state.game?.winningTeam, viewerPlayer?.team]);
 
   const [hintOverlay, setHintOverlay] = useState<HintEntry | null>(null);
+  const [hintOverlayReady, setHintOverlayReady] = useState(false);
 
   useEffect(() => {
     const hintHistory = state.game?.hintHistory ?? [];
@@ -989,11 +990,44 @@ export function GamePage({
     lastHintIdRef.current = latestHintId;
     setHintOverlay(latestHint);
     playActionSound("hint", state.game?.theme ?? "classic");
-    if (hintOverlayTimeoutRef.current !== null) {
-      window.clearTimeout(hintOverlayTimeoutRef.current);
+  }, [state.game?.hintHistory]);
+
+  const hintOverlayAsset = hintOverlay
+    ? hintSpeakerAsset(
+        state.game?.theme,
+        hintOverlay.team,
+        `${hintOverlay.submittedAt}-${hintOverlay.word}-${hintOverlay.number}`,
+      )
+    : null;
+
+  useEffect(() => {
+    if (!hintOverlay || !hintOverlayAsset) {
+      setHintOverlayReady(false);
+      return;
     }
+
+    let active = true;
+    setHintOverlayReady(false);
+    const image = new Image();
+    image.onload = () => {
+      if (active) setHintOverlayReady(true);
+    };
+    image.onerror = () => {
+      if (active) setHintOverlayReady(true);
+    };
+    image.src = hintOverlayAsset;
+
+    return () => {
+      active = false;
+    };
+  }, [hintOverlay, hintOverlayAsset]);
+
+  useEffect(() => {
+    if (!hintOverlay || !hintOverlayReady) return;
+
     hintOverlayTimeoutRef.current = window.setTimeout(() => {
       setHintOverlay(null);
+      setHintOverlayReady(false);
       hintOverlayTimeoutRef.current = null;
     }, 2500);
 
@@ -1003,7 +1037,7 @@ export function GamePage({
         hintOverlayTimeoutRef.current = null;
       }
     };
-  }, [state.game?.hintHistory]);
+  }, [hintOverlay, hintOverlayReady]);
 
   useEffect(
     () => () => {
@@ -1364,34 +1398,6 @@ export function GamePage({
         className={`gameplay-shell relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"} ${state.game.theme === "persian" ? "gameplay-theme-persian" : state.game.theme === "meme" ? "gameplay-theme-meme" : "gameplay-theme-classic"}`}
         data-turn={state.game.currentTurn}
       >
-        {hintOverlay ? (
-          <div className="pointer-events-none absolute left-1/2 top-[62%] z-40 w-[min(88%,34rem)] -translate-x-1/2 -translate-y-1/2">
-            <img
-              src={hintSpeakerAsset(
-                state.game.theme,
-                hintOverlay.team,
-                `${hintOverlay.submittedAt}-${hintOverlay.word}-${hintOverlay.number}`,
-              )}
-              alt=""
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-0 z-10 h-[280%] w-[94%] -translate-x-1/2 -translate-y-[88%] object-contain"
-            />
-            <div className="relative z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
-              <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
-                <span>{hintOverlay.word}</span>
-                <span
-                  className={
-                    hintOverlay.team === "blue"
-                      ? "text-[#159dce]"
-                      : "text-[#d66055]"
-                  }
-                >
-                  {hintOverlay.number}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : null}
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
           roomCode={roomCode}
@@ -1513,24 +1519,50 @@ export function GamePage({
                 isViewerOperative && hasActiveHint && selectedCardActive
               }
             />
-            <GameBoardSurface
-              game={state.game}
-              viewerPlayerId={viewerPlayer?.userId}
-              canSelectCard={canSelectCard}
-              onSelectCard={handleSelectCard}
-              onConfirmCard={handleConfirmCard}
-              selectedHintCardIds={selectedHintCardIds}
-              onToggleHintCard={
-                state.game.role === "spymaster"
-                  ? handleToggleHintCard
-                  : undefined
-              }
-              hideWords={false}
-              selectedPlayersByCard={visibleSelectedPlayersByCard}
-              ownerIds={state.room?.ownerIds ?? []}
-              wrongCardIndex={wrongCardIndex}
-              cardFeedback={cardFeedback}
-            />
+            <div className="relative mt-2">
+              <GameBoardSurface
+                game={state.game}
+                viewerPlayerId={viewerPlayer?.userId}
+                canSelectCard={canSelectCard}
+                onSelectCard={handleSelectCard}
+                onConfirmCard={handleConfirmCard}
+                selectedHintCardIds={selectedHintCardIds}
+                onToggleHintCard={
+                  state.game.role === "spymaster"
+                    ? handleToggleHintCard
+                    : undefined
+                }
+                hideWords={false}
+                selectedPlayersByCard={visibleSelectedPlayersByCard}
+                ownerIds={state.room?.ownerIds ?? []}
+                wrongCardIndex={wrongCardIndex}
+                cardFeedback={cardFeedback}
+              />
+              {hintOverlay && hintOverlayReady ? (
+                <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
+                  <img
+                    src={hintOverlayAsset ?? undefined}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[280%] w-[94%] -translate-x-1/2 -translate-y-1/2 object-contain"
+                  />
+                  <div className="relative z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+                    <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
+                      <span>{hintOverlay.word}</span>
+                      <span
+                        className={
+                          hintOverlay.team === "blue"
+                            ? "text-[#159dce]"
+                            : "text-[#d66055]"
+                        }
+                      >
+                        {hintOverlay.number}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             {gameFinished && isRoomOwner ? (
               <div className="relative mt-2 grid grid-cols-2 gap-2 px-1">
                 <button

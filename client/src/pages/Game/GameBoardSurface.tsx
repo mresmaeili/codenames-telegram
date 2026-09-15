@@ -32,7 +32,7 @@ export function GameBoardSurface({
   cardFeedback,
 }: GameBoardSurfaceProps) {
   return (
-    <div className="mt-2">
+    <div>
       <BoardGrid
         cards={game.board}
         theme={game.theme}
