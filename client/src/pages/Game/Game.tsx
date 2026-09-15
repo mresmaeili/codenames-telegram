@@ -548,6 +548,17 @@ export function GamePage({
     ({ cardId, playerId, selected }) => {
       const cardIndex = Number.parseInt(cardId, 10);
       if (!Number.isInteger(cardIndex)) return;
+      setState((current) => ({
+        ...current,
+        game: current.game
+          ? {
+              ...current.game,
+              selectedCardId: selected ? cardId : null,
+              selectedByPlayerId: selected ? playerId : null,
+              selectedAt: selected ? new Date() : null,
+            }
+          : null,
+      }));
       setSelectedPlayersByCard((current) => {
         const next = { ...current };
         const players = (next[cardIndex] ?? []).filter(

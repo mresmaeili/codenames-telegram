@@ -127,6 +127,8 @@ export function BoardGrid({
         }
 
         const publicCard = card as PublicCard;
+        const isEndGameCard = revealAllWords && publicCard.color !== null;
+        const canToggleRevealedCard = publicCard.revealed || isEndGameCard;
         const isSelected = canSelectCard && selectedCardId === String(index);
         const localSelectedPlayers = selectedPlayersByCard[index] ?? [];
         const hasLocalSelection =
@@ -145,7 +147,7 @@ export function BoardGrid({
           !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
-        const ariaLabel = publicCard.revealed
+        const ariaLabel = canToggleRevealedCard
           ? isRevealedWordVisible
             ? `Hide revealed word ${publicCard.word}`
             : `Show revealed word ${publicCard.word}`
@@ -167,7 +169,7 @@ export function BoardGrid({
                 if (isSelectable && onSelectCard) {
                   playActionSound("select", theme);
                   onSelectCard(index);
-                } else if (publicCard.revealed) {
+                } else if (canToggleRevealedCard) {
                   const isWordVisible = visibleRevealedWords.has(index);
                   setVisibleRevealedWords((current) => {
                     const next = new Set(current);
@@ -185,8 +187,8 @@ export function BoardGrid({
                   }));
                 }
               }}
-              className={`group block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (publicCard.revealed && canSelectCard) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
-              disabled={!isSelectable && !publicCard.revealed}
+              className={`group block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (canToggleRevealedCard && (canSelectCard || revealAllWords)) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
+              disabled={!isSelectable && !canToggleRevealedCard}
             >
               <BoardCard
                 word={publicCard.word}
@@ -194,7 +196,7 @@ export function BoardGrid({
                 disabled={false}
                 revealPlaceholder={false}
                 revealedColor={publicCard.color}
-                showRevealedWord={isRevealedWordVisible || revealAllWords}
+                showRevealedWord={isRevealedWordVisible}
                 revealAnimationKey={revealedWordAnimations[index] ?? 0}
                 revealAnimationDirection={
                   revealedWordAnimationDirections[index]
@@ -204,7 +206,7 @@ export function BoardGrid({
                 selectedPlayers={selectedPlayersByCard[index] ?? []}
                 ownerIds={ownerIds}
                 revealAsset={
-                  publicCard.revealed
+                  canToggleRevealedCard
                     ? revealAssetForTheme(theme, publicCard.color, index)
                     : null
                 }
