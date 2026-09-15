@@ -527,8 +527,8 @@ export function GamePage({
         loading: false,
         error: null,
       }));
-      setSelectedPlayersByCard((current) => {
-        const next = { ...current };
+      setSelectedPlayersByCard(() => {
+        const next: Record<number, Room["players"]> = {};
         for (const selection of game.pendingSelections ?? []) {
           const player = room.players.find(
             (roomPlayer) => roomPlayer.userId === selection.playerId,
