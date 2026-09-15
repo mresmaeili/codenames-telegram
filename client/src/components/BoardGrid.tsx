@@ -196,7 +196,10 @@ export function BoardGrid({
                 disabled={false}
                 revealPlaceholder={false}
                 revealedColor={publicCard.color}
-                showRevealedWord={isRevealedWordVisible}
+                showRevealedWord={
+                  isRevealedWordVisible ||
+                  (revealAllWords && !publicCard.revealed)
+                }
                 revealAnimationKey={revealedWordAnimations[index] ?? 0}
                 revealAnimationDirection={
                   revealedWordAnimationDirections[index]
