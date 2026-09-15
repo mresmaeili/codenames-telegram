@@ -86,7 +86,7 @@ export function GameLog({
     <div
       className={`${className} flex h-[11.5rem] max-h-[11.5rem] min-h-0 min-w-0 flex-col overflow-hidden rounded-[16px] border-2 border-[#15191c] bg-[linear-gradient(180deg,#45494d_0%,#202428_100%)] p-1.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_5px_12px_rgba(0,0,0,0.3)]`}
     >
-      <div className="border-b border-white/10 pb-0.5 text-center text-[8px] font-semibold uppercase tracking-[0.16em] text-white/60">
+      <div className="border-b border-white/10 pb-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">
         Game log
       </div>
       {previewTimerDuration && previewSecondsRemaining !== null ? (
@@ -100,7 +100,7 @@ export function GameLog({
       ) : null}
       <div
         ref={logScrollRef}
-        className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-scroll overscroll-contain text-left text-[8px] text-white/80"
+        className="game-log-scrollbar -mr-1.5 mt-1 min-h-0 flex-1 space-y-1 overflow-x-hidden overflow-y-scroll overscroll-contain text-left text-[9px] text-white/80"
       >
         {previewEntries.length > 0 ? (
           groupRounds(previewEntries).map((round) => {
@@ -126,7 +126,7 @@ export function GameLog({
                 className="min-w-0 animate-event-in px-0 py-1"
               >
                 <div
-                  className={`game-log-hint-row game-log-hint-row-${round.hint.team} relative flex min-h-6 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#d66055]"}`}
+                  className={`game-log-hint-row game-log-hint-row-${round.hint.team} relative flex h-7 min-h-7 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0.5 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#d66055]"}`}
                 >
                   <div className="absolute -left-1 top-1/2 z-10 flex h-7 w-8 -translate-y-1/2 items-center justify-center">
                     <span className="relative">
@@ -150,11 +150,11 @@ export function GameLog({
                     <span
                       dir="rtl"
                       lang="fa"
-                      className="font-persian min-w-0 flex-1 overflow-hidden whitespace-nowrap rounded-md border-2 border-white/90 bg-white px-1 py-1 text-center text-[9px] font-bold uppercase leading-tight text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]"
+                      className="font-persian flex h-5 min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap rounded-md border-[3px] border-white/90 bg-white px-0.5 py-0 text-center text-[10px] font-bold uppercase leading-none text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]"
                     >
                       {round.hint.word}
                     </span>
-                    <span className="font-persian flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-white text-[9px] font-extrabold leading-none text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]">
+                    <span className="font-persian flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-white bg-white text-[10px] font-extrabold leading-none text-[#15191c] shadow-[0_2px_3px_rgba(0,0,0,0.3)]">
                       {round.hint.number}
                     </span>
                   </div>
@@ -203,7 +203,7 @@ export function GameLog({
                           <span
                             dir="rtl"
                             lang="fa"
-                            className={`font-persian min-w-0 whitespace-nowrap rounded-r-md border border-white/25 px-1.5 py-1 text-left text-[8px] font-bold uppercase leading-none text-white shadow-[0_2px_3px_rgba(0,0,0,0.25)] ${guessColor}`}
+                            className={`font-persian min-w-0 whitespace-nowrap rounded-r-md border border-white/25 px-1.5 py-1 text-left text-[9px] font-bold uppercase leading-none text-white shadow-[0_2px_3px_rgba(0,0,0,0.25)] ${guessColor}`}
                           >
                             {guess.word}
                           </span>

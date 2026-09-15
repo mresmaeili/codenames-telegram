@@ -970,6 +970,7 @@ export function GamePage({
 
   const [hintOverlay, setHintOverlay] = useState<HintEntry | null>(null);
   const [hintOverlayReady, setHintOverlayReady] = useState(false);
+  const hintHistoryInitializedRef = useRef(false);
 
   useEffect(() => {
     const hintHistory = state.game?.hintHistory ?? [];
@@ -978,12 +979,15 @@ export function GamePage({
       ? `${new Date(latestHint.submittedAt).getTime()}-${latestHint.word}-${latestHint.number}`
       : null;
 
-    if (!latestHintId || latestHintId === lastHintIdRef.current) {
+    if (!hintHistoryInitializedRef.current) {
+      hintHistoryInitializedRef.current = true;
+      if (latestHintId) {
+        lastHintIdRef.current = latestHintId;
+      }
       return;
     }
 
-    if (lastHintIdRef.current === null) {
-      lastHintIdRef.current = latestHintId;
+    if (!latestHintId || latestHintId === lastHintIdRef.current) {
       return;
     }
 
@@ -1540,13 +1544,15 @@ export function GamePage({
               />
               {hintOverlay && hintOverlayReady ? (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                  <img
-                    src={hintOverlayAsset ?? undefined}
-                    alt=""
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[280%] w-[94%] -translate-x-1/2 -translate-y-1/2 object-contain"
-                  />
-                  <div className="relative z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+                  <div className="pointer-events-none absolute left-1/2 top-[12%] z-10 h-[36%] w-[30%] -translate-x-1/2 overflow-hidden">
+                    <img
+                      src={hintOverlayAsset ?? undefined}
+                      alt=""
+                      aria-hidden="true"
+                      className="pointer-events-none h-full w-full object-contain object-top"
+                    />
+                  </div>
+                  <div className="relative z-20 w-[min(86%,26rem)] min-w-[14rem] translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
                     <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
                       <span>{hintOverlay.word}</span>
                       <span
