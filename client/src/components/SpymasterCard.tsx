@@ -9,22 +9,39 @@ interface SpymasterCardProps {
   color: CardColor;
   revealed?: boolean;
   showRevealedWord?: boolean;
+  revealAnimationKey?: number;
+  revealAnimationDirection?: "open" | "close";
+  revealAsset?: string | null;
+  theme?: "classic" | "persian";
   selected?: boolean;
   selectedPlayers?: Room["players"];
   ownerIds?: number[];
   onClick?: () => void;
 }
 
-const tileStyles: Record<CardColor, { tile: string; label: string }> = {
-  red: { tile: "game-card-tile-red", label: "game-card-label-red" },
-  blue: { tile: "game-card-tile-blue", label: "game-card-label-blue" },
+const tileStyles: Record<
+  CardColor,
+  { tile: string; label: string; overlay: string }
+> = {
+  red: {
+    tile: "game-card-tile-red",
+    label: "game-card-label-red",
+    overlay: "game-card-overlay-red",
+  },
+  blue: {
+    tile: "game-card-tile-blue",
+    label: "game-card-label-blue",
+    overlay: "game-card-overlay-blue",
+  },
   neutral: {
     tile: "game-card-tile-neutral",
     label: "game-card-label-neutral",
+    overlay: "game-card-overlay-neutral",
   },
   assassin: {
     tile: "game-card-tile-assassin",
     label: "game-card-label-assassin",
+    overlay: "game-card-overlay-assassin",
   },
 };
 
@@ -33,6 +50,10 @@ export function SpymasterCard({
   color,
   revealed = false,
   showRevealedWord = false,
+  revealAnimationKey = 0,
+  revealAnimationDirection,
+  revealAsset = null,
+  theme,
   selected = false,
   selectedPlayers = [],
   ownerIds = [],
@@ -49,7 +70,7 @@ export function SpymasterCard({
           : "text-[clamp(0.8rem,3vw,1.25rem)]";
   const card = (
     <div
-      className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "border-[#76f21b] ring-4 ring-[#76f21b] shadow-[0_0_0_4px_rgba(118,242,27,0.3),0_10px_20px_rgba(0,0,0,0.38)]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-flip-card" : ""}`}
+      className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "game-card-spymaster-selected border-[#76f21b]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-flip-card" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >
@@ -101,6 +122,19 @@ export function SpymasterCard({
           </span>
         )}
       </div>
+      {revealed && revealAsset ? (
+        <div
+          key={revealAnimationKey}
+          className={`game-card-character-layer game-card-character-layer-textured ${tileStyle.overlay} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : "animate-character-reveal"}`}
+          aria-hidden="true"
+        >
+          <img
+            src={revealAsset}
+            alt=""
+            className="h-full w-full object-contain object-bottom"
+          />
+        </div>
+      ) : null}
     </div>
   );
 
@@ -113,7 +147,7 @@ export function SpymasterCard({
           ? `${showRevealedWord ? "Hide" : "Show"} ${word}`
           : `${selected ? "Remove" : "Add"} ${word} to hint count`
       }
-      className="group block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
+      className="spymaster-card-button group block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent)"
     >
       {card}
     </button>

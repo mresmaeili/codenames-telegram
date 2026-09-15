@@ -37,7 +37,7 @@ export function LobbySettingsPanel({
         Game Settings
       </h2>
       <div className="lobby-option-grid grid gap-2 sm:grid-cols-3">
-        <label className="lobby-option lobby-timer rounded-xl border-2 border-white/25 bg-gradient-to-b from-[#555555] to-[#303030] px-3 py-3 text-left text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,0.08),0_3px_0_rgba(0,0,0,0.22)]">
+        <label className="lobby-option lobby-theme-option order-3 rounded-xl border-2 border-white/25 bg-gradient-to-b from-[#555555] to-[#303030] px-3 py-3 text-left text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,0.08),0_3px_0_rgba(0,0,0,0.22)] sm:col-start-3 sm:row-start-1">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/80">
             Theme
           </span>
@@ -47,7 +47,7 @@ export function LobbySettingsPanel({
               onThemeChange(event.target.value as SettingsFormState["theme"])
             }
             disabled={!isOwner}
-            className="mt-2 w-full rounded-lg bg-black/20 px-2 py-1 text-sm font-black text-white outline-none"
+            className="lobby-theme-select mt-2 w-full rounded-lg border border-white/30 bg-[#101820] px-3 py-2 text-base font-black text-white outline-none transition focus:border-[#7ee6ff] focus:ring-2 focus:ring-[#7ee6ff]/30"
           >
             <option value="classic">Classic</option>
             <option value="persian">Persian</option>

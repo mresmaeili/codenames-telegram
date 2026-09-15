@@ -1,7 +1,5 @@
 import type { Room, Team } from "@/../shared/src/types/room";
-import { characterForTeamSlot } from "../../../../shared/src/constants/characters";
 import { avatarUrlForPlayer } from "@/lib/avatar";
-import { CharacterBadge } from "@/components/CharacterBadge";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
@@ -47,7 +45,7 @@ export function SpymasterPanel({
 
   return (
     <div
-      className={`${className} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} ${compact ? "p-1" : "p-1.5"} text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
+      className={`${className} game-team-panel game-team-panel-${team} ${theme === "persian" ? "game-team-panel-persian" : ""} overflow-hidden rounded-xl border ${active ? "border-[#9af55a]" : "border-white/20"} ${styles.panel} ${compact ? "p-1" : "p-1.5"} text-white shadow-[0_5px_12px_rgba(0,0,0,0.18)] transition-colors duration-200`}
     >
       <div
         className={`${compact ? "text-[7px]" : "text-[8px]"} text-center font-black uppercase tracking-[0.14em] text-white/85`}
@@ -88,9 +86,6 @@ export function SpymasterPanel({
         >
           {player?.displayName ?? "None"}
         </div>
-        <CharacterBadge
-          character={player ? characterForTeamSlot(theme, team, 0) : null}
-        />
       </div>
     </div>
   );

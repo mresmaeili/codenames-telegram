@@ -123,12 +123,12 @@ export function GameLog({
             return (
               <div
                 key={round.hint.id}
-                className="min-w-0 animate-event-in px-0 py-2"
+                className="min-w-0 animate-event-in px-0 py-1"
               >
                 <div
-                  className={`relative flex min-h-7 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0.5 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#d66055]"}`}
+                  className={`game-log-hint-row game-log-hint-row-${round.hint.team} relative flex min-h-6 min-w-0 items-center gap-1 rounded-md border border-white/25 px-1 py-0 pl-7 shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${round.hint.team === "blue" ? "bg-[#159dce]" : "bg-[#d66055]"}`}
                 >
-                  <div className="absolute -left-1 bottom-[-0.35rem] z-10 flex w-8 flex-col items-center">
+                  <div className="absolute -left-1 top-1/2 z-10 flex h-7 w-8 -translate-y-1/2 items-center justify-center">
                     <span className="relative">
                       <img
                         src={avatarUrlForPlayer(hintPlayer)}
@@ -141,7 +141,7 @@ export function GameLog({
                       />
                     </span>
                     <span
-                      className={`max-w-9 truncate rounded-sm px-0.5 text-[5px] font-normal leading-tight text-white ${teamColor.name}`}
+                      className={`absolute top-full max-w-9 truncate rounded-sm px-0.5 text-[5px] font-normal leading-tight text-white ${teamColor.name}`}
                     >
                       {hintPlayer?.displayName ?? round.hint.team}
                     </span>

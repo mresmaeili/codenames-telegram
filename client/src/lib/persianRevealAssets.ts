@@ -19,7 +19,8 @@ export function persianRevealAsset(
   color: "red" | "blue" | "neutral" | "assassin" | null,
   cardIndex: number,
 ): string | null {
-  if (theme !== "persian" || color === null) return null;
+  if (theme !== "persian") return null;
+  if (color === null) return null;
   if (color === "neutral") return grey;
   if (color === "assassin") return assassin;
   const assets = color === "red" ? redAssets : blueAssets;

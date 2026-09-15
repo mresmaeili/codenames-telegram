@@ -2,8 +2,6 @@ import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import type { Room } from "../../../../shared/src/types/room";
-import { characterForTeamSlot } from "../../../../shared/src/constants/characters";
-import { CharacterBadge } from "@/components/CharacterBadge";
 
 interface LobbyAssignmentsPanelProps {
   bluePlayers: Room["players"];
@@ -63,9 +61,6 @@ function PlayerList({
             <PlayerPresenceDot player={player} className="border-white" />
             <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
           </span>
-          <CharacterBadge
-            character={characterForTeamSlot(theme, team, index)}
-          />
           <span className="max-w-18 truncate rounded-sm bg-black/65 px-1.5 text-[10px] font-bold text-white whitespace-nowrap">
             {player.displayName}
           </span>
@@ -92,7 +87,7 @@ export function LobbyAssignmentsPanel({
     team: "blue" | "red",
     role: "operative" | "spymaster",
   ) =>
-    `lobby-team-card ${team === "blue" ? "lobby-team-card-blue" : "lobby-team-card-red"} rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.3)] ${
+    `lobby-team-card ${team === "blue" ? "lobby-team-card-blue" : "lobby-team-card-red"} ${theme === "persian" ? "lobby-team-card-persian" : ""} rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.3)] ${
       team === "blue" ? "bg-[#079ddd]" : "bg-[#ff5947]"
     } ${activeTeam === team && activeRole === role ? "border-[#76f21b]" : team === "blue" ? "border-[#75eaff]/70" : "border-[#ffc2aa]/80"}`;
 

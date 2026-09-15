@@ -55,11 +55,11 @@ export function BoardGrid({
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
     new Set(),
   );
-  const isFinishedBoard =
-    role === "operative" &&
-    cards.length > 0 &&
-    cards.every((card) => (card as PublicCard).color !== null);
-
+  const [revealedWordAnimations, setRevealedWordAnimations] = useState<
+    Record<number, number>
+  >({});
+  const [revealedWordAnimationDirections, setRevealedWordAnimationDirections] =
+    useState<Record<number, "open" | "close">>({});
   return (
     <div className="grid grid-cols-5 gap-1 sm:gap-1.5 lg:gap-2">
       {cards.map((card, index) => {
@@ -74,21 +74,41 @@ export function BoardGrid({
               color={spymasterCard.color}
               revealed={spymasterCard.revealed}
               showRevealedWord={visibleRevealedWords.has(index)}
+              revealAnimationKey={revealedWordAnimations[index] ?? 0}
+              revealAnimationDirection={revealedWordAnimationDirections[index]}
+              revealAsset={
+                spymasterCard.revealed
+                  ? persianRevealAsset(theme, spymasterCard.color, index)
+                  : null
+              }
+              theme={theme}
               selectedPlayers={selectedPlayersByCard[index] ?? []}
               ownerIds={ownerIds}
               selected={canSelectHintCard && selectedHintCardIds.has(index)}
               onClick={
                 spymasterCard.revealed
                   ? () => {
+                      const isWordVisible = visibleRevealedWords.has(index);
                       setVisibleRevealedWords((current) => {
                         const next = new Set(current);
-                        if (next.has(index)) next.delete(index);
+                        if (isWordVisible) next.delete(index);
                         else next.add(index);
                         return next;
                       });
+                      setRevealedWordAnimations((current) => ({
+                        ...current,
+                        [index]: (current[index] ?? 0) + 1,
+                      }));
+                      setRevealedWordAnimationDirections((current) => ({
+                        ...current,
+                        [index]: isWordVisible ? "close" : "open",
+                      }));
                     }
                   : canSelectHintCard && onToggleHintCard
-                    ? () => onToggleHintCard(index)
+                    ? () => {
+                        playActionSound("select", theme);
+                        onToggleHintCard(index);
+                      }
                     : undefined
               }
             />
@@ -134,15 +154,24 @@ export function BoardGrid({
               aria-label={ariaLabel}
               onClick={() => {
                 if (isSelectable && onSelectCard) {
-                  playActionSound("select");
+                  playActionSound("select", theme);
                   onSelectCard(index);
                 } else if (publicCard.revealed) {
+                  const isWordVisible = visibleRevealedWords.has(index);
                   setVisibleRevealedWords((current) => {
                     const next = new Set(current);
-                    if (next.has(index)) next.delete(index);
+                    if (isWordVisible) next.delete(index);
                     else next.add(index);
                     return next;
                   });
+                  setRevealedWordAnimations((current) => ({
+                    ...current,
+                    [index]: (current[index] ?? 0) + 1,
+                  }));
+                  setRevealedWordAnimationDirections((current) => ({
+                    ...current,
+                    [index]: isWordVisible ? "close" : "open",
+                  }));
                 }
               }}
               className={`group block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (publicCard.revealed && canSelectCard) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
@@ -154,7 +183,12 @@ export function BoardGrid({
                 disabled={false}
                 revealPlaceholder={false}
                 revealedColor={publicCard.color}
-                showRevealedWord={isFinishedBoard || isRevealedWordVisible}
+                showRevealedWord={isRevealedWordVisible}
+                revealAnimationKey={revealedWordAnimations[index] ?? 0}
+                revealAnimationDirection={
+                  revealedWordAnimationDirections[index]
+                }
+                theme={theme}
                 selectedPlaceholder={isSelected || hasLocalSelection}
                 selectedPlayers={selectedPlayersByCard[index] ?? []}
                 ownerIds={ownerIds}
@@ -200,7 +234,7 @@ export function BoardGrid({
                 aria-label={`Confirm ${publicCard.word}`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  playActionSound("confirm");
+                  playActionSound("confirm", theme);
                   onConfirmCard?.(index);
                 }}
                 className="absolute -right-2 -top-3 z-10 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-4xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"

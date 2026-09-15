@@ -645,7 +645,7 @@ export function GamePage({
           : "gray",
     );
     setWrongCardIndex(latestGuess.cardIndex);
-    playActionSound("lose");
+    playActionSound("lose", state.game.theme);
     if (wrongGuessTimeoutRef.current !== null) {
       window.clearTimeout(wrongGuessTimeoutRef.current);
     }
@@ -846,6 +846,7 @@ export function GamePage({
             }));
           }
           setIsReconnecting(true);
+          playActionSound("start", state.game?.theme ?? "classic");
           toast.success("Game starting.");
           void loadGameData();
         }
@@ -856,6 +857,7 @@ export function GamePage({
         board: GameView["board"];
       }) => {
         if (isMounted) {
+          playActionSound("reveal", state.game?.theme ?? "classic");
           setState((current) => ({
             ...current,
             game: current.game
@@ -903,6 +905,7 @@ export function GamePage({
               ? payload.message
               : "Unable to submit the hint.";
           setHintMessage(message);
+          playActionSound("error", state.game?.theme ?? "classic");
           toast.error(message);
         }
       };
@@ -943,7 +946,7 @@ export function GamePage({
     const status = state.game?.status ?? null;
     if (status === "finished" && lastGameStatusRef.current !== "finished") {
       const hasWon = viewerPlayer?.team === state.game?.winningTeam;
-      playActionSound(hasWon ? "win" : "lose");
+      playActionSound(hasWon ? "win" : "lose", state.game?.theme ?? "classic");
     }
     lastGameStatusRef.current = status;
   }, [state.game?.status, state.game?.winningTeam, viewerPlayer?.team]);
@@ -968,7 +971,7 @@ export function GamePage({
 
     lastHintIdRef.current = latestHintId;
     setHintOverlay(latestHint);
-    playActionSound("hint");
+    playActionSound("hint", state.game?.theme ?? "classic");
     if (hintOverlayTimeoutRef.current !== null) {
       window.clearTimeout(hintOverlayTimeoutRef.current);
     }
@@ -1584,7 +1587,7 @@ export function GamePage({
                 }
                 onNumberChange={handleHintNumberChange}
                 onSubmit={() => {
-                  playActionSound("hint");
+                  playActionSound("hint", state.game?.theme ?? "classic");
                   submitHint(hintDraft.word, hintDraft.number);
                 }}
               />
@@ -1595,11 +1598,11 @@ export function GamePage({
               canPass={canPassTurn}
               canTake={canTakeTurn}
               onPass={() => {
-                playActionSound("pass");
+                playActionSound("pass", state.game?.theme ?? "classic");
                 passTurn();
               }}
               onTake={() => {
-                playActionSound("take");
+                playActionSound("take", state.game?.theme ?? "classic");
                 takeTurn();
               }}
             />

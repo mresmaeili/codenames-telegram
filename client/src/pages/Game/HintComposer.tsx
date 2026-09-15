@@ -34,7 +34,7 @@ export function HintComposer({
           onChange={(event) => onWordChange(event.target.value)}
           placeholder="Your clue"
           disabled={submitting}
-          className="w-full rounded-full border-2 border-[#c8c8c8] bg-white px-3 py-1 text-center text-2xl font-black uppercase text-black placeholder:text-[#444] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-3xl"
+          className="font-persian w-full rounded-full border-2 border-[#c8c8c8] bg-white px-3 py-1 text-center text-3xl font-black uppercase leading-none text-black placeholder:text-[#444] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60 sm:px-4 sm:py-2 sm:text-4xl"
         />
       </div>
 

@@ -1,4 +1,14 @@
 import type { Room } from "@/../shared/src/types/room";
+import arashPortrait from "@/assets/themes/persian/characters/red/Arash.webp";
+import esfandiarPortrait from "@/assets/themes/persian/characters/red/Esfandiar.webp";
+import rostamPortrait from "@/assets/themes/persian/characters/red/Rostam.webp";
+import rudabehPortrait from "@/assets/themes/persian/characters/red/Rudabeh.webp";
+import tahminehPortrait from "@/assets/themes/persian/characters/red/Tahmineh.webp";
+import fereydunPortrait from "@/assets/themes/persian/characters/blue/Fereydun.webp";
+import kavehPortrait from "@/assets/themes/persian/characters/blue/Kaveh.webp";
+import siavashPortrait from "@/assets/themes/persian/characters/blue/Siavash.webp";
+import sohrabPortrait from "@/assets/themes/persian/characters/blue/Sohrab.webp";
+import zalPortrait from "@/assets/themes/persian/characters/blue/Zal.webp";
 
 export const FUNNY_AVATARS = [
   { id: "dog", emoji: "🐶", label: "Dog" },
@@ -12,7 +22,7 @@ export const FUNNY_AVATARS = [
 ] as const;
 
 export function avatarUrlForName(name: string): string {
-  return avatarUrlForEmoji(avatarEmojiForSeed(name || "Player"), name);
+  return avatarPortraitForSeed(name || "Player");
 }
 
 export function avatarUrlForProfile(profile: {
@@ -20,6 +30,7 @@ export function avatarUrlForProfile(profile: {
   avatarId?: string | null;
   photoUrl?: string | null;
   ghibliAvatarUrl?: string | null;
+  team?: "red" | "blue" | null;
 }): string {
   if (profile.avatarId) {
     const selectedAvatar = FUNNY_AVATARS.find(
@@ -33,21 +44,69 @@ export function avatarUrlForProfile(profile: {
   return (
     profile.ghibliAvatarUrl ??
     profile.photoUrl ??
-    avatarUrlForName(profile.displayName)
+    avatarPortraitForSeed(profile.displayName, profile.team)
   );
 }
 
 function avatarUrlForEmoji(emoji: string, seed: string): string {
-  const background = avatarBackgroundForSeed(seed || "Player");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="${background}"/><circle cx="13" cy="14" r="4" fill="rgba(255,255,255,.55)"/><circle cx="51" cy="48" r="6" fill="rgba(255,255,255,.2)"/><text x="32" y="43" text-anchor="middle" font-size="32" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text></svg>`;
+  const safeSeed = seed || "Player";
+  const background = avatarBackgroundForSeed(safeSeed);
+  const secondary = avatarSecondaryBackgroundForSeed(safeSeed);
+  const patternId = `avatar-pattern-${avatarSeed(safeSeed)}`;
+  const gradientId = `avatar-gradient-${avatarSeed(`${safeSeed}:gradient`)}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${background}"/><stop offset="1" stop-color="${secondary}"/></linearGradient><pattern id="${patternId}" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><path d="M0 0h12M0 6h12" stroke="rgba(255,255,255,.14)" stroke-width="2"/></pattern></defs><circle cx="32" cy="32" r="31" fill="#101923"/><circle cx="32" cy="32" r="28.5" fill="url(#${gradientId})"/><circle cx="32" cy="32" r="28.5" fill="url(#${patternId})"/><path d="M10 24c5-11 15-17 27-17 8 0 15 2 20 7" fill="none" stroke="rgba(255,255,255,.55)" stroke-linecap="round" stroke-width="2"/><circle cx="51" cy="48" r="6" fill="rgba(255,255,255,.14)"/><text x="32" y="43" text-anchor="middle" font-size="30" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const PORTRAIT_ASSETS = [
+  arashPortrait,
+  esfandiarPortrait,
+  rostamPortrait,
+  rudabehPortrait,
+  tahminehPortrait,
+  fereydunPortrait,
+  kavehPortrait,
+  siavashPortrait,
+  sohrabPortrait,
+  zalPortrait,
+];
+
+const RED_PORTRAIT_ASSETS = [
+  arashPortrait,
+  esfandiarPortrait,
+  rostamPortrait,
+  rudabehPortrait,
+  tahminehPortrait,
+];
+
+const BLUE_PORTRAIT_ASSETS = [
+  fereydunPortrait,
+  kavehPortrait,
+  siavashPortrait,
+  sohrabPortrait,
+  zalPortrait,
+];
+
+function avatarPortraitForSeed(
+  seed: string,
+  team?: "red" | "blue" | null,
+): string {
+  const portraits =
+    team === "red"
+      ? RED_PORTRAIT_ASSETS
+      : team === "blue"
+        ? BLUE_PORTRAIT_ASSETS
+        : PORTRAIT_ASSETS;
+  return (
+    portraits[avatarSeed(`${seed}:portrait`) % portraits.length] ?? portraits[0]
+  );
 }
 
 export function avatarUrlForPlayer(
   player: Room["players"][number] | null | undefined,
 ): string {
   if (!player) return avatarUrlForName("Player");
-  return avatarUrlForProfile(player);
+  return avatarUrlForProfile({ ...player, team: player.team });
 }
 
 const EMOJIS = [
@@ -97,6 +156,12 @@ function avatarEmojiForSeed(seed: string): string {
 function avatarBackgroundForSeed(seed: string): string {
   return AVATAR_BACKGROUNDS[
     avatarSeed(`${seed}:color`) % AVATAR_BACKGROUNDS.length
+  ];
+}
+
+function avatarSecondaryBackgroundForSeed(seed: string): string {
+  return AVATAR_BACKGROUNDS[
+    avatarSeed(`${seed}:secondary`) % AVATAR_BACKGROUNDS.length
   ];
 }
 

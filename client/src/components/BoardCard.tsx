@@ -12,21 +12,37 @@ interface BoardCardProps {
   revealedColor?: CardColor | null;
   hideWord?: boolean;
   showRevealedWord?: boolean;
+  revealAnimationKey?: number;
+  revealAnimationDirection?: "open" | "close";
+  theme?: "classic" | "persian";
   selectedPlayers?: Room["players"];
   ownerIds?: number[];
   revealAsset?: string | null;
 }
 
-const tileStyles: Record<CardColor, { tile: string; label: string }> = {
-  red: { tile: "game-card-tile-red", label: "game-card-label-red" },
-  blue: { tile: "game-card-tile-blue", label: "game-card-label-blue" },
+const tileStyles: Record<
+  CardColor,
+  { tile: string; label: string; overlay: string }
+> = {
+  red: {
+    tile: "game-card-tile-red",
+    label: "game-card-label-red",
+    overlay: "game-card-overlay-red",
+  },
+  blue: {
+    tile: "game-card-tile-blue",
+    label: "game-card-label-blue",
+    overlay: "game-card-overlay-blue",
+  },
   neutral: {
     tile: "game-card-tile-neutral",
     label: "game-card-label-neutral",
+    overlay: "game-card-overlay-neutral",
   },
   assassin: {
     tile: "game-card-tile-assassin",
     label: "game-card-label-assassin",
+    overlay: "game-card-overlay-assassin",
   },
 };
 
@@ -38,13 +54,17 @@ export function BoardCard({
   revealedColor = null,
   hideWord = false,
   showRevealedWord = false,
+  revealAnimationKey = 0,
+  revealAnimationDirection,
+  theme,
   selectedPlayers = [],
   ownerIds = [],
   revealAsset = null,
 }: BoardCardProps) {
   const isFlipped = Boolean(revealedColor);
   const hiddenWord =
-    hideWord || (Boolean(revealedColor) && !showRevealedWord && !revealAsset);
+    (hideWord && !showRevealedWord) ||
+    (Boolean(revealedColor) && !showRevealedWord);
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)]",
   ];
@@ -57,6 +77,7 @@ export function BoardCard({
   const revealedStyles = revealedColor ? tileStyles[revealedColor] : null;
   const tileColor = revealedStyles?.tile ?? "border-[#e8b98c] bg-[#f8cda8]";
   const labelColor = revealedStyles?.label ?? "";
+  const overlayColor = revealedStyles?.overlay ?? "";
   const wordLengthClass =
     word.length >= 14
       ? "text-[clamp(0.48rem,1.8vw,0.72rem)]"
@@ -71,14 +92,6 @@ export function BoardCard({
       className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
-      {revealAsset ? (
-        <img
-          src={revealAsset}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-[18%] left-1/2 z-20 h-[145%] w-[82%] -translate-x-1/2 object-contain object-bottom animate-character-reveal"
-        />
-      ) : null}
       <div className="game-card-shell">
         {selectedPlayers.length > 0 ? (
           <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
@@ -125,6 +138,19 @@ export function BoardCard({
           {word}
         </span>
       </div>
+      {revealAsset ? (
+        <div
+          key={revealAnimationKey}
+          className={`game-card-character-layer game-card-character-layer-textured ${overlayColor} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : "animate-character-reveal"}`}
+          aria-hidden="true"
+        >
+          <img
+            src={revealAsset}
+            alt=""
+            className="h-full w-full object-contain object-bottom"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

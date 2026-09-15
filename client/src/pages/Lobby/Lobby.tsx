@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PageContainer } from "@/components/PageContainer";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
@@ -11,6 +11,7 @@ import { useSession } from "@/context/SessionContext";
 import { useLobby } from "@/hooks/useLobby";
 import { getSocketClient } from "@/socket/client";
 import { avatarUrlForPlayer } from "@/lib/avatar";
+import { playActionSound } from "@/lib/sound";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import { isDevModeEnabled } from "@/lib/dev";
@@ -90,9 +91,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   });
   const [settingsPopupAction, setSettingsPopupAction] =
     useState<HostControlAction | null>(null);
+  const previousPlayerCountRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!room) {
+      previousPlayerCountRef.current = null;
       return;
     }
 
@@ -104,6 +107,19 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       firstClueBonus: room.settings.firstClueBonus ?? 120,
       customWords: room.settings.customWords ?? [],
     });
+  }, [room]);
+
+  useEffect(() => {
+    if (!room) return;
+    const playerCount = room.players.length;
+    const previousPlayerCount = previousPlayerCountRef.current;
+    if (previousPlayerCount !== null && playerCount !== previousPlayerCount) {
+      playActionSound(
+        playerCount > previousPlayerCount ? "join" : "leave",
+        room.settings.theme ?? "classic",
+      );
+    }
+    previousPlayerCountRef.current = playerCount;
   }, [room]);
 
   // If the room transitions to playing, notify parent to switch to game view.
@@ -411,6 +427,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     (theme: SettingsFormState["theme"]) => {
       if (!isOwner || !socket || !room || hostActionPending) return;
       const nextSettings = { ...settingsForm, theme };
+      playActionSound("theme", theme);
       setSettingsForm(nextSettings);
       setHostActionPending(true);
       socket.emit(
