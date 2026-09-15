@@ -206,7 +206,7 @@ export function BoardGrid({
                 selectedPlayers={selectedPlayersByCard[index] ?? []}
                 ownerIds={ownerIds}
                 revealAsset={
-                  canToggleRevealedCard
+                  publicCard.revealed
                     ? revealAssetForTheme(theme, publicCard.color, index)
                     : null
                 }
