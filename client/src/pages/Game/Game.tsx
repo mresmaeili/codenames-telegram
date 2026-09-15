@@ -527,7 +527,7 @@ export function GamePage({
         loading: false,
         error: null,
       }));
-      setSelectedPlayersByCard((current) => {
+      setSelectedPlayersByCard(() => {
         const next: Record<number, Room["players"]> = {};
         for (const selection of game.pendingSelections ?? []) {
           const player = room.players.find(
@@ -540,11 +540,6 @@ export function GamePage({
             ),
             player,
           ];
-        }
-        for (const [cardIndex, players] of Object.entries(current)) {
-          if (game.board[Number(cardIndex)]?.revealed) {
-            next[Number(cardIndex)] = players;
-          }
         }
         return next;
       });

@@ -430,7 +430,11 @@ export async function revealCard(
       selectedCardId: resolvedGame.selectedCardId,
       selectedByPlayerId: resolvedGame.selectedByPlayerId,
       selectedAt: resolvedGame.selectedAt,
-      pendingSelections: [],
+      pendingSelections:
+        !completionResult.completed &&
+        resolvedGame.currentTurn === game.currentTurn
+          ? (revealResult.game.pendingSelections ?? [])
+          : [],
       winningTeam: completionResult.completed
         ? completionResult.game.winningTeam
         : (game.winningTeam ?? null),
