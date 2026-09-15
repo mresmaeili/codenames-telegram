@@ -1,54 +1,61 @@
-import type { Room } from "@/../shared/src/types/room";
+import touchCardIcon from "@/assets/icon-touch-card.svg";
 import { avatarUrlForPlayer } from "@/lib/avatar";
-import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
-import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
+import type { Room } from "@/../shared/src/types/room";
+import type { Turn } from "@/../shared/src/types/game";
 
 interface TurnBannerProps {
   instruction: string;
-  player?: Room["players"][number];
-  ownerIds?: number[];
-  isYourTurn?: boolean;
-  onHelp: () => void;
+  showConfirmHint?: boolean;
+  waitingForPlayer?: Room["players"][number];
+  waitingTeam?: Turn;
 }
 
 export function TurnBanner({
   instruction,
-  player,
-  ownerIds = [],
-  isYourTurn = false,
-  onHelp,
+  showConfirmHint = false,
+  waitingForPlayer,
+  waitingTeam,
 }: TurnBannerProps) {
   return (
-    <div
-      className={`mt-0 flex min-h-8 items-center justify-center gap-1 rounded-xl px-1 text-center text-[clamp(0.86rem,3.6vw,1.45rem)] font-black uppercase leading-[0.92] tracking-tight text-white sm:mt-2 sm:min-h-10 sm:gap-1.5 sm:px-2 ${isYourTurn ? "border-2 border-[#b8ff8e] bg-[#51df20]/20 shadow-[0_0_18px_rgba(81,223,32,0.22)]" : ""}`}
-    >
-      {isYourTurn ? (
-        <span className="rounded-full bg-[#51df20] px-1.5 py-0.5 text-[0.5rem] font-black tracking-[0.1em] text-[#123d08] sm:px-2 sm:py-1 sm:text-[0.58rem]">
-          Your turn
+    <div className="mt-0 flex min-h-8 min-w-0 items-center justify-center gap-1 overflow-hidden px-1 text-center text-[clamp(0.68rem,2.7vw,1.1rem)] font-black uppercase leading-[0.92] tracking-tight text-white sm:mt-2 sm:min-h-10 sm:gap-1.5 sm:px-2">
+      {waitingTeam ? (
+        waitingForPlayer ? (
+          <span className="flex min-w-0 items-center justify-center gap-1 sm:gap-1.5">
+            <span>WAIT FOR</span>
+            <span className="relative flex shrink-0 -translate-y-0.5 flex-col items-center">
+              <img
+                src={avatarUrlForPlayer(waitingForPlayer)}
+                alt={waitingForPlayer.displayName}
+                title={waitingForPlayer.displayName}
+                className="h-6 w-6 rounded-full border border-white/90 object-cover sm:h-7 sm:w-7"
+              />
+              <span className="-mt-1 max-w-10 truncate rounded-sm bg-[#9f3028] px-0.5 text-[0.42rem] font-semibold leading-none text-white sm:text-[0.46rem]">
+                {waitingForPlayer.displayName}
+              </span>
+            </span>
+            <span>TO GIVE YOU A CLUE</span>
+          </span>
+        ) : (
+          <span className="min-w-0 max-w-full truncate whitespace-nowrap">
+            {waitingTeam.toUpperCase()} TEAM NEEDS A SPYMASTER
+          </span>
+        )
+      ) : showConfirmHint ? (
+        <span className="flex items-center justify-center gap-1 sm:gap-1.5">
+          <span>TAP</span>
+          <span
+            aria-hidden="true"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-[#51df20] shadow-[0_2px_5px_rgba(0,0,0,0.35)] sm:h-8 sm:w-8"
+          >
+            <img src={touchCardIcon} alt="" className="h-5 w-5 sm:h-6 sm:w-6" />
+          </span>
+          <span>TO CONFIRM YOUR CHOICE</span>
         </span>
-      ) : null}
-      <span>{instruction}</span>
-      {player ? (
-        <span className="relative shrink-0">
-          <img
-            src={avatarUrlForPlayer(player)}
-            alt={player.displayName}
-            title={player.displayName}
-            className="h-6 w-6 rounded-full border-2 border-white object-cover sm:h-8 sm:w-8"
-          />
-          <PlayerPresenceDot player={player} className="border-white" />
-          <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />
+      ) : (
+        <span className="min-w-0 max-w-full truncate whitespace-nowrap">
+          {instruction}
         </span>
-      ) : null}
-      <button
-        type="button"
-        onClick={onHelp}
-        aria-label="How to play"
-        title="How to play"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white/70 bg-[#54df20] text-sm text-white shadow-[0_2px_5px_rgba(0,0,0,0.3)] transition-transform hover:scale-110 active:scale-95 sm:h-7 sm:w-7 sm:text-base"
-      >
-        <span aria-hidden="true">?</span>
-      </button>
+      )}
     </div>
   );
 }

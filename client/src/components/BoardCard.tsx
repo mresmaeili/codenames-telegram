@@ -2,8 +2,6 @@ import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayer } from "@/lib/avatar";
-import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
-import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
 interface BoardCardProps {
   word: string;
@@ -17,7 +15,6 @@ interface BoardCardProps {
   revealAnimationDirection?: "open" | "close";
   theme?: GameTheme;
   selectedPlayers?: Room["players"];
-  ownerIds?: number[];
   revealAsset?: string | null;
 }
 
@@ -59,7 +56,6 @@ export function BoardCard({
   revealAnimationDirection,
   theme,
   selectedPlayers = [],
-  ownerIds = [],
   revealAsset = null,
 }: BoardCardProps) {
   const isFlipped = Boolean(revealedColor);
@@ -69,10 +65,6 @@ export function BoardCard({
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)]",
   ];
-  if (selectedPlaceholder)
-    outerClasses.push(
-      "z-10 scale-[1.025] ring-4 ring-(--app-accent) shadow-[0_0_0_4px_rgba(110,229,27,0.3),0_10px_20px_rgba(0,0,0,0.38)]",
-    );
   if (disabled) outerClasses.push("opacity-60 pointer-events-none");
 
   const revealedStyles = revealedColor ? tileStyles[revealedColor] : null;
@@ -90,34 +82,29 @@ export function BoardCard({
 
   return (
     <div
-      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       <div className="game-card-shell">
         {selectedPlayers.length > 0 ? (
           <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
             {selectedPlayers.length === 1 ? (
-              <div className="relative flex min-w-0 items-center gap-0.5 rounded-full bg-[#4cdf25] pr-1 text-[0.55rem] font-bold leading-none text-[#123d08] shadow-[0_2px_5px_rgba(0,0,0,0.45)]">
-                <span className="relative shrink-0">
+              <div className="relative flex min-w-0 flex-col items-center text-[0.5rem] font-bold leading-none text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]">
+                <span
+                  className={`relative shrink-0 rounded-full ${selectedPlayers[0]?.team === "blue" ? "bg-[#08799f]" : selectedPlayers[0]?.team === "red" ? "bg-[#9f3028]" : "bg-[#5a5a5a]"}`}
+                >
                   <img
                     src={avatarUrlForPlayer(selectedPlayers[0])}
                     alt={
                       selectedPlayers[0]?.displayName ?? "Selected by player"
                     }
                     title={selectedPlayers[0]?.displayName}
-                    className="h-7 w-7 rounded-full border-2 border-white object-cover"
-                  />
-                  <PlayerPresenceDot
-                    player={selectedPlayers[0]}
-                    className="border-white"
-                  />
-                  <PlayerAdminBadge
-                    isAdmin={ownerIds.includes(
-                      selectedPlayers[0]?.telegramId ?? 0,
-                    )}
+                    className={`h-6 w-6 rounded-full border object-cover ${selectedPlayers[0]?.team === "blue" ? "border-cyan-300" : selectedPlayers[0]?.team === "red" ? "border-red-300" : "border-white/90"}`}
                   />
                 </span>
-                <span className="max-w-14 truncate">
+                <span
+                  className={`relative z-10 -mt-2 max-w-14 truncate rounded-sm px-0.5 py-0.5 text-[0.5rem] ${selectedPlayers[0]?.team === "blue" ? "bg-[#08799f]" : selectedPlayers[0]?.team === "red" ? "bg-[#9f3028]" : "bg-[#5a5a5a]"}`}
+                >
                   {selectedPlayers[0]?.displayName ?? "Player"}
                 </span>
               </div>

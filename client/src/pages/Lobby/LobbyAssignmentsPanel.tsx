@@ -42,21 +42,21 @@ function PlayerList({
   }
 
   return (
-    <div className="my-3 flex min-h-14 flex-wrap items-center justify-center gap-2">
+    <div className="my-2 flex min-h-10 flex-wrap items-center justify-center gap-1">
       {players.map((player, index) => (
         <button
           key={player.userId}
           type="button"
           onClick={() => onPlayerClick?.(player)}
           disabled={!canManagePlayers}
-          className="flex flex-col items-center gap-1 rounded-full px-1 py-1"
+          className="flex min-h-0 flex-col items-center gap-0.5 rounded-full px-1 py-0.5"
         >
           <span className="relative">
             <img
               src={avatarUrlForPlayer(player)}
               alt={player.displayName}
               title={player.displayName}
-              className="h-11 w-11 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
+              className="h-9 w-9 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
             />
             <PlayerPresenceDot player={player} className="border-white" />
             <PlayerAdminBadge isAdmin={ownerIds.includes(player.telegramId)} />

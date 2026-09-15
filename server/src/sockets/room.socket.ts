@@ -1403,6 +1403,12 @@ export function registerRoomSocketHandlers(
           const selectedPlayerId = room.players.find(
             (player) => player.telegramId === actorTelegramId,
           )?.userId;
+          await emitGameState(
+            io,
+            payload.roomCode.toUpperCase(),
+            selectedResult.room as unknown as Room,
+            selectedResult.game,
+          );
           if (selectedPlayerId) {
             io.to(payload.roomCode.toUpperCase()).emit("game:selection", {
               gameId: payload.gameId,

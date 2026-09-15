@@ -115,6 +115,176 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+.lobby-content {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.lobby-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lobby-team-cards-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lobby-team-cards-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.gameplay-grid,
+.game-board-column {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.gameplay-shell {
+  isolation: isolate;
+}
+
+.gameplay-shell::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transition:
+    opacity 300ms ease,
+    background 300ms ease;
+}
+
+.gameplay-theme-persian::before {
+  opacity: 1;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 213, 105, 0.2) 0 2px,
+      transparent 2px 18px,
+      rgba(255, 213, 105, 0.12) 18px 20px,
+      transparent 20px 92px
+    ),
+    repeating-radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0 42px,
+      rgba(242, 196, 93, 0.07) 42px 44px,
+      transparent 44px 88px
+    ),
+    linear-gradient(180deg, rgba(47, 14, 25, 0.55), rgba(157, 72, 48, 0.42));
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+.gameplay-theme-meme::before {
+  opacity: 1;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(91, 27, 22, 0.2) 0,
+      rgba(91, 27, 22, 0.2) 5px,
+      transparent 5px,
+      transparent 36px
+    ),
+    linear-gradient(180deg, rgba(134, 29, 15, 0.42), rgba(224, 109, 52, 0.34));
+}
+
+.gameplay-theme-meme[data-turn="red"]::before {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(105, 27, 19, 0.28) 0,
+      rgba(105, 27, 19, 0.28) 6px,
+      transparent 6px,
+      transparent 38px
+    ),
+    linear-gradient(180deg, #be270f 0%, #d9471f 42%, #f19a59 100%);
+}
+
+.gameplay-theme-persian[data-turn="red"]::before {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 218, 111, 0.24) 0 2px,
+      transparent 2px 18px,
+      rgba(255, 218, 111, 0.14) 18px 20px,
+      transparent 20px 92px
+    ),
+    repeating-radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0 42px,
+      rgba(255, 210, 104, 0.08) 42px 44px,
+      transparent 44px 88px
+    ),
+    linear-gradient(180deg, rgba(154, 30, 18, 0.62), rgba(220, 106, 54, 0.5));
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+.gameplay-theme-persian[data-turn="blue"]::before {
+  background:
+    repeating-radial-gradient(
+      ellipse at 50% 118%,
+      rgba(5, 39, 68, 0.3) 0,
+      rgba(5, 39, 68, 0.3) 4px,
+      transparent 4px,
+      transparent 34px
+    ),
+    linear-gradient(180deg, rgba(5, 39, 68, 0.34), rgba(25, 119, 157, 0.28));
+}
+
+.gameplay-theme-meme[data-turn="blue"]::before {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(5, 48, 77, 0.28) 0,
+      rgba(5, 48, 77, 0.28) 6px,
+      transparent 6px,
+      transparent 38px
+    ),
+    linear-gradient(180deg, #075184 0%, #0879a8 45%, #39b7c9 100%);
+}
+
+.gameplay-theme-persian[data-turn="blue"]::before {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(245, 211, 105, 0.18) 0 2px,
+      transparent 2px 18px,
+      rgba(245, 211, 105, 0.12) 18px 20px,
+      transparent 20px 92px
+    ),
+    repeating-radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0 42px,
+      rgba(239, 197, 91, 0.07) 42px 44px,
+      transparent 44px 88px
+    ),
+    linear-gradient(180deg, rgba(5, 39, 67, 0.6), rgba(20, 102, 126, 0.46));
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+.gameplay-grid::-webkit-scrollbar,
+.game-board-column::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-width: 480px) {
   body {
     font-size: 15px;
@@ -129,16 +299,8 @@ body {
     display: none;
   }
 
-  .lobby-content {
-    display: flex;
-    flex-direction: column;
-  }
-
   .lobby-body {
-    display: flex;
-    min-height: 0;
-    flex: 1;
-    flex-direction: column;
+    overflow: hidden;
   }
 
   .lobby-room-meta {
@@ -158,7 +320,7 @@ body {
   }
 
   .lobby-spectators > div:last-child {
-    min-height: 2rem;
+    min-height: 1.75rem;
     gap: 0.35rem;
     overflow: hidden;
     padding-top: 0.1rem;
@@ -167,6 +329,7 @@ body {
 
   .lobby-spectators button {
     flex-shrink: 0;
+    min-height: 0;
     padding-top: 0.1rem;
     padding-bottom: 0.1rem;
   }
@@ -331,13 +494,17 @@ body {
   .lobby-assignment-row section > div {
     margin-top: 0.15rem;
     margin-bottom: 0.15rem;
-    min-height: 1.5rem;
+    min-height: 1.25rem;
     gap: 0.15rem;
   }
 
   .lobby-assignment-row section img {
     height: 1.75rem;
     width: 1.75rem;
+  }
+
+  .lobby-assignment-row section > div button {
+    min-height: 0;
   }
 
   .lobby-assignment-row section > button {
@@ -483,6 +650,20 @@ textarea:focus-visible {
   }
 }
 
+@keyframes confirm-ready {
+  0%,
+  100% {
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.5),
+      0 0 0 0 rgba(81, 223, 32, 0);
+  }
+  50% {
+    box-shadow:
+      0 4px 10px rgba(0, 0, 0, 0.5),
+      0 0 0 7px rgba(81, 223, 32, 0.16);
+  }
+}
+
 @keyframes wrong-card {
   0% {
     opacity: 0;
@@ -555,6 +736,10 @@ textarea:focus-visible {
   }
 
   .animate-wrong-card {
+    animation: none;
+  }
+
+  .game-card-confirm-button {
     animation: none;
   }
 }
@@ -858,6 +1043,15 @@ img[src*="/themes/persian/characters/"] {
   transition:
     opacity 180ms ease-out,
     box-shadow 180ms ease-out;
+}
+
+.game-card-confirm-button {
+  animation: none;
+}
+
+.game-card-confirm-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
 }
 
 .game-card-spymaster-selected::before {

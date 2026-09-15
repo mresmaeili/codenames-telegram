@@ -12,6 +12,7 @@ import type { Room } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
 import { persianRevealAsset } from "@/lib/persianRevealAssets";
 import { memeRevealAsset } from "@/lib/memeRevealAssets";
+import touchCardIcon from "@/assets/icon-touch-card.svg";
 
 function revealAssetForTheme(
   theme: GameTheme | undefined,
@@ -187,7 +188,7 @@ export function BoardGrid({
                   }));
                 }
               }}
-              className={`group block w-full transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (canToggleRevealedCard && (canSelectCard || revealAllWords)) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
+              className={`group block w-full touch-manipulation select-none transition duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg) ${isInteractive || (canToggleRevealedCard && (canSelectCard || revealAllWords)) ? "hover:-translate-y-0.5 hover:shadow-2xl" : "cursor-default"}`}
               disabled={!isSelectable && !canToggleRevealedCard}
             >
               <BoardCard
@@ -207,7 +208,6 @@ export function BoardGrid({
                 theme={theme}
                 selectedPlaceholder={isSelected || hasLocalSelection}
                 selectedPlayers={selectedPlayersByCard[index] ?? []}
-                ownerIds={ownerIds}
                 revealAsset={
                   publicCard.revealed
                     ? revealAssetForTheme(theme, publicCard.color, index)
@@ -224,11 +224,15 @@ export function BoardGrid({
                   playActionSound("confirm", theme);
                   onConfirmCard?.(index);
                 }}
-                className="absolute -right-2 -top-3 z-10 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#d9ffb8] bg-[#51df20] text-4xl text-white shadow-[0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-95"
+                className="game-card-confirm-button absolute -right-1 -top-2 z-10 flex h-10 w-10 touch-manipulation items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-gradient-to-b from-[#74e84d] to-[#2db814] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-90"
               >
-                <span aria-hidden="true" className="inline-block rotate-45">
-                  ☝
-                </span>
+                <img
+                  src={touchCardIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-7 w-7"
+                />
+                <span className="sr-only">Confirm selection</span>
               </button>
             ) : null}
           </div>

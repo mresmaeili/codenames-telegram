@@ -958,24 +958,24 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                         Spectators
                       </div>
                     </div>
-                    <div className="flex min-h-12 items-center justify-center gap-3 overflow-x-auto py-2">
+                    <div className="lobby-spectator-list flex min-h-10 items-center justify-center gap-2 overflow-x-auto py-1">
                       {displaySpectatorPlayers.length > 0 ? (
                         displaySpectatorPlayers.map((p) => (
                           <div
                             key={p.userId}
-                            className="relative flex flex-col items-center gap-1 rounded-full bg-white/5 px-2 py-1"
+                            className="relative flex flex-col items-center gap-0.5 rounded-full bg-white/5 px-1.5 py-0.5"
                           >
                             <button
                               type="button"
                               onClick={() => handlePlayerClick(p)}
                               disabled={!isOwner}
-                              className="flex flex-col items-center gap-1"
+                              className="flex min-h-0 flex-col items-center gap-0.5 py-0"
                             >
                               <span className="relative">
                                 <img
                                   src={avatarUrlForPlayer(p)}
                                   alt={p.displayName}
-                                  className="h-8 w-8 rounded-full object-cover"
+                                  className="h-7 w-7 rounded-full object-cover"
                                 />
                                 <PlayerPresenceDot
                                   player={p}
@@ -1028,27 +1028,29 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onThemeChange={handleThemeChange}
                 />
 
-                <LobbyAssignmentsPanel
-                  bluePlayers={displayBluePlayers}
-                  redPlayers={displayRedPlayers}
-                  ownerIds={room.ownerIds}
-                  onAssignmentChange={handleAssignmentChange}
-                  pendingAssignment={pendingAssignment}
-                  canManagePlayers={isOwner}
-                  onPlayerClick={handlePlayerClick}
-                  activeTeam={currentPlayer?.team}
-                  activeRole={currentPlayer?.role}
-                  theme={room.settings.theme}
-                />
+                <div className="lobby-team-cards-scroll min-h-0 flex-1">
+                  <LobbyAssignmentsPanel
+                    bluePlayers={displayBluePlayers}
+                    redPlayers={displayRedPlayers}
+                    ownerIds={room.ownerIds}
+                    onAssignmentChange={handleAssignmentChange}
+                    pendingAssignment={pendingAssignment}
+                    canManagePlayers={isOwner}
+                    onPlayerClick={handlePlayerClick}
+                    activeTeam={currentPlayer?.team}
+                    activeRole={currentPlayer?.role}
+                    theme={room.settings.theme}
+                  />
 
-                <div className="lobby-start mt-4 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleStartGame}
-                    className="lobby-start-button mt-4 w-full rounded-full border-2 border-[#a5ff55] bg-gradient-to-b from-[#54e313] to-[#25b900] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.42),0_5px_0_#168900,0_12px_18px_rgba(40,200,100,0.35)]"
-                  >
-                    Start game
-                  </button>
+                  <div className="lobby-start mt-4 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleStartGame}
+                      className="lobby-start-button mt-4 w-full rounded-full border-2 border-[#a5ff55] bg-gradient-to-b from-[#54e313] to-[#25b900] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.42),0_5px_0_#168900,0_12px_18px_rgba(40,200,100,0.35)]"
+                    >
+                      Start game
+                    </button>
+                  </div>
                 </div>
               </div>
             </>

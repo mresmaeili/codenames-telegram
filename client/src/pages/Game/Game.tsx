@@ -1121,6 +1121,14 @@ export function GamePage({
     (players) =>
       players.some((player) => player.userId === viewerPlayer?.userId),
   );
+  const waitingForSpymaster =
+    isViewerOperative && !hasActiveHint
+      ? state.room?.players.find(
+          (player) =>
+            player.team === state.game?.currentTurn &&
+            player.role === "spymaster",
+        )
+      : undefined;
   const turnInstruction = gameFinished
     ? `${state.game?.winningTeam ?? "Winning"} team wins`
     : isViewerSpymaster
@@ -1132,16 +1140,6 @@ export function GamePage({
             : "Tap to choose a word"
           : "Wait for your spymaster to give you a clue"
         : "Watch the turn";
-  const activeOperative = state.room?.players.find(
-    (player) =>
-      player.team === state.game?.currentTurn && player.role !== "spymaster",
-  );
-  const activeSpymaster = state.room?.players.find(
-    (player) =>
-      player.team === state.game?.currentTurn && player.role === "spymaster",
-  );
-  const turnPlayer = isViewerSpymaster ? activeSpymaster : activeOperative;
-
   function handleResetTeams() {
     if (!socket || !state.room || !user) return;
     socket.emit("room:resetTeams", {
@@ -1363,7 +1361,8 @@ export function GamePage({
   return (
     <PageContainer>
       <div
-        className={`relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"}`}
+        className={`gameplay-shell relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"} ${state.game.theme === "persian" ? "gameplay-theme-persian" : state.game.theme === "meme" ? "gameplay-theme-meme" : "gameplay-theme-classic"}`}
+        data-turn={state.game.currentTurn}
       >
         {hintOverlay ? (
           <div className="pointer-events-none absolute left-1/2 top-[62%] z-40 w-[min(88%,34rem)] -translate-x-1/2 -translate-y-1/2">
@@ -1474,7 +1473,7 @@ export function GamePage({
             />
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-1 overflow-y-auto sm:overflow-hidden sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
+        <div className="gameplay-grid grid min-h-0 flex-1 grid-cols-1 items-stretch gap-1 overflow-y-auto sm:overflow-hidden sm:grid-cols-[minmax(7rem,0.8fr)_minmax(0,2.4fr)_minmax(7rem,0.8fr)]">
           <div className="hidden min-h-0 flex-col gap-1 overflow-hidden sm:flex">
             <TeamPanel
               team="blue"
@@ -1501,25 +1500,18 @@ export function GamePage({
             />
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col overflow-visible sm:overflow-hidden">
+          <div className="game-board-column flex min-h-0 min-w-0 flex-col overflow-visible sm:overflow-y-auto">
             <TurnBanner
               instruction={turnInstruction}
-              player={turnPlayer}
-              isYourTurn={isActiveSpymaster || isActiveOperative}
-              onHelp={() => {
-                registerPopup(
-                  <div className="space-y-3 text-sm text-(--app-text)">
-                    <p>Spymasters give one clue word and a number.</p>
-                    <p>
-                      Operatives tap a card to mark it, then use the hand button
-                      to confirm.
-                    </p>
-                    <p>Tap a revealed card to show or hide its word.</p>
-                  </div>,
-                  "How to play",
-                );
-                openPopup();
-              }}
+              waitingForPlayer={waitingForSpymaster}
+              waitingTeam={
+                isViewerOperative && !hasActiveHint
+                  ? state.game?.currentTurn
+                  : undefined
+              }
+              showConfirmHint={
+                isViewerOperative && hasActiveHint && selectedCardActive
+              }
             />
             <GameBoardSurface
               game={state.game}
