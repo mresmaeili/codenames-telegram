@@ -1131,8 +1131,8 @@ img[src*="/themes/persian/characters/"] {
 }
 
 .game-card-label-neutral {
-  border-color: rgba(84, 84, 84, 0.52);
-  background: #464646;
+  border-color: rgba(104, 104, 104, 0.62);
+  background: #767676;
 }
 
 .game-card-label-assassin {

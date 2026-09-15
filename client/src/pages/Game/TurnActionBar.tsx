@@ -21,7 +21,7 @@ export function TurnActionBar({
         <div className="font-persian flex min-w-0 flex-1 items-center justify-center rounded-full border-2 border-[#d7d7d7] bg-white px-2 py-1 text-center text-lg font-bold uppercase tracking-tight text-[#222] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] sm:px-3 sm:py-2 sm:text-xl">
           {hintWord} ({hintNumber})
         </div>
-        <div className="font-digital flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#159dce] text-lg font-normal text-white shadow-[0_2px_4px_rgba(0,0,0,0.35)] sm:h-11 sm:w-11 sm:text-xl">
+        <div className="font-digital flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white/80 bg-[#159dce] text-lg font-bold text-white shadow-[0_2px_4px_rgba(0,0,0,0.35)] sm:h-11 sm:w-11 sm:text-xl">
           {hintNumber}
         </div>
         {canPass || canTake ? (

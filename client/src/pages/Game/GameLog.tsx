@@ -172,7 +172,7 @@ export function GameLog({
                             ? "bg-[#d66055]"
                             : guess.color === "assassin"
                               ? "bg-[#252525]"
-                              : "bg-[#5a5a5a]";
+                              : "bg-[#767676]";
                       const guessNameColor =
                         guess.team === "blue" ? "bg-[#08799f]" : "bg-[#9f3028]";
                       return (

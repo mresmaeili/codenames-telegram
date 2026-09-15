@@ -60,7 +60,7 @@ export function SpymasterPanel({
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`relative flex ${compact ? "h-7 w-7" : "h-9 w-9"} items-center justify-center overflow-visible rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
+          className={`relative flex ${compact ? "h-7 w-7" : "h-9 w-9"} aspect-square shrink-0 items-center justify-center overflow-visible rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
@@ -71,7 +71,7 @@ export function SpymasterPanel({
                 src={avatarUrlForPlayer(player)}
                 alt={player.displayName}
                 title={player.displayName}
-                className="h-full w-full rounded-full object-cover"
+                className="block aspect-square h-full w-full rounded-full object-cover"
               />
               <PlayerPresenceDot player={player} className="border-white" />
               <PlayerAdminBadge
