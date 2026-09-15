@@ -23,8 +23,7 @@ import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
 import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
-import ostadBagheriImage from "@/assets/ostad-bagheri.webp";
-import yuzeYaldarImage from "@/assets/yuze-yaldar.webp";
+import { hintSpeakerAsset } from "@/lib/hintSpeakerAssets";
 import {
   avatarUrlForPlayer,
   avatarUrlForName,
@@ -613,6 +612,13 @@ export function GamePage({
   }, [state.game?.id, state.game?.roomId]);
 
   useEffect(() => {
+    if (state.game?.status === "finished") {
+      setSelectedPlayersByCard({});
+      setSelectedHintCardIds(new Set());
+    }
+  }, [state.game?.status]);
+
+  useEffect(() => {
     if (!state.game) return;
     const guesses = (state.game?.rounds ?? []).flatMap(
       (round) => round.guesses,
@@ -1038,8 +1044,10 @@ export function GamePage({
       setSelectedHintCardIds,
       onGameUpdated: refreshGameState,
     });
-  const visibleSelectedPlayersByCard = selectedPlayersByCard;
   const gameFinished = state.game?.status === "finished";
+  const visibleSelectedPlayersByCard = gameFinished
+    ? {}
+    : selectedPlayersByCard;
   const roomSettings = state.room?.settings;
   const legacyTimerDuration =
     roomSettings?.timer && roomSettings.timer !== "none"
@@ -1349,11 +1357,11 @@ export function GamePage({
         {hintOverlay ? (
           <div className="pointer-events-none absolute left-1/2 top-[62%] z-40 w-[min(88%,34rem)] -translate-x-1/2 -translate-y-1/2">
             <img
-              src={
-                hintOverlay.team === "blue"
-                  ? ostadBagheriImage
-                  : yuzeYaldarImage
-              }
+              src={hintSpeakerAsset(
+                state.game.theme,
+                hintOverlay.team,
+                `${hintOverlay.submittedAt}-${hintOverlay.word}-${hintOverlay.number}`,
+              )}
               alt=""
               aria-hidden="true"
               className="pointer-events-none absolute left-1/2 top-0 z-10 h-[280%] w-[94%] -translate-x-1/2 -translate-y-[88%] object-contain"

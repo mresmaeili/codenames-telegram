@@ -40,7 +40,7 @@ const gameSchema = new Schema<GameDocument>(
     },
     theme: {
       type: String,
-      enum: ["classic", "persian"],
+      enum: ["classic", "persian", "meme"],
       default: "classic",
     },
     stateVersion: {

@@ -1,5 +1,6 @@
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
+import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
@@ -12,7 +13,7 @@ interface SpymasterCardProps {
   revealAnimationKey?: number;
   revealAnimationDirection?: "open" | "close";
   revealAsset?: string | null;
-  theme?: "classic" | "persian";
+  theme?: GameTheme;
   selected?: boolean;
   selectedPlayers?: Room["players"];
   ownerIds?: number[];
@@ -70,7 +71,7 @@ export function SpymasterCard({
           : "text-[clamp(0.8rem,3vw,1.25rem)]";
   const card = (
     <div
-      className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "game-card-spymaster-selected border-[#76f21b]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-flip-card" : ""}`}
+      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "game-card-spymaster-selected border-[#76f21b]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-flip-card" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >

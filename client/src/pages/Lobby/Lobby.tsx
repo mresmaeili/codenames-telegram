@@ -20,6 +20,7 @@ import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
 import { LobbyHeaderBar } from "./LobbyHeaderBar";
 import { LobbySettingsPanel } from "./LobbySettingsPanel";
 import type { PlayerRole, Room, Team } from "../../../../shared/src/types/room";
+import type { GameTheme } from "../../../../shared/src/types/theme";
 
 type AssignmentTeam = Team | null;
 
@@ -46,7 +47,7 @@ interface LobbyPageProps {
 }
 
 export interface SettingsFormState {
-  theme: "classic" | "persian";
+  theme: GameTheme;
   maxPlayers: number;
   allowSpectators: boolean;
   privateRoom: boolean;

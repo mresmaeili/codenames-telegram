@@ -10,12 +10,13 @@ import sohrab from "@/assets/themes/persian/characters/blue/Sohrab.webp";
 import zal from "@/assets/themes/persian/characters/blue/Zal.webp";
 import assassin from "@/assets/themes/persian/characters/Assassin.webp";
 import grey from "@/assets/themes/persian/characters/Grey.webp";
+import type { GameTheme } from "@/../shared/src/types/theme";
 
 const redAssets = [arash, esfandiar, rostam, rudabeh, tahmineh];
 const blueAssets = [fereydun, kaveh, siavash, sohrab, zal];
 
 export function persianRevealAsset(
-  theme: "classic" | "persian" | undefined,
+  theme: GameTheme | undefined,
   color: "red" | "blue" | "neutral" | "assassin" | null,
   cardIndex: number,
 ): string | null {

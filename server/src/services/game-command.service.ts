@@ -291,9 +291,15 @@ export async function revealCard(
       (!command.cardId || selection.cardId === command.cardId),
   );
   const selectedCardId =
-    pendingSelection?.cardId ?? game.selectedCardId ?? null;
+    pendingSelection?.cardId ??
+    (command.cardId && game.selectedCardId === command.cardId
+      ? game.selectedCardId
+      : null);
   const selectedByPlayerId =
-    pendingSelection?.playerId ?? game.selectedByPlayerId ?? null;
+    pendingSelection?.playerId ??
+    (selectedCardId !== null && game.selectedByPlayerId === sender?.userId
+      ? game.selectedByPlayerId
+      : null);
 
   const revealResult = applyCardReveal({
     game: {

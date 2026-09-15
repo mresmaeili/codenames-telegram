@@ -114,6 +114,9 @@ export function applyCardReveal(
       selectedCardId: null,
       selectedByPlayerId: null,
       selectedAt: null,
+      pendingSelections: (context.game.pendingSelections ?? []).filter(
+        (selection) => selection.cardId !== String(cardIndex),
+      ),
     },
   };
 }

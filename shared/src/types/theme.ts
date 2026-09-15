@@ -1,1 +1,1 @@
-export type GameTheme = "classic" | "persian";
+export type GameTheme = "classic" | "persian" | "meme";

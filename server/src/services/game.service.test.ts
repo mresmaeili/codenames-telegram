@@ -132,6 +132,41 @@ test("buildGameView reveals the full board to operatives after game completion",
     { word: "bravo", color: "blue" as const, revealed: true },
   ];
 
+  test("buildGameView reveals the complete key to operatives after the game finishes", () => {
+    const board = [
+      { word: "alpha", color: "red" as const, revealed: false },
+      { word: "bravo", color: "neutral" as const, revealed: true },
+    ];
+
+    const view = buildGameView({
+      id: "game-1",
+      roomId: "room-1",
+      stateVersion: 1,
+      status: "finished",
+      board,
+      startingTeam: "red",
+      currentTurn: "red",
+      remainingGuesses: 0,
+      currentHintWord: null,
+      currentHintNumber: null,
+      hintSubmittedAt: null,
+      hintHistory: [],
+      selectedCardId: null,
+      selectedByPlayerId: null,
+      selectedAt: null,
+      winningTeam: "red",
+      completionReason: "all-red-cards-revealed",
+      completedAt: new Date("2024-01-01T00:00:00.000Z"),
+      createdAt: new Date("2024-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2024-01-01T00:00:00.000Z"),
+      role: "operative",
+    });
+
+    assert.deepEqual(view.board, [
+      { word: "alpha", color: "red", revealed: false },
+      { word: "bravo", color: "neutral", revealed: true },
+    ]);
+  });
   const finishedView = buildGameView({
     roomId: "room-1",
     stateVersion: 0,

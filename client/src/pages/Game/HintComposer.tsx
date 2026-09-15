@@ -42,8 +42,10 @@ export function HintComposer({
         <label htmlFor="hintNumber" className="sr-only">
           Number of Cards (1-25)
         </label>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#159dce] text-lg font-black text-white sm:h-11 sm:w-11 sm:text-xl">
-          {number || "0"}
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-[#159dce] text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] transition-colors duration-200 sm:h-11 sm:w-11 sm:text-xl">
+          <span key={number || "0"} className="animate-number-change">
+            {number || "0"}
+          </span>
         </div>
         <select
           id="hintNumber"

@@ -251,7 +251,8 @@ function validateRoomSettings(settings: RoomSettings): void {
   if (
     settings.theme !== undefined &&
     settings.theme !== "classic" &&
-    settings.theme !== "persian"
+    settings.theme !== "persian" &&
+    settings.theme !== "meme"
   ) {
     throw new Error("Invalid game theme.");
   }

@@ -1,5 +1,6 @@
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
+import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
@@ -14,7 +15,7 @@ interface BoardCardProps {
   showRevealedWord?: boolean;
   revealAnimationKey?: number;
   revealAnimationDirection?: "open" | "close";
-  theme?: "classic" | "persian";
+  theme?: GameTheme;
   selectedPlayers?: Room["players"];
   ownerIds?: number[];
   revealAsset?: string | null;
@@ -89,7 +90,7 @@ export function BoardCard({
 
   return (
     <div
-      className={`game-card-surface relative flex aspect-square items-center justify-center rounded-[7px] border lg:aspect-[1.55/1] ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${selectedPlaceholder ? "border-[#f8e2c8]" : tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
       <div className="game-card-shell">

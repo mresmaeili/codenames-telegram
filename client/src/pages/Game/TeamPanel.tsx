@@ -1,4 +1,5 @@
 import type { Room, Team } from "@/../shared/src/types/room";
+import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayer } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
@@ -13,7 +14,7 @@ interface TeamPanelProps {
   onPlayerClick: (player: Room["players"][number]) => void;
   className?: string;
   compact?: boolean;
-  theme?: "classic" | "persian";
+  theme?: GameTheme;
 }
 
 const teamStyles = {

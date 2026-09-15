@@ -11,7 +11,18 @@ import type {
   Turn,
 } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
+import type { GameTheme } from "@/../shared/src/types/theme";
 import { persianRevealAsset } from "@/lib/persianRevealAssets";
+import { memeRevealAsset } from "@/lib/memeRevealAssets";
+
+function revealAssetForTheme(
+  theme: GameTheme | undefined,
+  color: "red" | "blue" | "neutral" | "assassin" | null,
+  cardIndex: number,
+): string | null {
+  if (theme === "meme") return memeRevealAsset(color);
+  return persianRevealAsset(theme, color, cardIndex);
+}
 
 interface BoardGridProps {
   cards: PublicCard[] | SpymasterCardModel[];
@@ -30,7 +41,8 @@ interface BoardGridProps {
   ownerIds?: number[];
   wrongCardIndex?: number | null;
   cardFeedback?: "opponent" | "gray" | "assassin" | null;
-  theme?: "classic" | "persian";
+  revealAllWords?: boolean;
+  theme?: GameTheme;
 }
 
 export function BoardGrid({
@@ -50,6 +62,7 @@ export function BoardGrid({
   ownerIds = [],
   wrongCardIndex = null,
   cardFeedback = null,
+  revealAllWords = false,
   theme,
 }: BoardGridProps) {
   const [visibleRevealedWords, setVisibleRevealedWords] = useState<Set<number>>(
@@ -78,7 +91,7 @@ export function BoardGrid({
               revealAnimationDirection={revealedWordAnimationDirections[index]}
               revealAsset={
                 spymasterCard.revealed
-                  ? persianRevealAsset(theme, spymasterCard.color, index)
+                  ? revealAssetForTheme(theme, spymasterCard.color, index)
                   : null
               }
               theme={theme}
@@ -183,7 +196,7 @@ export function BoardGrid({
                 disabled={false}
                 revealPlaceholder={false}
                 revealedColor={publicCard.color}
-                showRevealedWord={isRevealedWordVisible}
+                showRevealedWord={isRevealedWordVisible || revealAllWords}
                 revealAnimationKey={revealedWordAnimations[index] ?? 0}
                 revealAnimationDirection={
                   revealedWordAnimationDirections[index]
@@ -194,7 +207,7 @@ export function BoardGrid({
                 ownerIds={ownerIds}
                 revealAsset={
                   publicCard.revealed
-                    ? persianRevealAsset(theme, publicCard.color, index)
+                    ? revealAssetForTheme(theme, publicCard.color, index)
                     : null
                 }
               />
@@ -213,9 +226,29 @@ export function BoardGrid({
               >
                 <img
                   src={
-                    cardFeedback === "opponent"
-                      ? opponentCardImage
-                      : grayCardImage
+                    theme === "meme"
+                      ? (revealAssetForTheme(
+                          theme,
+                          cardFeedback === "assassin"
+                            ? "assassin"
+                            : cardFeedback === "gray"
+                              ? "neutral"
+                              : "red",
+                          index,
+                        ) ?? grayCardImage)
+                      : theme === "persian"
+                        ? (revealAssetForTheme(
+                            theme,
+                            cardFeedback === "assassin"
+                              ? "assassin"
+                              : cardFeedback === "gray"
+                                ? "neutral"
+                                : "red",
+                            index,
+                          ) ?? grayCardImage)
+                        : cardFeedback === "opponent"
+                          ? opponentCardImage
+                          : grayCardImage
                   }
                   alt={
                     cardFeedback === "opponent"

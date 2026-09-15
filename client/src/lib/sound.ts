@@ -1,3 +1,5 @@
+import type { GameTheme } from "@/../shared/src/types/theme";
+
 const SOUND_ENABLED_KEY = "codenames.soundEnabled";
 
 let audioContext: AudioContext | null = null;
@@ -44,7 +46,7 @@ export type GameplaySound =
   | "win"
   | "lose";
 
-type SoundTheme = "classic" | "persian";
+type SoundTheme = GameTheme;
 
 const CLASSIC_SOUND_SEQUENCES: Record<
   GameplaySound,

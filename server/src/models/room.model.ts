@@ -76,7 +76,7 @@ const roomSettingsSchema = new Schema<RoomSettings>(
     theme: {
       type: String,
       required: true,
-      enum: ["classic", "persian"],
+      enum: ["classic", "persian", "meme"],
       default: "classic",
     },
     gameMode: {

@@ -51,6 +51,7 @@ export function LobbySettingsPanel({
           >
             <option value="classic">Classic</option>
             <option value="persian">Persian</option>
+            <option value="meme">Meme</option>
           </select>
         </label>
         <button
