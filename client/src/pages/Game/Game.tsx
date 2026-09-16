@@ -1568,7 +1568,7 @@ export function GamePage({
               />
               {hintOverlay && hintOverlayReady ? (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                  <div className="pointer-events-none relative z-20 h-64 w-[min(86%,26rem)] min-w-[14rem] overflow-hidden sm:h-80">
+                  <div className="pointer-events-none relative z-20 h-56 w-[min(86%,26rem)] min-w-[14rem] overflow-hidden sm:h-72">
                     <div className="absolute inset-x-0 top-0 h-full overflow-hidden">
                       <img
                         src={hintOverlayAsset ?? undefined}
@@ -1577,7 +1577,7 @@ export function GamePage({
                         className="pointer-events-none absolute left-0 top-0 h-auto w-full max-w-none object-top"
                       />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+                    <div className="absolute bottom-0 left-0 right-0 z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
                       <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
                         <span>{hintOverlay.word}</span>
                         <span
