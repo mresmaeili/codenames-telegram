@@ -9,6 +9,9 @@ import kavehPortrait from "@/assets/themes/persian/characters/blue/Kaveh.webp";
 import siavashPortrait from "@/assets/themes/persian/characters/blue/Siavash.webp";
 import sohrabPortrait from "@/assets/themes/persian/characters/blue/Sohrab.webp";
 import zalPortrait from "@/assets/themes/persian/characters/blue/Zal.webp";
+import memeRedPortrait from "@/assets/themes/meme/red/yuze-yaldar.webp";
+import memeBluePortrait from "@/assets/themes/meme/blue/ostad-bagheri.webp";
+import type { GameTheme } from "@/../shared/src/types/theme";
 
 export const FUNNY_AVATARS = [
   { id: "dog", emoji: "🐶", label: "Dog" },
@@ -107,6 +110,17 @@ export function avatarUrlForPlayer(
 ): string {
   if (!player) return avatarUrlForName("Player");
   return avatarUrlForProfile({ ...player, team: player.team });
+}
+
+export function avatarUrlForPlayerInTheme(
+  player: Room["players"][number] | null | undefined,
+  theme: GameTheme | undefined,
+): string {
+  if (!player || theme === "classic") return avatarUrlForPlayer(player);
+  if (theme === "meme") {
+    return player.team === "red" ? memeRedPortrait : memeBluePortrait;
+  }
+  return avatarPortraitForSeed(player.displayName, player.team);
 }
 
 const EMOJIS = [

@@ -1,4 +1,4 @@
-import { avatarUrlForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import type { Room } from "../../../../shared/src/types/room";
@@ -53,7 +53,7 @@ function PlayerList({
         >
           <span className="relative">
             <img
-              src={avatarUrlForPlayer(player)}
+              src={avatarUrlForPlayerInTheme(player, theme)}
               alt={player.displayName}
               title={player.displayName}
               className="h-9 w-9 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
@@ -87,9 +87,7 @@ export function LobbyAssignmentsPanel({
     team: "blue" | "red",
     role: "operative" | "spymaster",
   ) =>
-    `lobby-team-card ${team === "blue" ? "lobby-team-card-blue" : "lobby-team-card-red"} ${theme === "persian" ? "lobby-team-card-persian" : ""} rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.3)] ${
-      team === "blue" ? "bg-[#079ddd]" : "bg-[#ff5947]"
-    } ${activeTeam === team && activeRole === role ? "border-[#76f21b]" : team === "blue" ? "border-[#75eaff]/70" : "border-[#ffc2aa]/80"}`;
+    `lobby-team-card ${team === "blue" ? "lobby-team-card-blue" : "lobby-team-card-red"} ${theme === "persian" ? "lobby-team-card-persian" : ""} rounded-xl border-2 p-2 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_8px_16px_rgba(0,0,0,0.3)] ${activeTeam === team && activeRole === role ? "border-[#76f21b]" : team === "blue" ? "border-[#75eaff]/70" : "border-[#ffc2aa]/80"}`;
 
   return (
     <>
