@@ -553,6 +553,30 @@ export function GamePage({
         game: current.game
           ? {
               ...current.game,
+              pendingSelections: (() => {
+                const pendingSelections = current.game.pendingSelections ?? [];
+                const existingSelection = pendingSelections.find(
+                  (selection) =>
+                    selection.cardId === cardId &&
+                    selection.playerId === playerId,
+                );
+                if (selected && !existingSelection) {
+                  return [
+                    ...pendingSelections,
+                    { cardId, playerId, selectedAt: new Date() },
+                  ];
+                }
+                if (!selected) {
+                  return pendingSelections.filter(
+                    (selection) =>
+                      !(
+                        selection.cardId === cardId &&
+                        selection.playerId === playerId
+                      ),
+                  );
+                }
+                return pendingSelections;
+              })(),
               selectedCardId: selected ? cardId : null,
               selectedByPlayerId: selected ? playerId : null,
               selectedAt: selected ? new Date() : null,
@@ -1544,26 +1568,28 @@ export function GamePage({
               />
               {hintOverlay && hintOverlayReady ? (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                  <div className="pointer-events-none absolute left-1/2 top-[8%] z-10 h-52 w-[30%] -translate-x-1/2 overflow-hidden sm:h-64">
-                    <img
-                      src={hintOverlayAsset ?? undefined}
-                      alt=""
-                      aria-hidden="true"
-                      className="pointer-events-none h-auto min-h-full w-full max-w-none object-top"
-                    />
-                  </div>
-                  <div className="relative z-20 w-[min(86%,26rem)] min-w-[14rem] translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
-                    <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
-                      <span>{hintOverlay.word}</span>
-                      <span
-                        className={
-                          hintOverlay.team === "blue"
-                            ? "text-[#159dce]"
-                            : "text-[#d66055]"
-                        }
-                      >
-                        {hintOverlay.number}
-                      </span>
+                  <div className="pointer-events-none relative z-20 h-64 w-[min(86%,26rem)] min-w-[14rem] overflow-hidden sm:h-80">
+                    <div className="absolute inset-x-0 top-0 h-full overflow-hidden">
+                      <img
+                        src={hintOverlayAsset ?? undefined}
+                        alt=""
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-1/2 top-0 h-full w-[38%] -translate-x-1/2 object-cover object-top"
+                      />
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+                      <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
+                        <span>{hintOverlay.word}</span>
+                        <span
+                          className={
+                            hintOverlay.team === "blue"
+                              ? "text-[#159dce]"
+                              : "text-[#d66055]"
+                          }
+                        >
+                          {hintOverlay.number}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -134,17 +134,12 @@ export function BoardGrid({
         const localSelectedPlayers = selectedPlayersByCard[index] ?? [];
         const hasLocalSelection =
           canSelectCard && localSelectedPlayers.length > 0;
-        const hasOwnLocalSelection =
-          canSelectCard &&
-          localSelectedPlayers.some(
-            (player) => player.userId === viewerPlayerId,
-          );
+        const hasOwnLocalSelection = localSelectedPlayers.some(
+          (player) => player.userId === viewerPlayerId,
+        );
         const isSelectable = canSelectCard && !publicCard.revealed;
         const isConfirmable =
-          role === "operative" &&
-          canSelectCard &&
-          hasOwnLocalSelection &&
-          !publicCard.revealed;
+          role === "operative" && hasOwnLocalSelection && !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
         const ariaLabel = canToggleRevealedCard
@@ -223,7 +218,7 @@ export function BoardGrid({
                   playActionSound("confirm", theme);
                   onConfirmCard?.(index);
                 }}
-                className="game-card-confirm-button absolute -right-1 -top-2 z-10 flex h-10 w-10 touch-manipulation items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-gradient-to-b from-[#74e84d] to-[#2db814] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-90"
+                className="game-card-confirm-button absolute -right-1 -top-2 z-10 flex h-8 w-8 touch-manipulation items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-gradient-to-b from-[#74e84d] to-[#2db814] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-90"
               >
                 <img
                   src={touchCardIcon}
