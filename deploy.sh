@@ -43,6 +43,18 @@ if [[ ! -d "client" || ! -d "server" ]]; then
 fi
 success "Project root verified."
 
+# Fail early with a useful message instead of appearing to hang in tsc on an
+# older system Node runtime.
+NODE_VERSION=$(node -p "process.versions.node")
+if ! node -e '
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  process.exit(major > 20 || (major === 20 && minor >= 19) ? 0 : 1);
+'; then
+  error "Node.js ${NODE_VERSION} is unsupported. This project requires Node.js >= 20.19.0."
+  exit 2
+fi
+info "Node.js version: ${NODE_VERSION}"
+
 # Save current working directory
 PROJECT_ROOT="$(pwd)"
 info "Project root: ${PROJECT_ROOT}"
@@ -83,7 +95,14 @@ VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
 VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://codenames.example.com}" \
 VITE_SOCKET_URL="${VITE_SOCKET_URL:-https://codenames.example.com}" \
 VITE_TELEGRAM_BOT_USERNAME="${VITE_TELEGRAM_BOT_USERNAME:-baziekalamat_bot}" \
-npm run build
+npm run typecheck
+
+info "TypeScript check completed. Bundling frontend with Vite..."
+VITE_APP_NAME="${VITE_APP_NAME:-Codenames Telegram Mini App}" \
+VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://codenames.example.com}" \
+VITE_SOCKET_URL="${VITE_SOCKET_URL:-https://codenames.example.com}" \
+VITE_TELEGRAM_BOT_USERNAME="${VITE_TELEGRAM_BOT_USERNAME:-baziekalamat_bot}" \
+npx vite build
 
 # 5. Verify client/dist/index.html exists
 if [[ ! -f "dist/index.html" ]]; then
