@@ -27,10 +27,10 @@ export function HintComposer({
         event.preventDefault();
         onSubmit();
       }}
-      className="relative z-20 mt-3 shrink-0 overflow-visible rounded-[18px] border-[3px] border-[#202020] bg-[#292929] shadow-[0_5px_0_rgba(0,0,0,0.38),0_8px_16px_rgba(0,0,0,0.28)] backdrop-blur-sm animate-event-in sm:rounded-[20px]"
+      className="relative z-20 mt-2 shrink-0 overflow-visible rounded-[16px] border-2 border-[#202020] bg-[#292929] shadow-[0_4px_0_rgba(0,0,0,0.38),0_6px_12px_rgba(0,0,0,0.28)] backdrop-blur-sm animate-event-in sm:rounded-[18px]"
     >
       {numberPickerOpen ? (
-        <div className="absolute bottom-[calc(100%+0.5rem)] left-0 right-0 grid grid-cols-10 gap-0.5 rounded-[18px] border-[3px] border-[#202020] bg-[#363636] px-1 py-1 shadow-[0_5px_0_rgba(0,0,0,0.38),0_8px_16px_rgba(0,0,0,0.28)] sm:gap-1 sm:rounded-[20px] sm:px-1.5 sm:py-1.5">
+        <div className="absolute bottom-[calc(100%+0.4rem)] left-0 right-0 grid grid-cols-10 gap-0.5 rounded-[16px] border-2 border-[#202020] bg-[#363636] px-1 py-1 shadow-[0_4px_0_rgba(0,0,0,0.38),0_6px_12px_rgba(0,0,0,0.28)] sm:gap-1 sm:rounded-[18px] sm:px-1.5 sm:py-1.5">
           {quickNumbers.map((quickNumber) => {
             const isSelected = selectedNumber === String(quickNumber);
             return (
@@ -44,7 +44,7 @@ export function HintComposer({
                   onNumberChange(quickNumber === 0 ? "" : String(quickNumber));
                   setNumberPickerOpen(false);
                 }}
-                className={`flex aspect-square w-full items-center justify-center rounded-full border-[3px] border-[#bfc4c8] bg-[#f7f8f8] text-[clamp(1.25rem,5vw,2.25rem)] font-black leading-none text-[#e44842] shadow-[inset_0_-3px_0_rgba(0,0,0,0.12),0_2px_3px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5 hover:brightness-105 active:scale-90 ${isSelected ? "ring-2 ring-[#51df20] ring-offset-1 ring-offset-[#363636]" : ""}`}
+                className={`flex aspect-square w-full items-center justify-center rounded-full border-2 border-[#bfc4c8] bg-[#f7f8f8] text-[clamp(1.1rem,4.5vw,2rem)] font-black leading-none text-[#e44842] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12),0_2px_3px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5 hover:brightness-105 active:scale-90 ${isSelected ? "ring-2 ring-[#51df20] ring-offset-1 ring-offset-[#363636]" : ""}`}
               >
                 {quickNumber}
               </button>
@@ -53,7 +53,7 @@ export function HintComposer({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-1.5 bg-[#292929] p-1.5 sm:gap-2 sm:p-2">
+      <div className="flex items-center gap-1 bg-[#292929] p-1 sm:gap-1.5 sm:p-1.5">
         <div className="min-w-0 flex-1">
           <label htmlFor="hintWord" className="sr-only">
             Hint Word
@@ -65,7 +65,7 @@ export function HintComposer({
             onChange={(event) => onWordChange(event.target.value)}
             placeholder="Your clue"
             disabled={submitting}
-            className="font-persian h-12 w-full rounded-full border-[4px] border-[#171717] bg-white px-3 text-center text-3xl font-black uppercase leading-none text-black placeholder:text-[#444] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60 sm:h-14 sm:px-4 sm:text-4xl"
+            className="font-persian h-10 w-full rounded-full border-[3px] border-[#171717] bg-white px-3 text-center text-2xl font-black uppercase leading-none text-black placeholder:text-[#444] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] transition-shadow focus:border-[#6ee51b] focus:outline-none focus:ring-4 focus:ring-[#6ee51b]/25 disabled:opacity-60 sm:h-12 sm:px-4 sm:text-3xl"
           />
         </div>
 
@@ -80,7 +80,7 @@ export function HintComposer({
             aria-expanded={numberPickerOpen}
             disabled={submitting}
             onClick={() => setNumberPickerOpen((open) => !open)}
-            className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-[#171717] bg-white text-3xl font-black text-[#e44842] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12),0_2px_3px_rgba(0,0,0,0.35)] transition-transform duration-150 hover:brightness-105 active:scale-90 sm:h-14 sm:w-14 sm:text-4xl"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#171717] bg-white text-2xl font-black text-[#e44842] shadow-[inset_0_-2px_0_rgba(0,0,0,0.12),0_2px_3px_rgba(0,0,0,0.35)] transition-transform duration-150 hover:brightness-105 active:scale-90 sm:h-12 sm:w-12 sm:text-3xl"
           >
             <span key={selectedNumber} className="animate-number-change">
               {selectedNumber}
@@ -92,7 +92,7 @@ export function HintComposer({
           type="submit"
           disabled={submitting || !word.trim() || !number}
           aria-label="Send hint"
-          className="flex h-12 w-16 shrink-0 items-center justify-center rounded-full border-[3px] border-[#9be783] bg-[#35b94b] px-2 text-3xl font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_0_#247b35] transition-transform hover:brightness-110 active:translate-y-0.5 active:scale-90 disabled:opacity-60 sm:h-14 sm:w-20 sm:px-3 sm:text-4xl"
+          className="flex h-10 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#9be783] bg-[#35b94b] px-2 text-2xl font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_#247b35] transition-transform hover:brightness-110 active:translate-y-0.5 active:scale-90 disabled:opacity-60 sm:h-12 sm:w-18 sm:px-3 sm:text-3xl"
         >
           {submitting ? "..." : "↑"}
         </button>

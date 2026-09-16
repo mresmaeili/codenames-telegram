@@ -1544,12 +1544,12 @@ export function GamePage({
               />
               {hintOverlay && hintOverlayReady ? (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                  <div className="pointer-events-none absolute left-1/2 top-[12%] z-10 h-[36%] w-[30%] -translate-x-1/2 overflow-hidden">
+                  <div className="pointer-events-none absolute left-1/2 top-[8%] z-10 h-52 w-[30%] -translate-x-1/2 overflow-hidden sm:h-64">
                     <img
                       src={hintOverlayAsset ?? undefined}
                       alt=""
                       aria-hidden="true"
-                      className="pointer-events-none h-full w-full object-contain object-top"
+                      className="pointer-events-none h-auto min-h-full w-full max-w-none object-top"
                     />
                   </div>
                   <div className="relative z-20 w-[min(86%,26rem)] min-w-[14rem] translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">

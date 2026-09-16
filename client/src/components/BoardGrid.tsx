@@ -143,8 +143,7 @@ export function BoardGrid({
         const isConfirmable =
           role === "operative" &&
           canSelectCard &&
-          (hasOwnLocalSelection ||
-            (isSelected && selectedByPlayerId === viewerPlayerId)) &&
+          hasOwnLocalSelection &&
           !publicCard.revealed;
         const isInteractive = isSelectable || isConfirmable;
         const isRevealedWordVisible = visibleRevealedWords.has(index);
