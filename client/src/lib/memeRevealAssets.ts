@@ -1,7 +1,7 @@
 import assassin from "@/assets/themes/meme/Assassin.webp";
 import grey from "@/assets/themes/meme/Grey.webp";
-import blueCharacter from "@/assets/themes/meme/blue/ostad-bagheri.webp";
-import redCharacter from "@/assets/themes/meme/red/yuze-yaldar.webp";
+import blueCharacter from "@/assets/themes/meme/blue/operative-1.webp";
+import redCharacter from "@/assets/themes/meme/red/operative-1.webp";
 
 export function memeRevealAsset(
   color: "red" | "blue" | "neutral" | "assassin" | null,

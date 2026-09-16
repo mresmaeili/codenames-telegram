@@ -61,7 +61,7 @@ export interface SettingsFormState {
   customWords: string[];
 }
 
-type HostControlAction = "timer" | "word-pack";
+type HostControlAction = "timer" | "word-pack" | "theme";
 
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
@@ -411,6 +411,9 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       ownerTelegramId: user.telegramId,
       settings: settingsForm,
     });
+    if (settingsPopupAction === "theme") {
+      playActionSound("theme", settingsForm.theme);
+    }
     handleCloseSettingsPopup();
     toast.info("Saving game settings...");
     window.setTimeout(() => setHostActionPending(false), 1200);
@@ -419,42 +422,11 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     isOwner,
     room,
     settingsForm,
+    settingsPopupAction,
     socket,
     toast,
     user,
   ]);
-
-  const handleThemeChange = useCallback(
-    (theme: SettingsFormState["theme"]) => {
-      if (!isOwner || !socket || !room || hostActionPending) return;
-      const nextSettings = { ...settingsForm, theme };
-      playActionSound("theme", theme);
-      setSettingsForm(nextSettings);
-      setHostActionPending(true);
-      socket.emit(
-        "room:updateSettings",
-        {
-          roomCode: room.roomCode,
-          ownerTelegramId: user?.telegramId,
-          settings: nextSettings,
-        },
-        (ack?: { error?: string }) => {
-          setHostActionPending(false);
-          if (ack?.error) toast.error(ack.error);
-          else toast.success("Theme updated.");
-        },
-      );
-    },
-    [
-      hostActionPending,
-      isOwner,
-      room,
-      settingsForm,
-      socket,
-      toast,
-      user?.telegramId,
-    ],
-  );
 
   // Compact custom word editor used inside the word-pack popup.
   function WordPackEditor() {
@@ -528,6 +500,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     const titleMap: Record<HostControlAction, string> = {
       timer: "Timer",
       "word-pack": "Word packs & language",
+      theme: "Theme",
     };
 
     const title = titleMap[settingsPopupAction] ?? "Setting";
@@ -540,7 +513,51 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
           </div>
         </div>
 
-        {settingsPopupAction === "timer" ? (
+        {settingsPopupAction === "theme" ? (
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              {
+                value: "classic" as const,
+                label: "Classic",
+                detail: "Bright teams and classic emoji avatars",
+              },
+              {
+                value: "persian" as const,
+                label: "Persian",
+                detail: "Persian portraits and patterned teams",
+              },
+              {
+                value: "meme" as const,
+                label: "Meme",
+                detail: "Meme characters and bold team colors",
+              },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setSettingsForm((current) => ({
+                    ...current,
+                    theme: option.value,
+                  }));
+                  playActionSound("theme", option.value);
+                }}
+                className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
+                  settingsForm.theme === option.value
+                    ? "border-[#2cc86c] bg-[#2cc86c]/15 text-white shadow-[inset_0_0_0_1px_rgba(44,200,108,0.3)]"
+                    : "border-white/10 bg-(--app-background) text-(--app-text)"
+                }`}
+              >
+                <span className="block text-base font-black">
+                  {option.label}
+                </span>
+                <span className="mt-1 block text-xs text-white/60">
+                  {option.detail}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : settingsPopupAction === "timer" ? (
           <div className="space-y-4">
             {settingsForm.timer !== "none" ? (
               <div className="grid grid-cols-2 gap-3">
@@ -742,6 +759,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     hostActionPending,
     handleSettingsSave,
     handleCloseSettingsPopup,
+    socket,
   ]);
 
   function handleAssignmentChange(
@@ -1025,7 +1043,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                   onOpenWordPackSettings={() =>
                     handleOpenSettingsPopup("word-pack")
                   }
-                  onThemeChange={handleThemeChange}
+                  onOpenThemeSettings={() => handleOpenSettingsPopup("theme")}
                 />
 
                 <div className="lobby-team-cards-scroll min-h-0 flex-1">

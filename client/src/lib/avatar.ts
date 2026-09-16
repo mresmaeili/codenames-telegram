@@ -9,8 +9,14 @@ import kavehPortrait from "@/assets/themes/persian/characters/blue/Kaveh.webp";
 import siavashPortrait from "@/assets/themes/persian/characters/blue/Siavash.webp";
 import sohrabPortrait from "@/assets/themes/persian/characters/blue/Sohrab.webp";
 import zalPortrait from "@/assets/themes/persian/characters/blue/Zal.webp";
-import memeRedPortrait from "@/assets/themes/meme/red/yuze-yaldar.webp";
-import memeBluePortrait from "@/assets/themes/meme/blue/ostad-bagheri.webp";
+import memeRedSpymaster from "@/assets/themes/meme/red/spymaster.webp";
+import memeRedOperative1 from "@/assets/themes/meme/red/operative-1.webp";
+import memeRedOperative2 from "@/assets/themes/meme/red/operative-2.webp";
+import memeBlueSpymaster from "@/assets/themes/meme/blue/spymaster.webp";
+import memeBlueOperative1 from "@/assets/themes/meme/blue/operative-1.webp";
+import memeBlueOperative2 from "@/assets/themes/meme/blue/operative-2.webp";
+import persianRedSpymaster from "@/assets/themes/persian/characters/red/spymaster.webp";
+import persianBlueSpymaster from "@/assets/themes/persian/characters/blue/spymaster.webp";
 import type { GameTheme } from "@/../shared/src/types/theme";
 
 export const FUNNY_AVATARS = [
@@ -115,10 +121,35 @@ export function avatarUrlForPlayer(
 export function avatarUrlForPlayerInTheme(
   player: Room["players"][number] | null | undefined,
   theme: GameTheme | undefined,
+  role: "operative" | "spymaster" = "operative",
 ): string {
-  if (!player || theme === "classic") return avatarUrlForPlayer(player);
+  if (!player) return avatarUrlForName("Player");
+  if (theme === "classic") {
+    return player.avatarId
+      ? avatarUrlForPlayer(player)
+      : avatarUrlForEmoji(
+          EMOJIS[
+            avatarSeed(`${player.displayName}:classic-emoji`) % EMOJIS.length
+          ] ?? EMOJIS[0],
+          `${player.displayName}:classic-emoji`,
+        );
+  }
   if (theme === "meme") {
-    return player.team === "red" ? memeRedPortrait : memeBluePortrait;
+    if (player.team === "red") {
+      return role === "spymaster"
+        ? memeRedSpymaster
+        : [memeRedOperative1, memeRedOperative2][
+            avatarSeed(`${player.displayName}:meme:red`) % 2
+          ];
+    }
+    return role === "spymaster"
+      ? memeBlueSpymaster
+      : [memeBlueOperative1, memeBlueOperative2][
+          avatarSeed(`${player.displayName}:meme:blue`) % 2
+        ];
+  }
+  if (role === "spymaster") {
+    return player.team === "red" ? persianRedSpymaster : persianBlueSpymaster;
   }
   return avatarPortraitForSeed(player.displayName, player.team);
 }

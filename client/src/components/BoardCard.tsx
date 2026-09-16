@@ -1,7 +1,7 @@
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
-import { avatarUrlForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
 
 interface BoardCardProps {
   word: string;
@@ -94,7 +94,11 @@ export function BoardCard({
                   className={`relative shrink-0 rounded-full ${selectedPlayers[0]?.team === "blue" ? "bg-[#08799f]" : selectedPlayers[0]?.team === "red" ? "bg-[#9f3028]" : "bg-[#5a5a5a]"}`}
                 >
                   <img
-                    src={avatarUrlForPlayer(selectedPlayers[0])}
+                    src={avatarUrlForPlayerInTheme(
+                      selectedPlayers[0],
+                      theme,
+                      "operative",
+                    )}
                     alt={
                       selectedPlayers[0]?.displayName ?? "Selected by player"
                     }

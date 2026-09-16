@@ -1,6 +1,6 @@
 import type { Room, Team } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
-import { avatarUrlForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
@@ -74,7 +74,7 @@ export function TeamPanel({
             >
               <span className="relative">
                 <img
-                  src={avatarUrlForPlayer(player)}
+                  src={avatarUrlForPlayerInTheme(player, theme, "operative")}
                   alt={player.displayName}
                   title={player.displayName}
                   className={`${compact ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/60 object-cover shadow-[0_3px_7px_rgba(0,0,0,0.25)]`}

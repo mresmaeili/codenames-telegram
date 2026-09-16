@@ -1,6 +1,6 @@
 import type { Room, Team } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
-import { avatarUrlForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 
@@ -71,7 +71,7 @@ export function SpymasterPanel({
                 className={`${compact ? "size-6" : "size-8"} block shrink-0 overflow-hidden rounded-full`}
               >
                 <img
-                  src={avatarUrlForPlayer(player)}
+                  src={avatarUrlForPlayerInTheme(player, theme, "spymaster")}
                   alt={player.displayName}
                   title={player.displayName}
                   className="block h-full w-full object-cover"

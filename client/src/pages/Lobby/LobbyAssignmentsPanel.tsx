@@ -53,7 +53,11 @@ function PlayerList({
         >
           <span className="relative">
             <img
-              src={avatarUrlForPlayerInTheme(player, theme)}
+              src={avatarUrlForPlayerInTheme(
+                player,
+                theme,
+                player.role ?? "operative",
+              )}
               alt={player.displayName}
               title={player.displayName}
               className="h-9 w-9 rounded-full border-2 border-white/70 object-cover shadow-[0_2px_5px_rgba(0,0,0,0.25)]"
