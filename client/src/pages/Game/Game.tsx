@@ -1476,6 +1476,7 @@ export function GamePage({
             players={state.room?.players ?? []}
             timerDuration={timerDuration}
             secondsRemaining={gameLogSecondsRemaining}
+            theme={state.game?.theme}
             className="h-28 max-h-28 min-h-0 border-2 border-white/20 bg-[#292929]"
           />
           <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/20 bg-[#7c281f]/70 p-1">
@@ -1712,6 +1713,7 @@ export function GamePage({
               players={state.room?.players ?? []}
               timerDuration={timerDuration}
               secondsRemaining={gameLogSecondsRemaining}
+              theme={state.game?.theme}
               className="h-28 max-h-28 shrink-0 border-2 border-white/20 bg-[#20252c]/95 shadow-[0_12px_30px_rgba(0,0,0,0.38)]"
             />
           </div>

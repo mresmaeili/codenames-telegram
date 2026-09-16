@@ -1,7 +1,8 @@
 import type { CardColor, Turn } from "@/../shared/src/types/game";
+import type { GameTheme } from "@/../shared/src/types/theme";
 import { useEffect, useRef } from "react";
 import type { Room } from "@/../shared/src/types/room";
-import { avatarUrlForPlayer } from "@/lib/avatar";
+import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
 import { Icon } from "@/components/Icon";
 import { isDevModeEnabled } from "@/lib/dev";
 import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
@@ -21,6 +22,7 @@ interface GameLogProps {
   entries: GameLogEntry[];
   players: Room["players"];
   ownerIds?: number[];
+  theme?: GameTheme;
   timerDuration: number | null;
   secondsRemaining: number | null;
   className?: string;
@@ -61,6 +63,7 @@ export function GameLog({
   entries,
   players,
   ownerIds = [],
+  theme,
   timerDuration,
   secondsRemaining,
   className = "",
@@ -131,7 +134,11 @@ export function GameLog({
                   <div className="absolute -left-1 top-1/2 z-10 flex h-7 w-8 -translate-y-1/2 items-center justify-center">
                     <span className="relative">
                       <img
-                        src={avatarUrlForPlayer(hintPlayer)}
+                        src={avatarUrlForPlayerInTheme(
+                          hintPlayer,
+                          theme,
+                          hintPlayer?.role ?? "spymaster",
+                        )}
                         alt={hintPlayer?.displayName ?? round.hint.team}
                         title={hintPlayer?.displayName ?? round.hint.team}
                         className={`h-7 w-7 rounded-full border-2 object-cover ${teamColor.avatar}`}
@@ -183,7 +190,11 @@ export function GameLog({
                           <div className="relative z-10 -mr-1.5 translate-y-0.5 flex w-6 shrink-0 flex-col items-center">
                             <span className="relative">
                               <img
-                                src={avatarUrlForPlayer(guessPlayer)}
+                                src={avatarUrlForPlayerInTheme(
+                                  guessPlayer,
+                                  theme,
+                                  guessPlayer?.role ?? "operative",
+                                )}
                                 alt={guessPlayer?.displayName ?? guess.team}
                                 title={guessPlayer?.displayName ?? guess.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
@@ -224,7 +235,11 @@ export function GameLog({
                           <div className="relative z-10 -mr-1.5 translate-y-0.5 flex w-6 shrink-0 flex-col items-center">
                             <span className="relative">
                               <img
-                                src={avatarUrlForPlayer(passPlayer)}
+                                src={avatarUrlForPlayerInTheme(
+                                  passPlayer,
+                                  theme,
+                                  passPlayer?.role ?? "operative",
+                                )}
                                 alt={passPlayer?.displayName ?? pass.team}
                                 title={passPlayer?.displayName ?? pass.team}
                                 className="h-5 w-5 rounded-full border border-white/90 object-cover"
