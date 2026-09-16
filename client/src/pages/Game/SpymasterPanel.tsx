@@ -60,19 +60,21 @@ export function SpymasterPanel({
           type="button"
           onClick={() => player && onPlayerClick(player)}
           disabled={!canManagePlayers || !player}
-          className={`relative flex ${compact ? "h-7 w-7" : "h-9 w-9"} aspect-square shrink-0 items-center justify-center overflow-visible rounded-full border ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
+          className={`relative flex ${compact ? "h-7 w-7" : "h-9 w-9"} aspect-square shrink-0 items-center justify-center overflow-visible rounded-full border p-0 leading-none ${styles.avatar} bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)]`}
           aria-label={
             player ? `Manage ${player.displayName}` : `No ${team} spymaster`
           }
         >
           {player ? (
             <>
-              <img
-                src={avatarUrlForPlayer(player)}
-                alt={player.displayName}
-                title={player.displayName}
-                className="block aspect-square h-full w-full rounded-full object-cover"
-              />
+              <span className="block aspect-square h-full w-full overflow-hidden rounded-full">
+                <img
+                  src={avatarUrlForPlayer(player)}
+                  alt={player.displayName}
+                  title={player.displayName}
+                  className="block h-full w-full object-cover"
+                />
+              </span>
               <PlayerPresenceDot player={player} className="border-white" />
               <PlayerAdminBadge
                 isAdmin={ownerIds.includes(player.telegramId)}

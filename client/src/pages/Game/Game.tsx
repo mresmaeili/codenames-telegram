@@ -1574,7 +1574,7 @@ export function GamePage({
                         src={hintOverlayAsset ?? undefined}
                         alt=""
                         aria-hidden="true"
-                        className="pointer-events-none absolute left-1/2 top-0 h-full w-[38%] -translate-x-1/2 object-cover object-top"
+                        className="pointer-events-none absolute left-0 top-0 h-auto w-full max-w-none object-top"
                       />
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-[16%] animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
