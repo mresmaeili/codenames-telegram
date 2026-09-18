@@ -617,6 +617,103 @@ textarea:focus-visible {
   }
 }
 
+@keyframes epic-reveal {
+  0% {
+    transform: perspective(900px) scale(1) rotateY(0deg);
+    filter: saturate(0.8) brightness(0.9);
+  }
+  38% {
+    transform: perspective(900px) scale(1.12) rotateY(88deg);
+    filter: saturate(1.15) brightness(1.12);
+  }
+  62% {
+    transform: perspective(900px) scale(1.1) rotateY(0deg);
+    filter: saturate(1.35) brightness(1.14);
+  }
+  100% {
+    transform: perspective(900px) scale(1) rotateY(0deg);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes reveal-card {
+  0% {
+    transform: scale(0.94);
+    filter: saturate(0.78) brightness(0.88);
+  }
+  28% {
+    transform: scale(0.98);
+    filter: saturate(0.95) brightness(1);
+  }
+  62% {
+    transform: scale(1.16);
+    filter: saturate(1.3) brightness(1.16);
+  }
+  78% {
+    transform: scale(1.09);
+    filter: saturate(1.16) brightness(1.08);
+  }
+  100% {
+    transform: scale(1);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes stack-card-overlay-blue {
+  0% {
+    opacity: 0;
+    transform: translate(-180%, 8%) scale(0.42) rotate(-8deg);
+    filter: saturate(0.7) brightness(1.2);
+  }
+  35% {
+    opacity: 0.9;
+  }
+  72% {
+    opacity: 1;
+    transform: translate(2%, 2%) scale(1.06) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes stack-card-overlay-red {
+  0% {
+    opacity: 0;
+    transform: translate(180%, 8%) scale(0.42) rotate(8deg);
+    filter: saturate(0.7) brightness(1.2);
+  }
+  35% {
+    opacity: 0.9;
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-2%, 2%) scale(1.06) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+@keyframes reveal-edge-splash {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--splash-rotate)) translate(0, 0) scale(0.2);
+  }
+  28% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--splash-rotate))
+      translate(var(--splash-x), var(--splash-y)) scale(1);
+  }
+}
+
 @keyframes character-reveal {
   from {
     opacity: 0;
@@ -712,6 +809,231 @@ textarea:focus-visible {
   animation: flip-card 500ms cubic-bezier(0.22, 0.72, 0.24, 1) both;
 }
 
+.animate-reveal-card {
+  animation: reveal-card 2400ms cubic-bezier(0.18, 0.78, 0.2, 1) both;
+  z-index: 5;
+}
+
+.animate-stack-card-overlay-blue,
+.animate-stack-card-overlay-red {
+  animation-duration: 1450ms;
+  animation-delay: 2250ms;
+  animation-timing-function: cubic-bezier(0.18, 0.82, 0.25, 1);
+  animation-fill-mode: both;
+}
+
+.animate-stack-card-overlay-blue {
+  animation-name: stack-card-overlay-blue;
+}
+
+.animate-stack-card-overlay-red {
+  animation-name: stack-card-overlay-red;
+}
+
+.game-card-stack {
+  --stack-team: #159dce;
+  position: relative;
+  width: 4.3rem;
+  height: 4.8rem;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.28));
+}
+
+.game-card-stack-red {
+  --stack-team: #d66055;
+}
+
+.game-score {
+  position: relative;
+  z-index: 1;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+}
+
+.game-score-blue {
+  text-shadow:
+    0 0 0.12rem #23d4ff,
+    0 0 0.45rem rgba(35, 212, 255, 0.5),
+    0 2px 2px rgba(0, 0, 0, 0.45);
+}
+
+.game-score-red {
+  text-shadow:
+    0 0 0.12rem #ff9b8e,
+    0 0 0.45rem rgba(255, 91, 75, 0.48),
+    0 2px 2px rgba(0, 0, 0, 0.45);
+}
+
+.game-card-stack-compact {
+  transform: scale(0.78);
+  transform-origin: center;
+}
+.game-card-stack-layer,
+.game-card-stack-top {
+  position: absolute;
+  inset: 0.45rem 0.2rem 0.2rem;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  border-radius: 0.45rem;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--stack-team) 85%, white),
+    var(--stack-team)
+  );
+}
+.game-card-stack-layer-back {
+  transform: translate(-0.28rem, 0.22rem) rotate(-8deg);
+  opacity: 0.55;
+}
+.game-card-stack-layer-middle {
+  transform: translate(0.18rem, 0.12rem) rotate(6deg);
+  opacity: 0.78;
+}
+.game-card-stack-top {
+  z-index: 2;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+.game-card-stack-top img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  opacity: 0.9;
+}
+.game-card-stack-top > span {
+  padding-bottom: 0.35rem;
+  font-size: 2rem;
+}
+.game-card-stack strong {
+  position: absolute;
+  z-index: 3;
+  right: -0.3rem;
+  bottom: -0.35rem;
+  min-width: 1.6rem;
+  border-radius: 999px;
+  background: white;
+  color: var(--stack-team);
+  font-size: 1rem;
+  line-height: 1.6rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.game-card-splash {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: visible;
+}
+
+.game-card-splash span {
+  position: absolute;
+  width: 0.24rem;
+  height: 0.78rem;
+  border-radius: 999px;
+  animation: reveal-edge-splash 900ms cubic-bezier(0.2, 0.8, 0.3, 1) 1320ms both;
+}
+
+.game-card-splash span:nth-child(1) {
+  left: 8%;
+  top: 8%;
+  --splash-x: -0.6rem;
+  --splash-y: -0.7rem;
+}
+.game-card-splash span:nth-child(2) {
+  left: 48%;
+  top: 3%;
+  --splash-x: 0;
+  --splash-y: -0.9rem;
+}
+.game-card-splash span:nth-child(3) {
+  right: 8%;
+  top: 8%;
+  --splash-x: 0.6rem;
+  --splash-y: -0.7rem;
+}
+.game-card-splash span:nth-child(4) {
+  right: 3%;
+  top: 48%;
+  --splash-x: 0.9rem;
+  --splash-y: 0;
+}
+.game-card-splash span:nth-child(5) {
+  right: 8%;
+  bottom: 8%;
+  --splash-x: 0.6rem;
+  --splash-y: 0.7rem;
+}
+.game-card-splash span:nth-child(6) {
+  left: 48%;
+  bottom: 3%;
+  --splash-x: 0;
+  --splash-y: 0.9rem;
+}
+.game-card-splash span:nth-child(7) {
+  left: 8%;
+  bottom: 8%;
+  --splash-x: -0.6rem;
+  --splash-y: 0.7rem;
+}
+.game-card-splash span:nth-child(8) {
+  left: 3%;
+  top: 48%;
+  --splash-x: -0.9rem;
+  --splash-y: 0;
+}
+.game-card-splash span:nth-child(9) {
+  left: 24%;
+  top: 5%;
+  width: 0.16rem;
+  height: 0.52rem;
+  --splash-x: -0.25rem;
+  --splash-y: -0.8rem;
+}
+.game-card-splash span:nth-child(10) {
+  right: 24%;
+  bottom: 5%;
+  width: 0.16rem;
+  height: 0.52rem;
+  --splash-x: 0.25rem;
+  --splash-y: 0.8rem;
+}
+.game-card-splash span:nth-child(11) {
+  left: 5%;
+  top: 25%;
+  width: 0.18rem;
+  height: 0.62rem;
+  --splash-x: -0.8rem;
+  --splash-y: -0.25rem;
+}
+.game-card-splash span:nth-child(12) {
+  right: 5%;
+  bottom: 25%;
+  width: 0.18rem;
+  height: 0.62rem;
+  --splash-x: 0.8rem;
+  --splash-y: 0.25rem;
+}
+
+.game-card-splash-red span {
+  background: #ff806f;
+  box-shadow: 0 0 0.45rem #ff554b;
+}
+.game-card-splash-blue span {
+  background: #83efff;
+  box-shadow: 0 0 0.45rem #42c9ef;
+}
+.game-card-splash-neutral span {
+  background: #f3e4c5;
+  box-shadow: 0 0 0.45rem #fff3d1;
+}
+.game-card-splash-assassin span {
+  background: #c9b7ff;
+  box-shadow: 0 0 0.45rem #7d5cff;
+}
+
 .animate-character-reveal {
   animation: character-reveal 650ms cubic-bezier(0.2, 0.8, 0.25, 1) 180ms both;
 }
@@ -726,6 +1048,13 @@ textarea:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-flip-card {
+    animation: none;
+  }
+
+  .animate-reveal-card,
+  .animate-stack-card-overlay-blue,
+  .animate-stack-card-overlay-red,
+  .game-card-splash span {
     animation: none;
   }
 

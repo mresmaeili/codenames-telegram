@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GameLog, type GameLogEntry } from "./GameLog";
 import { TeamPanel } from "./TeamPanel";
+import { TeamCardStack } from "./TeamCardStack";
 import { SpymasterPanel } from "./SpymasterPanel";
 import { TurnBanner } from "./TurnBanner";
 import { useGameActions } from "./useGameActions";
@@ -21,6 +22,14 @@ import { useAuthContext } from "@/context/AuthContext";
 import { apiUrl } from "@/config/env";
 import { useHeaderPopup } from "@/context/HeaderPopupContext";
 import { useToast } from "@/context/ToastContext";
+import { useAppState } from "@/state/AppStateContext";
+import {
+  setGameHintMessage,
+  setGameHintSubmitting,
+  setGameJoinedRoom,
+  setGameReconnecting,
+  setGameRefreshing,
+} from "@/state/appActions";
 import { getSocketClient } from "@/socket/client";
 import { playActionSound } from "@/lib/sound";
 import { hintSpeakerAsset } from "@/lib/hintSpeakerAssets";
@@ -55,7 +64,7 @@ interface GamePageState {
 
 function GameLoadingState() {
   return (
-    <div className="min-h-[100dvh] w-full bg-[#0b69ad]">
+    <div className="min-h-dvh w-full bg-[#0b69ad]">
       <LoadingSkeleton variant="game" />
     </div>
   );
@@ -455,6 +464,7 @@ export function GamePage({
   onReturnToLobby,
 }: GamePageProps) {
   const { user } = useAuthContext();
+  const { state: appState, dispatch } = useAppState();
   const [state, setState] = useState<GamePageState>({
     room: null,
     game: null,
@@ -465,13 +475,15 @@ export function GamePage({
   const [selectedHintCardIds, setSelectedHintCardIds] = useState<Set<number>>(
     new Set(),
   );
-  const [hintSubmitting, setHintSubmitting] = useState(false);
-  const [hintMessage, setHintMessage] = useState<string | null>(null);
-  const [isReconnecting, setIsReconnecting] = useState(false);
+  const {
+    hintSubmitting,
+    hintMessage,
+    reconnecting: isReconnecting,
+    refreshing: refreshingGame,
+    hasJoinedRoom,
+  } = appState.ui.game;
   const socket = useMemo(() => getSocketClient(), []);
 
-  const [refreshingGame, setRefreshingGame] = useState(false);
-  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const handledConnectionIdRef = useRef<string | null>(null);
   const lastGameStatusRef = useRef<string | null>(null);
   const lastHintIdRef = useRef<string | null>(null);
@@ -543,7 +555,7 @@ export function GamePage({
         }
         return next;
       });
-      setIsReconnecting(false);
+      dispatch(setGameReconnecting(false));
     },
     ({ cardId, playerId, selected }) => {
       const cardIndex = Number.parseInt(cardId, 10);
@@ -817,7 +829,7 @@ export function GamePage({
 
       const game = normalizeGameCounts((await gameResponse.json()) as GameView);
       setState({ room, game, loading: false, error: null });
-      setIsReconnecting(false);
+      dispatch(setGameReconnecting(false));
     } catch (error) {
       const message =
         error instanceof Error
@@ -850,7 +862,7 @@ export function GamePage({
         displayName: user.firstName,
         avatarId: user.avatarId ?? undefined,
       });
-      setHasJoinedRoom(true);
+      dispatch(setGameJoinedRoom(true));
     }
 
     if (socket && socket.connected) {
@@ -858,9 +870,9 @@ export function GamePage({
     }
 
     function handleDisconnect() {
-      setHasJoinedRoom(false);
+      dispatch(setGameJoinedRoom(false));
       if (isMounted) {
-        setIsReconnecting(true);
+        dispatch(setGameReconnecting(true));
         toast.error("Disconnected. Reconnecting...");
       }
     }
@@ -886,7 +898,7 @@ export function GamePage({
                 : current.game,
             }));
           }
-          setIsReconnecting(true);
+          dispatch(setGameReconnecting(true));
           playActionSound("start", state.game?.theme ?? "classic");
           toast.success("Game starting.");
           void loadGameData();
@@ -919,8 +931,8 @@ export function GamePage({
             return;
           }
           handledConnectionIdRef.current = connectionId ?? null;
-          setIsReconnecting(true);
-          setHintMessage("Reconnected.");
+          dispatch(setGameReconnecting(true));
+          dispatch(setGameHintMessage("Reconnected."));
           toast.info("Reconnected.");
           if (user?.telegramId) {
             socket.emit("room:join", {
@@ -929,7 +941,7 @@ export function GamePage({
               displayName: user.firstName,
               avatarId: user.avatarId ?? undefined,
             });
-            setHasJoinedRoom(true);
+            dispatch(setGameJoinedRoom(true));
             socket.emit("game:sync", {
               roomCode: roomCode.toUpperCase(),
               telegramId: user.telegramId,
@@ -945,7 +957,7 @@ export function GamePage({
             typeof payload?.message === "string"
               ? payload.message
               : "Unable to submit the hint.";
-          setHintMessage(message);
+          dispatch(setGameHintMessage(message));
           playActionSound("error", state.game?.theme ?? "classic");
           toast.error(message);
         }
@@ -953,7 +965,7 @@ export function GamePage({
 
       const handleDisconnect = (reason: string) => {
         if (isMounted) {
-          setIsReconnecting(true);
+          dispatch(setGameReconnecting(true));
           toast.error(
             `Disconnected from the server. Attempting to reconnect... (${reason})`,
           );
@@ -1111,8 +1123,8 @@ export function GamePage({
       canTakeTurn,
       secondsRemaining: activeSecondsRemaining,
       hintSubmitting,
-      setHintSubmitting,
-      setHintMessage,
+      setHintSubmitting: (value) => dispatch(setGameHintSubmitting(value)),
+      setHintMessage: (message) => dispatch(setGameHintMessage(message)),
       setHintDraft,
       setSelectedHintCardIds,
       onGameUpdated: refreshGameState,
@@ -1149,23 +1161,6 @@ export function GamePage({
     state.room.ownerId === user.telegramId,
   );
 
-  useEffect(() => {
-    if (!state.room) {
-      return;
-    }
-
-    registerPopup(
-      <RoomSettingsPopupContent
-        room={state.room}
-        isRoomOwner={isRoomOwner}
-        onClose={closePopup}
-        onResetTeams={handleResetTeams}
-        onShuffleTeams={handleShuffleTeams}
-      />,
-      "Room settings",
-    );
-  }, [registerPopup, isRoomOwner, state.room]);
-
   const isViewerSpymaster = Boolean(
     state.room &&
     user?.telegramId !== undefined &&
@@ -1184,7 +1179,7 @@ export function GamePage({
       players.some((player) => player.userId === viewerPlayer?.userId),
   );
   const waitingForSpymaster =
-    isViewerOperative && !hasActiveHint
+    !gameFinished && isViewerOperative && !hasActiveHint
       ? state.room?.players.find(
           (player) =>
             player.team === state.game?.currentTurn &&
@@ -1259,7 +1254,7 @@ export function GamePage({
   function handleResetGame() {
     const activeSocket = getSocketClient();
     if (!state.room || !user?.telegramId || !activeSocket) {
-      setHintMessage("Unable to return the room to the lobby.");
+      dispatch(setGameHintMessage("Unable to return the room to the lobby."));
       return;
     }
 
@@ -1267,14 +1262,14 @@ export function GamePage({
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
     });
-    setHintMessage("Returning everyone to the lobby...");
+    dispatch(setGameHintMessage("Returning everyone to the lobby..."));
     toast.success("Returning everyone to the lobby.");
   }
 
   function handleQuickRematch() {
     const activeSocket = getSocketClient();
     if (!state.room || !user?.telegramId || !activeSocket) {
-      setHintMessage("Unable to start a quick rematch.");
+      dispatch(setGameHintMessage("Unable to start a quick rematch."));
       return;
     }
 
@@ -1282,14 +1277,14 @@ export function GamePage({
       roomCode: state.room.roomCode,
       ownerTelegramId: user.telegramId,
     });
-    setHintMessage("Starting a quick rematch...");
+    dispatch(setGameHintMessage("Starting a quick rematch..."));
     toast.success("Starting a quick rematch.");
   }
 
   async function refreshGameState() {
-    setRefreshingGame(true);
+    dispatch(setGameRefreshing(true));
     await loadGameData();
-    setRefreshingGame(false);
+    dispatch(setGameRefreshing(false));
   }
 
   function handleSelectCard(cardIndex: number) {
@@ -1371,6 +1366,7 @@ export function GamePage({
       return;
     }
 
+    closePopup();
     const isAdmin = state.room.ownerIds.includes(player.telegramId);
     const isCreator = player.telegramId === state.room.ownerId;
     registerPopup(
@@ -1420,11 +1416,16 @@ export function GamePage({
     return <GameErrorState error={state.error} onLeave={onLeave} />;
   }
 
+  const backgroundTeam =
+    state.game.status === "finished" && state.game.winningTeam
+      ? state.game.winningTeam
+      : state.game.currentTurn;
+
   return (
     <PageContainer>
       <div
-        className={`gameplay-shell relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${state.game.currentTurn === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"} ${state.game.theme === "persian" ? "gameplay-theme-persian" : state.game.theme === "meme" ? "gameplay-theme-meme" : "gameplay-theme-classic"}`}
-        data-turn={state.game.currentTurn}
+        className={`gameplay-shell relative mx-auto flex h-dvh max-h-dvh w-full max-w-7xl flex-col overflow-hidden px-1 pb-[env(safe-area-inset-bottom)] pt-0 text-white transition-colors duration-300 sm:px-2 ${backgroundTeam === "red" ? "bg-[#d66055]" : "bg-[#0b69ad]"} ${state.game.theme === "persian" ? "gameplay-theme-persian" : state.game.theme === "meme" ? "gameplay-theme-meme" : "gameplay-theme-classic"}`}
+        data-turn={backgroundTeam}
       >
         <GameHeaderBar
           playerCount={getPlayerCount(state.room)}
@@ -1456,8 +1457,16 @@ export function GamePage({
               className="min-w-0 flex-1"
               compact
             />
-            <div className="flex items-center justify-center px-1 text-3xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
-              {blueCardsRemaining}
+            <div className="flex self-center items-center justify-center gap-4">
+              <div className="game-score game-score-blue flex items-center justify-center px-1 text-4xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
+                {blueCardsRemaining}
+              </div>
+              <TeamCardStack
+                team="blue"
+                remainingCards={blueCardsRemaining}
+                theme={state.game?.theme}
+                compact
+              />
             </div>
             <SpymasterPanel
               team="blue"
@@ -1492,8 +1501,16 @@ export function GamePage({
               className="min-w-0 flex-1"
               compact
             />
-            <div className="flex items-center justify-center px-1 text-3xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
-              {redCardsRemaining}
+            <div className="flex self-center items-center justify-center gap-4">
+              <TeamCardStack
+                team="red"
+                remainingCards={redCardsRemaining}
+                theme={state.game?.theme}
+                compact
+              />
+              <div className="game-score game-score-red flex items-center justify-center px-1 text-4xl font-black leading-none text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]">
+                {redCardsRemaining}
+              </div>
             </div>
             <SpymasterPanel
               team="red"
@@ -1521,8 +1538,15 @@ export function GamePage({
               onPlayerClick={handleGamePlayerClick}
               className="h-24 shrink-0"
             />
-            <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
-              {blueCardsRemaining}
+            <div className="flex self-center items-center justify-center gap-5 px-2 py-1">
+              <div className="game-score game-score-blue text-[2.8rem] font-black leading-none tracking-[-0.08em] text-white">
+                {blueCardsRemaining}
+              </div>
+              <TeamCardStack
+                team="blue"
+                remainingCards={blueCardsRemaining}
+                theme={state.game?.theme}
+              />
             </div>
             <SpymasterPanel
               team="blue"
@@ -1569,7 +1593,7 @@ export function GamePage({
               />
               {hintOverlay && hintOverlayReady ? (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-                  <div className="pointer-events-none relative z-20 h-56 w-[min(86%,26rem)] min-w-[14rem] overflow-hidden sm:h-72">
+                  <div className="pointer-events-none relative z-20 h-56 w-[min(86%,26rem)] min-w-56 overflow-hidden sm:h-72">
                     <div className="absolute inset-x-0 top-0 h-full overflow-hidden">
                       <img
                         src={hintOverlayAsset ?? undefined}
@@ -1578,7 +1602,7 @@ export function GamePage({
                         className="pointer-events-none absolute left-[7%] top-0 h-auto w-[86%] max-w-none object-top"
                       />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 z-20 animate-event-in rounded-[24px] border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
+                    <div className="absolute bottom-0 left-0 right-0 z-20 animate-event-in rounded-3xl border-[7px] border-[#15191c] bg-white px-5 py-2 text-center text-[#15191c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:px-10 sm:py-3">
                       <div className="font-persian relative z-40 flex items-center justify-center gap-2 text-2xl font-black uppercase leading-none sm:gap-3 sm:text-5xl">
                         <span>{hintOverlay.word}</span>
                         <span
@@ -1696,8 +1720,15 @@ export function GamePage({
               onPlayerClick={handleGamePlayerClick}
               className="h-24 shrink-0"
             />
-            <div className="flex items-center justify-center px-2 py-1 text-[2.15rem] font-black leading-none tracking-[-0.08em] text-white">
-              {redCardsRemaining}
+            <div className="flex self-center items-center justify-center gap-5 px-2 py-1">
+              <TeamCardStack
+                team="red"
+                remainingCards={redCardsRemaining}
+                theme={state.game?.theme}
+              />
+              <div className="game-score game-score-red text-[2.8rem] font-black leading-none tracking-[-0.08em] text-white">
+                {redCardsRemaining}
+              </div>
             </div>
             <SpymasterPanel
               team="red"

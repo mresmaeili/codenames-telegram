@@ -24,6 +24,37 @@ interface SocketClientMessage {
 
 let socketInstance: Socket | null = null;
 let socketEndpoint: string | null = null;
+let socketReconnecting = false;
+type SocketLifecycleListener = (
+  connected: boolean,
+  reconnecting: boolean,
+) => void;
+const socketLifecycleListeners = new Set<SocketLifecycleListener>();
+
+function notifySocketLifecycle(): void {
+  if (!socketInstance) {
+    return;
+  }
+
+  const connected = socketInstance.connected;
+  const reconnecting = socketReconnecting;
+  for (const listener of socketLifecycleListeners) {
+    listener(connected, reconnecting);
+  }
+}
+
+export function subscribeSocketLifecycle(
+  listener: SocketLifecycleListener,
+): () => void {
+  socketLifecycleListeners.add(listener);
+  if (socketInstance) {
+    listener(socketInstance.connected, socketReconnecting);
+  }
+
+  return () => {
+    socketLifecycleListeners.delete(listener);
+  };
+}
 
 export function createSocketClient(options: SocketClientOptions): Socket {
   if (socketInstance) {
@@ -43,15 +74,28 @@ export function createSocketClient(options: SocketClientOptions): Socket {
   });
 
   socketInstance.on("connect", () => {
-    // connection lifecycle is handled by the app state
+    socketReconnecting = false;
+    notifySocketLifecycle();
+  });
+
+  socketInstance.on("reconnect", () => {
+    socketReconnecting = false;
+    notifySocketLifecycle();
+  });
+
+  socketInstance.io.on("reconnect_attempt", () => {
+    socketReconnecting = true;
+    notifySocketLifecycle();
   });
 
   socketInstance.on("disconnect", (_reason: string) => {
-    // connection lifecycle is handled by the app state
+    socketReconnecting = false;
+    notifySocketLifecycle();
   });
 
   socketInstance.on("connected", (_payload: SocketClientMessage) => {
-    // connection lifecycle is handled by the app state
+    socketReconnecting = false;
+    notifySocketLifecycle();
   });
 
   socketInstance.on("error", (_message: string) => {

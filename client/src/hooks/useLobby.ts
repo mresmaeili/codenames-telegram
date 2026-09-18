@@ -11,6 +11,14 @@ function getFriendlyLobbyMessage(error: unknown): string {
 import { useAuthContext } from "@/context/AuthContext";
 import { apiUrl } from "@/config/env";
 import { getSocketClient } from "@/socket/client";
+import { useAppState } from "@/state/AppStateContext";
+import {
+  setRoomCode,
+  setRoomData,
+  setRoomError,
+  setRoomLoading,
+  setRoomPresence,
+} from "@/state/appActions";
 import type {
   Room,
   RoomPlayer,
@@ -29,6 +37,7 @@ interface LobbyHookOptions {
 
 export function useLobby({ roomCode }: LobbyHookOptions) {
   const { user } = useAuthContext();
+  const { dispatch } = useAppState();
   const [lobbyState, setLobbyState] = useState<LobbyState>({
     room: null,
     loading: Boolean(roomCode),
@@ -42,6 +51,10 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
     async (showLoading = true) => {
       if (!roomCode) {
         setLobbyState({ room: null, loading: false, error: null });
+        dispatch(setRoomCode(null));
+        dispatch(setRoomData(null));
+        dispatch(setRoomLoading(false));
+        dispatch(setRoomError(null));
         return;
       }
 
@@ -52,6 +65,8 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
             loading: true,
             error: null,
           }));
+          dispatch(setRoomLoading(true));
+          dispatch(setRoomError(null));
         }
 
         const response = await fetch(apiUrl(`/api/rooms/${roomCode}`));
@@ -64,23 +79,37 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         const room = (await response.json()) as Room;
         if (currentRoomCodeRef.current === roomCode) {
           setLobbyState({ room, loading: false, error: null });
+          dispatch(setRoomCode(roomCode));
+          dispatch(setRoomData(room));
+          dispatch(setRoomLoading(false));
+          dispatch(setRoomError(null));
         }
       } catch (error) {
         const message = getFriendlyLobbyMessage(error);
         if (currentRoomCodeRef.current === roomCode) {
           setLobbyState({ room: null, loading: false, error: message });
+          dispatch(setRoomCode(roomCode));
+          dispatch(setRoomData(null));
+          dispatch(setRoomLoading(false));
+          dispatch(setRoomError(message));
         }
       }
     },
-    [roomCode],
+    [dispatch, roomCode],
   );
 
   // Main effect: fetch room and listen for updates
   useEffect(() => {
     if (!roomCode) {
       setLobbyState({ room: null, loading: false, error: null });
+      dispatch(setRoomCode(null));
+      dispatch(setRoomData(null));
+      dispatch(setRoomLoading(false));
+      dispatch(setRoomError(null));
       return;
     }
+
+    dispatch(setRoomCode(roomCode));
 
     let isMounted = true;
     currentRoomCodeRef.current = roomCode;
@@ -123,6 +152,14 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
             }
           : current,
       );
+
+      const nextPresence = Object.fromEntries(
+        Array.from(presenceByPlayer.entries()).map(([telegramId, status]) => [
+          Number(telegramId),
+          status,
+        ]),
+      ) as Record<number, "online" | "offline" | "away">;
+      dispatch(setRoomPresence(nextPresence));
     };
 
     const joinRoomSocket = () => {
@@ -157,7 +194,7 @@ export function useLobby({ roomCode }: LobbyHookOptions) {
         socket.off("room:presence", handlePresence);
       }
     };
-  }, [refreshLobby, roomCode, socket, user]);
+  }, [dispatch, refreshLobby, roomCode, socket, user]);
 
   return {
     room: lobbyState.room,

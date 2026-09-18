@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
+import { speakRevealedWord } from "@/lib/sound";
 
 interface SpymasterCardProps {
   word: string;
@@ -58,6 +60,19 @@ export function SpymasterCard({
   onClick,
 }: SpymasterCardProps) {
   const tileStyle = tileStyles[color];
+  const stackOverlayAnimation =
+    color === "blue"
+      ? "animate-stack-card-overlay-blue"
+      : color === "red"
+        ? "animate-stack-card-overlay-red"
+        : "animate-character-reveal";
+  const wasRevealedRef = useRef(revealed);
+  useEffect(() => {
+    if (!wasRevealedRef.current && revealed) {
+      speakRevealedWord(word, theme);
+    }
+    wasRevealedRef.current = revealed;
+  }, [revealed, theme, word]);
   const wordLengthClass =
     word.length >= 14
       ? "text-[clamp(0.52rem,1.9vw,0.76rem)]"
@@ -68,10 +83,27 @@ export function SpymasterCard({
           : "text-[clamp(0.8rem,3vw,1.25rem)]";
   const card = (
     <div
-      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "game-card-spymaster-selected border-[#76f21b]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-flip-card" : ""}`}
+      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${selected ? "game-card-spymaster-selected border-[#76f21b]" : tileStyle.tile} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)] transition duration-200 ease-out ${revealed ? "opacity-90 animate-reveal-card" : ""}`}
       role="img"
       aria-label={`${word} (${color})`}
     >
+      {revealed && (color === "blue" || color === "red") ? (
+        <div
+          className={`game-card-splash game-card-splash-${color}`}
+          aria-hidden="true"
+        >
+          {Array.from({ length: 12 }, (_, index) => (
+            <span
+              key={index}
+              style={
+                {
+                  "--splash-rotate": `${(index * 37) % 360}deg`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </div>
+      ) : null}
       <div className="game-card-shell">
         {selectedPlayers.length > 0 ? (
           <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
@@ -122,7 +154,7 @@ export function SpymasterCard({
       {revealed && revealAsset ? (
         <div
           key={revealAnimationKey}
-          className={`game-card-character-layer game-card-character-layer-textured ${tileStyle.overlay} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : "animate-character-reveal"}`}
+          className={`game-card-character-layer game-card-character-layer-textured ${tileStyle.overlay} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : stackOverlayAnimation}`}
           aria-hidden="true"
         >
           <img

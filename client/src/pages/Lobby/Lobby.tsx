@@ -16,6 +16,14 @@ import { PlayerAdminBadge } from "@/components/PlayerAdminBadge";
 import { PlayerPresenceDot } from "@/components/PlayerPresenceDot";
 import { isDevModeEnabled } from "@/lib/dev";
 import { useToast } from "@/context/ToastContext";
+import { useAppState } from "@/state/AppStateContext";
+import {
+  setLobbyHostActionPending,
+  setLobbyPendingAssignment,
+  setLobbySettingsPopup,
+  setLobbyStarting,
+} from "@/state/appActions";
+import type { HostControlAction } from "@/state/appReducer";
 import { LobbyAssignmentsPanel } from "./LobbyAssignmentsPanel";
 import { LobbyHeaderBar } from "./LobbyHeaderBar";
 import { LobbySettingsPanel } from "./LobbySettingsPanel";
@@ -61,8 +69,6 @@ export interface SettingsFormState {
   customWords: string[];
 }
 
-type HostControlAction = "timer" | "word-pack" | "theme";
-
 export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const { user } = useAuthContext();
   const { session, updateSession } = useSession();
@@ -70,12 +76,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   const socket = useMemo(() => getSocketClient(), []);
   const { registerPopup, openPopup, closePopup } = useHeaderPopup();
   const toast = useToast();
-  const [starting, setStarting] = useState(false);
-  const [hostActionPending, setHostActionPending] = useState(false);
-  const [pendingAssignment, setPendingAssignment] = useState<{
-    team: "blue" | "red";
-    role: "operative" | "spymaster";
-  } | null>(null);
+  const { state: appState, dispatch } = useAppState();
+  const {
+    starting,
+    hostActionPending,
+    pendingAssignment,
+    settingsPopupAction,
+  } = appState.ui.lobby;
+  const popupOwnerRef = useRef<"settings" | "assignment" | null>(null);
   const [settingsForm, setSettingsForm] = useState<SettingsFormState>({
     theme: "classic",
     maxPlayers: 16,
@@ -90,8 +98,6 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     wordPack: "classic",
     customWords: [],
   });
-  const [settingsPopupAction, setSettingsPopupAction] =
-    useState<HostControlAction | null>(null);
   const previousPlayerCountRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -137,23 +143,23 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   // Clear starting state when server confirms game initialization
   useEffect(() => {
     if (starting && room && room.status === "playing") {
-      setStarting(false);
+      dispatch(setLobbyStarting(false));
     }
-  }, [starting, room]);
+  }, [dispatch, starting, room]);
 
   // Fallback: clear starting state if server doesn't respond within 12s
   useEffect(() => {
     if (!starting) return;
     const timer = window.setTimeout(() => {
-      setStarting(false);
+      dispatch(setLobbyStarting(false));
       toast.error("Starting timed out. Server did not respond.");
     }, 12000);
     return () => window.clearTimeout(timer);
-  }, [starting, toast]);
+  }, [dispatch, starting, toast]);
 
   useEffect(() => {
     const handleRoomError = (payload: { message?: unknown }) => {
-      setStarting(false);
+      dispatch(setLobbyStarting(false));
       toast.error(
         typeof payload.message === "string"
           ? payload.message
@@ -165,7 +171,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     return () => {
       socket.off("room:error", handleRoomError);
     };
-  }, [socket, toast]);
+  }, [dispatch, socket, toast]);
 
   const currentPlayer = room?.players.find(
     (player) => player.telegramId === user?.telegramId,
@@ -202,7 +208,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
 
     // show transient starting UI until server initializes the game
-    setStarting(true);
+    dispatch(setLobbyStarting(true));
     activeSocket.emit("room:start", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
@@ -306,6 +312,8 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
+    popupOwnerRef.current = "assignment";
+    dispatch(setLobbySettingsPopup(null));
     const isAdmin = room.ownerIds.includes(player.telegramId);
     const isCreator = player.telegramId === room.ownerId;
     registerPopup(
@@ -384,14 +392,16 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   }
 
   function handleOpenSettingsPopup(action: HostControlAction) {
-    setSettingsPopupAction(action);
+    popupOwnerRef.current = "settings";
+    dispatch(setLobbySettingsPopup(action));
     openPopup();
   }
 
   const handleCloseSettingsPopup = useCallback(() => {
-    setSettingsPopupAction(null);
+    popupOwnerRef.current = null;
+    dispatch(setLobbySettingsPopup(null));
     closePopup();
-  }, [closePopup]);
+  }, [closePopup, dispatch]);
 
   const handleSettingsSave = useCallback(() => {
     const activeSocket = getSocketClient();
@@ -405,7 +415,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    setHostActionPending(true);
+    dispatch(setLobbyHostActionPending(true));
     activeSocket.emit("room:updateSettings", {
       roomCode: room.roomCode,
       ownerTelegramId: user.telegramId,
@@ -416,9 +426,10 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
     }
     handleCloseSettingsPopup();
     toast.info("Saving game settings...");
-    window.setTimeout(() => setHostActionPending(false), 1200);
+    window.setTimeout(() => dispatch(setLobbyHostActionPending(false)), 1200);
   }, [
     handleCloseSettingsPopup,
+    dispatch,
     isOwner,
     room,
     settingsForm,
@@ -493,7 +504,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
   }
 
   useEffect(() => {
-    if (!settingsPopupAction || !room) {
+    if (popupOwnerRef.current !== "settings" || !settingsPopupAction || !room) {
       return;
     }
 
@@ -790,7 +801,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    setPendingAssignment(nextAssignment);
+    dispatch(setLobbyPendingAssignment(nextAssignment));
     toast.info("Joining team...");
 
     updateSession({
@@ -811,14 +822,14 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       async (ack?: { error?: string }) => {
         if (ack?.error) {
           toast.error(ack.error);
-          setPendingAssignment(null);
+          dispatch(setLobbyPendingAssignment(null));
           return;
         }
 
         try {
           await refreshLobby(false);
         } finally {
-          setPendingAssignment(null);
+          dispatch(setLobbyPendingAssignment(null));
         }
       },
     );
@@ -840,7 +851,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
       return;
     }
 
-    setPendingAssignment(null);
+    dispatch(setLobbyPendingAssignment(null));
     activeSocket.emit(
       "room:updateTeam",
       {
@@ -937,7 +948,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
 
   return (
     <PageContainer>
-      <div className="lobby-page mx-auto flex h-[100dvh] max-h-[100dvh] min-h-0 w-full max-w-150 flex-col overflow-hidden bg-[#070b12] px-3 pb-0 pt-0 text-white">
+      <div className="lobby-page mx-auto flex h-dvh max-h-dvh min-h-0 w-full max-w-150 flex-col overflow-hidden bg-[#070b12] px-3 pb-0 pt-0 text-white">
         {room ? (
           <LobbyHeaderBar
             playerCount={room.players.length}
@@ -1064,7 +1075,7 @@ export function LobbyPage({ roomCode, onLeave, onGameStart }: LobbyPageProps) {
                     <button
                       type="button"
                       onClick={handleStartGame}
-                      className="lobby-start-button mt-4 w-full rounded-full border-2 border-[#a5ff55] bg-gradient-to-b from-[#54e313] to-[#25b900] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.42),0_5px_0_#168900,0_12px_18px_rgba(40,200,100,0.35)]"
+                      className="lobby-start-button mt-4 w-full rounded-full border-2 border-[#a5ff55] bg-linear-to-b from-[#54e313] to-[#25b900] px-4 py-4 text-3xl font-black uppercase tracking-tight text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.42),0_5px_0_#168900,0_12px_18px_rgba(40,200,100,0.35)]"
                     >
                       Start game
                     </button>

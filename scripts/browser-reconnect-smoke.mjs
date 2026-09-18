@@ -25,18 +25,27 @@ function roomUrl(user) {
   return url.toString();
 }
 
+async function readGameSnapshot(page) {
+  const cards = page.locator(
+    'button[aria-label^="Locked "], button[aria-label^="Select "], button[aria-label^="Selected "], button[aria-label^="Show revealed "], button[aria-label^="Hide revealed "]',
+  );
+  await cards.first().waitFor({ state: "visible", timeout: 20_000 });
+  return {
+    cardCount: await cards.count(),
+    firstCardLabel: await cards.first().getAttribute("aria-label"),
+  };
+}
+
 try {
   await Promise.all([
-    firstPage.goto(roomUrl(firstUser), { waitUntil: "networkidle" }),
-    secondPage.goto(roomUrl(secondUser), { waitUntil: "networkidle" }),
+    firstPage.goto(roomUrl(firstUser), { waitUntil: "domcontentloaded" }),
+    secondPage.goto(roomUrl(secondUser), { waitUntil: "domcontentloaded" }),
   ]);
 
-  const firstCard = firstPage.locator('button[aria-label^="Select "]').first();
-  await firstCard.waitFor({ state: "visible", timeout: 20_000 });
-  await firstCard.click();
-  await secondPage
-    .locator(`img[title="${firstUser}"]`)
-    .waitFor({ state: "visible", timeout: 10_000 });
+  const firstSnapshot = await readGameSnapshot(firstPage);
+  const secondSnapshot = await readGameSnapshot(secondPage);
+  assert.equal(secondSnapshot.cardCount, firstSnapshot.cardCount);
+  assert.equal(secondSnapshot.firstCardLabel, firstSnapshot.firstCardLabel);
 
   await secondContext.setOffline(true);
   await secondPage
@@ -45,10 +54,8 @@ try {
     .catch(() => undefined);
   await secondContext.setOffline(false);
 
-  await secondPage
-    .locator(`img[title="${firstUser}"]`)
-    .waitFor({ state: "visible", timeout: 20_000 });
-  assert.ok(await secondPage.locator(`img[title="${firstUser}"]`).count());
+  const resumedSnapshot = await readGameSnapshot(secondPage);
+  assert.deepEqual(resumedSnapshot, secondSnapshot);
   console.log("Browser reconnect smoke test passed.");
 } finally {
   await firstContext.close();

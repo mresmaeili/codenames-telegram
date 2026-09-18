@@ -124,7 +124,10 @@ export async function submitHint(
   );
 
   if (!updatedGame) {
-    throw new GameCommandError("Unable to update game hint.", 500);
+    throw new GameCommandError(
+      "The game changed before your hint was saved. Please refresh and try again.",
+      409,
+    );
   }
 
   return { game: updatedGame, room };
@@ -132,7 +135,6 @@ export async function submitHint(
 
 export async function selectCard(
   command: SelectCardCommand,
-  retryCount = 0,
 ): Promise<GameCommandResult> {
   const game = await gameRepository.findById(command.gameId);
   if (!game) {
@@ -182,10 +184,10 @@ export async function selectCard(
   );
 
   if (!updatedGame) {
-    if (retryCount < 1) {
-      return selectCard(command, retryCount + 1);
-    }
-    throw new GameCommandError("Unable to update selection.", 500);
+    throw new GameCommandError(
+      "The game changed before your selection was saved. Please refresh and try again.",
+      409,
+    );
   }
 
   return { game: updatedGame, room };
@@ -260,7 +262,10 @@ export async function passTurn(
   );
 
   if (!updatedGame) {
-    throw new GameCommandError("Unable to pass turn.", 500);
+    throw new GameCommandError(
+      "The game changed before your pass was saved. Please refresh and try again.",
+      409,
+    );
   }
 
   return { game: updatedGame, room };

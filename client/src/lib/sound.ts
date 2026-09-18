@@ -199,3 +199,20 @@ export function playActionSound(
     offset += duration + 0.018;
   }
 }
+
+export function speakRevealedWord(word: string, theme: SoundTheme = "classic") {
+  if (!isSoundEnabled() || typeof window === "undefined" || !word.trim()) {
+    return;
+  }
+
+  const speech = window.speechSynthesis;
+  if (!speech) return;
+
+  speech.cancel();
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = theme === "persian" ? "fa-IR" : "en-US";
+  utterance.rate = 0.82;
+  utterance.pitch = 0.92;
+  utterance.volume = 0.85;
+  speech.speak(utterance);
+}

@@ -84,6 +84,7 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
   const originalFindOne = (
     UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
   ).findOne;
+  const originalFind = UserModel.find;
   const emitted: Array<{ event: string; payload: unknown }> = [];
   const handlers = new Map<string, (payload: unknown) => Promise<void>>();
 
@@ -111,6 +112,9 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
     _id: { toString: () => "user-2" },
     telegramId: 2,
   });
+  (UserModel as unknown as { find: typeof UserModel.find }).find = (() => ({
+    select: () => ({ exec: async () => [] }),
+  })) as unknown as typeof UserModel.find;
 
   registerRoomSocketHandlers(io, socket);
 
@@ -134,6 +138,7 @@ test("registerRoomSocketHandlers handles duplicate room joins without crashing",
   (
     UserModel as unknown as { findOne: (query: unknown) => Promise<unknown> }
   ).findOne = originalFindOne;
+  UserModel.find = originalFind;
 });
 
 test("registerRoomSocketHandlers persists a valid hint without a duplicate event", async () => {
@@ -489,7 +494,7 @@ test("registerRoomSocketHandlers completes selection confirmation and reveal", a
   assert.equal(game.selectedCardId, null);
 
   const stateEvents = emitted.filter((event) => event.event === "game:state");
-  assert.equal(stateEvents.length, 2);
+  assert.equal(stateEvents.length, 8);
   const selectionEvents = emitted.filter(
     (event) => event.event === "game:selection",
   );

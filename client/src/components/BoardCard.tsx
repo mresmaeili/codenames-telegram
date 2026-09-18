@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import type { CardColor } from "@/../shared/src/types/game";
 import type { Room } from "@/../shared/src/types/room";
 import type { GameTheme } from "@/../shared/src/types/theme";
 import { avatarUrlForPlayerInTheme } from "@/lib/avatar";
+import { speakRevealedWord } from "@/lib/sound";
 
 interface BoardCardProps {
   word: string;
@@ -59,18 +61,67 @@ export function BoardCard({
   revealAsset = null,
 }: BoardCardProps) {
   const isFlipped = Boolean(revealedColor);
-  const hiddenWord =
-    (hideWord && !showRevealedWord) ||
-    (Boolean(revealedColor) && !showRevealedWord);
+  const [displayedRevealColor, setDisplayedRevealColor] =
+    useState<CardColor | null>(revealedColor);
+  const wasFlippedRef = useRef(isFlipped);
+  const mountedRef = useRef(false);
+  const revealColorTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!wasFlippedRef.current && isFlipped) {
+      speakRevealedWord(word, theme);
+    }
+    wasFlippedRef.current = isFlipped;
+  }, [isFlipped, theme, word]);
+
+  useEffect(() => {
+    if (revealColorTimerRef.current !== null) {
+      window.clearTimeout(revealColorTimerRef.current);
+      revealColorTimerRef.current = null;
+    }
+
+    if (!revealedColor) {
+      setDisplayedRevealColor(null);
+      mountedRef.current = true;
+      return;
+    }
+
+    if (!mountedRef.current) {
+      setDisplayedRevealColor(revealedColor);
+      mountedRef.current = true;
+      return;
+    }
+
+    setDisplayedRevealColor(null);
+    revealColorTimerRef.current = window.setTimeout(() => {
+      setDisplayedRevealColor(revealedColor);
+      revealColorTimerRef.current = null;
+    }, 1320);
+
+    return () => {
+      if (revealColorTimerRef.current !== null) {
+        window.clearTimeout(revealColorTimerRef.current);
+        revealColorTimerRef.current = null;
+      }
+    };
+  }, [revealedColor]);
+  const hiddenWord = hideWord && !showRevealedWord;
   const outerClasses: string[] = [
     "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3),0_5px_10px_rgba(0,0,0,0.24)]",
   ];
   if (disabled) outerClasses.push("opacity-60 pointer-events-none");
 
-  const revealedStyles = revealedColor ? tileStyles[revealedColor] : null;
+  const revealedStyles = displayedRevealColor
+    ? tileStyles[displayedRevealColor]
+    : null;
   const tileColor = revealedStyles?.tile ?? "border-[#e8b98c] bg-[#f8cda8]";
   const labelColor = revealedStyles?.label ?? "";
   const overlayColor = revealedStyles?.overlay ?? "";
+  const stackOverlayAnimation =
+    revealedColor === "blue"
+      ? "animate-stack-card-overlay-blue"
+      : revealedColor === "red"
+        ? "animate-stack-card-overlay-red"
+        : "animate-character-reveal";
   const wordLengthClass =
     word.length >= 14
       ? "text-[clamp(0.48rem,1.8vw,0.72rem)]"
@@ -82,9 +133,26 @@ export function BoardCard({
 
   return (
     <div
-      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-flip-card" : ""} transform-gpu transition duration-200 ease-out`}
+      className={`game-card-surface game-card-theme-${theme ?? "classic"} relative flex aspect-square items-center justify-center rounded-[7px] border ${tileColor} ${outerClasses.join(" ")} ${isFlipped ? "animate-reveal-card" : ""} transform-gpu transition duration-200 ease-out`}
       data-revealed={revealedColor ? "true" : "false"}
     >
+      {displayedRevealColor === "blue" || displayedRevealColor === "red" ? (
+        <div
+          className={`game-card-splash game-card-splash-${displayedRevealColor}`}
+          aria-hidden="true"
+        >
+          {Array.from({ length: 12 }, (_, index) => (
+            <span
+              key={index}
+              style={
+                {
+                  "--splash-rotate": `${(index * 37) % 360}deg`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </div>
+      ) : null}
       <div className="game-card-shell">
         {selectedPlayers.length > 0 ? (
           <div className="absolute left-1 top-1 z-10 flex max-w-[calc(100%-0.5rem)] items-center">
@@ -133,7 +201,7 @@ export function BoardCard({
       {revealAsset ? (
         <div
           key={revealAnimationKey}
-          className={`game-card-character-layer game-card-character-layer-textured ${overlayColor} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : "animate-character-reveal"}`}
+          className={`game-card-character-layer game-card-character-layer-textured ${overlayColor} ${theme ? `game-card-character-layer-theme-${theme}` : ""} ${theme === "persian" ? "game-card-character-layer-persian" : ""} ${showRevealedWord ? "game-card-character-layer-open animate-character-open" : revealAnimationDirection === "close" ? "animate-character-close" : stackOverlayAnimation}`}
           aria-hidden="true"
         >
           <img

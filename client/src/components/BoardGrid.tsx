@@ -153,10 +153,7 @@ export function BoardGrid({
               : `Locked ${publicCard.word}`;
 
         return (
-          <div
-            key={`${publicCard.word}-${index}-${publicCard.revealed ? (publicCard.color ?? "neutral") : "hidden"}`}
-            className="relative"
-          >
+          <div key={`${publicCard.word}-${index}`} className="relative">
             <button
               type="button"
               aria-label={ariaLabel}
@@ -218,7 +215,7 @@ export function BoardGrid({
                   playActionSound("confirm", theme);
                   onConfirmCard?.(index);
                 }}
-                className="game-card-confirm-button absolute -right-1 -top-2 z-10 flex h-8 w-8 touch-manipulation items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-gradient-to-b from-[#74e84d] to-[#2db814] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-90"
+                className="game-card-confirm-button absolute -right-1 -top-2 z-10 flex h-8 w-8 touch-manipulation items-center justify-center rounded-full border-2 border-[#b8ff8e] bg-linear-to-b from-[#74e84d] to-[#2db814] shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_3px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 hover:scale-110 active:scale-90"
               >
                 <img
                   src={touchCardIcon}

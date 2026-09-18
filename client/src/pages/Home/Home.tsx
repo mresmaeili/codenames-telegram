@@ -503,7 +503,7 @@ export function HomePage() {
                         photoUrl: user.photoUrl,
                       })}
                       alt={user.firstName}
-                      className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover shadow-[0_2px_5px_rgba(63,48,35,0.22)]"
+                      className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover object-top shadow-[0_2px_5px_rgba(63,48,35,0.22)]"
                     />
                     <span
                       aria-label="Online"

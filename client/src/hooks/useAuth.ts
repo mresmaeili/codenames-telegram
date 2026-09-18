@@ -11,6 +11,8 @@ import {
 } from "@/lib/telegram";
 import { disconnectSocketClient, setSocketAuth } from "@/socket/client";
 import { debugLog } from "@/lib/debug";
+import { setAuthError, setAuthLoading, setAuthUser } from "@/state/appActions";
+import { useAppStateDispatch } from "@/state/AppStateContext";
 
 function getFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -176,6 +178,7 @@ function getGuestId(): string {
 }
 
 export function useAuth() {
+  const dispatch = useAppStateDispatch();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
@@ -184,6 +187,9 @@ export function useAuth() {
 
   async function loginWithGuest(displayName: string, avatarId?: string) {
     setAuthState({ user: null, loading: true, error: null });
+    dispatch(setAuthLoading(true));
+    dispatch(setAuthUser(null));
+    dispatch(setAuthError(null));
     try {
       const session = await authenticateGuestWithServer(
         displayName,
@@ -199,12 +205,19 @@ export function useAuth() {
         telegramId: session.user.telegramId,
       });
       setAuthState({ user: session.user, loading: false, error: null });
+      dispatch(setAuthUser(session.user));
+      dispatch(setAuthLoading(false));
+      dispatch(setAuthError(null));
     } catch (error) {
+      const message = getFriendlyErrorMessage(error);
       setAuthState({
         user: null,
         loading: false,
-        error: getFriendlyErrorMessage(error),
+        error: message,
       });
+      dispatch(setAuthUser(null));
+      dispatch(setAuthLoading(false));
+      dispatch(setAuthError(message));
     }
   }
 
@@ -215,22 +228,35 @@ export function useAuth() {
     } catch {
       // ignored in restricted browser contexts
     }
+    dispatch(setAuthUser(null));
+    dispatch(setAuthLoading(false));
+    dispatch(setAuthError(null));
     disconnectSocketClient();
     window.location.reload();
   }
 
   async function loginWithTelegramWidget(data: TelegramWidgetAuthData) {
     setAuthState({ user: null, loading: true, error: null });
+    dispatch(setAuthLoading(true));
+    dispatch(setAuthUser(null));
+    dispatch(setAuthError(null));
     try {
       const user = await authenticateWidgetWithServer(data);
       setSocketAuth({ widgetData: data, telegramId: user.telegramId });
       setAuthState({ user, loading: false, error: null });
+      dispatch(setAuthUser(user));
+      dispatch(setAuthLoading(false));
+      dispatch(setAuthError(null));
     } catch (error) {
+      const message = getFriendlyErrorMessage(error);
       setAuthState({
         user: null,
         loading: false,
-        error: getFriendlyErrorMessage(error),
+        error: message,
       });
+      dispatch(setAuthUser(null));
+      dispatch(setAuthLoading(false));
+      dispatch(setAuthError(message));
     }
   }
 
@@ -244,6 +270,9 @@ export function useAuth() {
           loading: false,
           error: null,
         });
+        dispatch(setAuthUser(devUser));
+        dispatch(setAuthLoading(false));
+        dispatch(setAuthError(null));
 
         return;
       }
@@ -269,6 +298,9 @@ export function useAuth() {
                 telegramId: session.user.telegramId,
               });
               setAuthState({ user: session.user, loading: false, error: null });
+              dispatch(setAuthUser(session.user));
+              dispatch(setAuthLoading(false));
+              dispatch(setAuthError(null));
               return;
             }
           }
@@ -281,6 +313,9 @@ export function useAuth() {
           loading: false,
           error: null,
         });
+        dispatch(setAuthUser(null));
+        dispatch(setAuthLoading(false));
+        dispatch(setAuthError(null));
         return;
       }
 
@@ -336,6 +371,13 @@ export function useAuth() {
           error:
             "Unable to read your Telegram session. Please reopen the Mini App.",
         });
+        dispatch(setAuthUser(null));
+        dispatch(setAuthLoading(false));
+        dispatch(
+          setAuthError(
+            "Unable to read your Telegram session. Please reopen the Mini App.",
+          ),
+        );
         return;
       }
 
@@ -343,10 +385,16 @@ export function useAuth() {
         try {
           const user = await authRequestPromise;
           setAuthState({ user, loading: false, error: null });
+          dispatch(setAuthUser(user));
+          dispatch(setAuthLoading(false));
+          dispatch(setAuthError(null));
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Authentication failed.";
           setAuthState({ user: null, loading: false, error: message });
+          dispatch(setAuthUser(null));
+          dispatch(setAuthLoading(false));
+          dispatch(setAuthError(message));
         }
         return;
       }
@@ -354,12 +402,18 @@ export function useAuth() {
       authRequestPromise = authenticateWithServer(initData)
         .then((user) => {
           setAuthState({ user, loading: false, error: null });
+          dispatch(setAuthUser(user));
+          dispatch(setAuthLoading(false));
+          dispatch(setAuthError(null));
           return user;
         })
         .catch((error) => {
           const message =
             error instanceof Error ? error.message : "Authentication failed.";
           setAuthState({ user: null, loading: false, error: message });
+          dispatch(setAuthUser(null));
+          dispatch(setAuthLoading(false));
+          dispatch(setAuthError(message));
           throw error;
         });
 
